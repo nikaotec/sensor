@@ -202,8 +202,8 @@
 
             const hora = linha.HORA ?? '';
             const atual = linha["TEMP."] ?? linha.TEMP ?? '';
-            const max = linha.MAX ?? linha.MAXIMA ?? '';
-            const min = linha.MIN ?? linha.MINIMA ?? '';
+            const max = linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? linha.TEMPMAX ?? linha['TEMP MAX'] ?? linha['TEMP_MAX'] ?? '' ;
+            const min = linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '' ;
             const obs = linha.OBS ?? linha.OBSERVACAO ?? '';
             const hour = toHour(hora);
 
