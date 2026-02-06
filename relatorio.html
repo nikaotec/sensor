@@ -148,9 +148,9 @@
     </tr>
     <tr>
       <td class="label">Ano</td>
-      <td class="value">{{ (new Date()).getFullYear() }}</td>
+      <td class="value">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { return parts[2]; } } return (new Date()).getFullYear(); })() }}</td>
       <td class="label">Mês</td>
-      <td class="value">{{ (new Date()).toLocaleString('pt-BR', { month: 'long' }) }}</td>
+      <td class="value">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { const dt = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])); return dt.toLocaleString('pt-BR', { month: 'long' }); } } return (new Date()).toLocaleString('pt-BR', { month: 'long' }); })() }}</td>
       <td class="label">Marca da geladeira ou freezer</td>
       <td class="value">{{ $json.relatorio?.[0]?.DISPOSITIVO ?? '__________________________' }}</td>
     </tr>
