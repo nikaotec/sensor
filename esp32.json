@@ -1,0 +1,684 @@
+{
+  "name": "esp32",
+  "nodes": [
+    {
+      "parameters": {
+        "topics": "esp32c3/data",
+        "options": {
+          "jsonParseBody": true,
+          "onlyMessage": true
+        }
+      },
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [
+        80,
+        336
+      ],
+      "id": "4e2f0521-c549-4fce-9c44-f0e89a511b64",
+      "name": "MQTT Trigger",
+      "credentials": {
+        "mqtt": {
+          "id": "BHuPlzoyNhQIduWz",
+          "name": "MQTT account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dc0ca98f-1d6d-4dbd-ad83-eedb7b235e5b",
+              "name": "'0'].devic",
+              "value": "={{ $json['0'].device }}",
+              "type": "string"
+            },
+            {
+              "id": "bafc55d8-c929-46d1-a195-c5fafdb3f7b3",
+              "name": "'0'].temperatur",
+              "value": "={{ $json['0'].temperatura }}",
+              "type": "number"
+            },
+            {
+              "id": "4e647ab4-ee2b-48a7-a730-15c39b8fa35a",
+              "name": "'0'].rel",
+              "value": "={{ $json['0'].rele }}",
+              "type": "string"
+            },
+            {
+              "id": "5e8d933f-f7f4-4005-a69d-ae9ded7730db",
+              "name": "'0'].hor",
+              "value": "={{ $json['0'].hora }}",
+              "type": "string"
+            },
+            {
+              "id": "a1d8b7c4-0df9-4171-bb3c-521260ab5308",
+              "name": "'0'].dat",
+              "value": "={{ $json['0'].data }}",
+              "type": "string"
+            },
+            {
+              "id": "6a269ce2-bf99-4198-bd20-2bb8251b4c6c",
+              "name": "'0'].msg",
+              "value": "=Dispositivo: {{ $json['0'].device }}\nTemperature: {{ $json['0'].temperatura }}\nRele: {{ $json['0'].rele }}\nData: {{ $json['0'].data }}\nHora: {{ $json['0'].hora }}",
+              "type": "string"
+            },
+            {
+              "id": "5ea428bd-5b17-41b6-9585-3e9edfaec822",
+              "name": "numeros",
+              "value": "[{ \"phone\": \"5581995981890\" }, { \"phone\": \"5581996678501\" }]",
+              "type": "array"
+            },
+            {
+              "id": "161d6c23-80e9-43ae-adab-ea4985f937cb",
+              "name": "0].event",
+              "value": "={{ $json[0].evento }}",
+              "type": "string"
+            },
+            {
+              "id": "aec8b278-af27-427e-b70d-68d54f60c001",
+              "name": "0].mod",
+              "value": "={{ $json[0].modo }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        256,
+        336
+      ],
+      "id": "680de25a-c883-4561-8adc-b397a51d9b7d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "5581995981890",
+        "messageText": "={{ $json.msg }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        336
+      ],
+      "id": "e898a1e5-5323-41f7-999a-0cd34e083660",
+      "name": "Enviar texto",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1168,
+        336
+      ],
+      "id": "7b6e4e2a-5d3b-43c3-9855-8b4c5f1bb0d5",
+      "name": "Wait",
+      "webhookId": "a07f83fa-9ef3-4fb6-9dce-fb47fd6b95bb"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "5581997070639",
+        "messageText": "={{ $json.data.message.conversation }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        544
+      ],
+      "id": "19a4faf0-d5a0-429f-8f28-b6e38d6ef319",
+      "name": "Enviar texto1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json[\"0\"].event }}",
+                    "rightValue": "=comando_desligar_sucesso",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "28ceeb7a-7fa9-4b73-86ea-5ca7c32f4bcb"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "1dcab170-1d89-471c-a605-36e619bf0c84",
+                    "leftValue": "={{ $json[\"0\"].event }}",
+                    "rightValue": "periodico",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4e481fc8-9848-44eb-abf9-495384b54ba2",
+                    "leftValue": "={{ $json[\"0\"].event }}",
+                    "rightValue": "comando_ligar_sucesso",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "bada2f52-d36b-4d90-9168-a9243bf4dba3",
+                    "leftValue": "={{ $json[\"0\"].event }}",
+                    "rightValue": "limites_alterados",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "0b740cda-c2c6-4c1e-aa0b-0047e56d83a0",
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        288
+      ],
+      "id": "f51ad1af-af96-4c33-a35f-44053fe94626",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
+              "name": "msg",
+              "value": "={{ $json[\"'0'\"].msg }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        16
+      ],
+      "id": "caf2ffa0-8912-4a20-9ed6-763bf0976b00",
+      "name": "rele desligado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
+              "name": "msg",
+              "value": "={{ $json[\"'0'\"].msg }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        176
+      ],
+      "id": "e9f7d4e5-16f4-47d8-b281-cd4de6db03b2",
+      "name": "periodico"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
+              "name": "msg",
+              "value": "={{ $json[\"'0'\"].msg }} O disositivo esta em modo: {{ $json[\"0\"].mod }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        672
+      ],
+      "id": "0a874c78-b93f-4be4-a089-2679f63a08d9",
+      "name": "modo_automatico_ligado"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
+              "name": "msg",
+              "value": "={{ $json[\"'0'\"].msg }} O disositivo esta em modo: {{ $json[\"0\"].mod }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        496
+      ],
+      "id": "b31a8f5b-24aa-4b3c-a40b-6189a0b2c5cc",
+      "name": "limites_alterados"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
+              "name": "msg",
+              "value": "={{ $json[\"'0'\"].msg }} O disositivo esta em modo: {{ $json[\"0\"].mod }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        720,
+        336
+      ],
+      "id": "ed49ef5e-b857-410e-827b-3c10483ed3d3",
+      "name": "lifado_sucesso"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
+          "mode": "list",
+          "cachedResultName": "Temperaturas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Página1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "HORA": "={{ $('MQTT Trigger').item.json['0'].hora }}",
+            "DATA": "={{ $('MQTT Trigger').item.json['0'].data }}",
+            "TIPO": "={{ $('MQTT Trigger').item.json['0'].evento }}",
+            "DISPOSITIVO": "={{ $('MQTT Trigger').item.json['0'].device }}",
+            "RELE": "={{ $('MQTT Trigger').item.json['0'].rele }}",
+            "MODO": "={{ $('MQTT Trigger').item.json['0'].modo }}",
+            "TEMP.": "={{ $('MQTT Trigger').item.json['0'].temperatura }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "DISPOSITIVO",
+              "displayName": "DISPOSITIVO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DATA",
+              "displayName": "DATA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "HORA",
+              "displayName": "HORA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "TEMP.",
+              "displayName": "TEMP.",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "TIPO",
+              "displayName": "TIPO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "RELE",
+              "displayName": "RELE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "MODO",
+              "displayName": "MODO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1328,
+        336
+      ],
+      "id": "c028d980-bd41-462f-8801-12112805de42",
+      "name": "salva temperatura",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "MQTT Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar texto": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "salva temperatura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "rele desligado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "periodico",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "lifado_sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "limites_alterados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "modo_automatico_ligado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "rele desligado": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "periodico": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "modo_automatico_ligado": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "limites_alterados": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "lifado_sucesso": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "salva temperatura": {
+      "main": [
+        []
+      ]
+    },
+    "Enviar texto1": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "dbf1d448-ac60-4fea-8271-589e45e1bba4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "be63eec592610c4f78e7b17a812f5d022e962bcad508e6c20e665203393891ed"
+  },
+  "id": "YGf8O2rGuqGCYpfdjsXX-",
+  "tags": []
+}

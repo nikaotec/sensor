@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ata para Controle Diário de Temperatura</title>
+  <style>
+    :root {
+      --border: #000;
+      --thin: 1px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 11px;
+      color: #000;
+      margin: 18px;
+    }
+
+    .line {
+      border-top: var(--thin) solid var(--border);
+      margin: 8px 0;
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0 8px;
+    }
+
+    .header .left,
+    .header .right {
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .header .center {
+      text-align: center;
+      font-style: italic;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .title {
+      font-weight: bold;
+      text-transform: uppercase;
+      margin: 6px 0 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      page-break-inside: auto;
+    }
+
+    th, td {
+      border: var(--thin) solid var(--border);
+      padding: 3px 4px;
+      vertical-align: middle;
+    }
+
+    th {
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 9px;
+      text-align: center;
+    }
+
+    .meta th,
+    .meta td {
+      font-size: 10px;
+    }
+
+    .meta .label {
+      width: 90px;
+      text-transform: uppercase;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    .meta .value {
+      height: 18px;
+      font-weight: normal;
+      text-transform: none;
+    }
+
+    .subhead th {
+      background: #f7f7f7;
+    }
+
+    .group {
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .obs {
+      width: 16%;
+    }
+
+    .footer-box {
+      margin-top: 10px;
+      width: 55%;
+    }
+
+    .footer-box td {
+      height: 16px;
+      font-size: 10px;
+    }
+
+    @page {
+      size: A4;
+      margin: 15mm;
+    }
+
+    @media print {
+      body {
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="line"></div>
+
+  <div class="header">
+    <div class="left">Secretaria de Saúde</div>
+    <div class="center">Pernambuco</div>
+    <div class="right">Governo do Estado</div>
+  </div>
+
+  <div class="line"></div>
+
+  <div class="title">Ata para controle diário de temperatura</div>
+
+  <table class="meta">
+    <tr>
+      <td class="label">Estado</td>
+      <td class="value">Pernambuco</td>
+      <td class="label">Município</td>
+      <td class="value">__________________________</td>
+      <td class="label">Unidade Sanitária III GIRES</td>
+      <td class="value">__________________________</td>
+    </tr>
+    <tr>
+      <td class="label">Ano</td>
+      <td class="value">{{ (new Date()).getFullYear() }}</td>
+      <td class="label">Mês</td>
+      <td class="value">{{ (new Date()).toLocaleString('pt-BR', { month: 'long' }) }}</td>
+      <td class="label">Marca da geladeira ou freezer</td>
+      <td class="value">{{ $json.relatorio?.[0]?.DISPOSITIVO ?? '__________________________' }}</td>
+    </tr>
+  </table>
+
+  <table>
+    <thead>
+      <tr>
+        <th rowspan="2">Dia</th>
+        <th class="group" colspan="5">Manhã</th>
+        <th class="group" colspan="5">Tarde</th>
+        <th class="obs" rowspan="2">Observação</th>
+      </tr>
+      <tr class="subhead">
+        <th>Hora</th>
+        <th>Máx</th>
+        <th>Mín</th>
+        <th>Atual</th>
+        <th>Rubrica</th>
+        <th>Hora</th>
+        <th>Máx</th>
+        <th>Mín</th>
+        <th>Atual</th>
+        <th>Rubrica</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{
+        (() => {
+          const toHour = (h) => {
+            if (!h) return null;
+            const m = String(h).match(/(\d{1,2})(?::(\d{2}))?/);
+            if (!m) return null;
+            return Number(m[1]);
+          };
+
+          const rowsByDay = {};
+
+          for (const linha of $json.relatorio || []) {
+            const dia = (linha.DATA || '').split('/')[0] || '';
+            if (!rowsByDay[dia]) {
+              rowsByDay[dia] = {
+                dia,
+                manha: { hora: '', max: '', min: '', atual: '', rubrica: '' },
+                tarde: { hora: '', max: '', min: '', atual: '', rubrica: '' },
+                obs: ''
+              };
+            }
+
+            const hora = linha.HORA ?? '';
+            const atual = linha["TEMP."] ?? linha.TEMP ?? '';
+            const max = linha.MAX ?? linha.MAXIMA ?? '';
+            const min = linha.MIN ?? linha.MINIMA ?? '';
+            const obs = linha.OBS ?? linha.OBSERVACAO ?? '';
+            const hour = toHour(hora);
+
+            const slot = hour !== null && hour >= 12 ? rowsByDay[dia].tarde : rowsByDay[dia].manha;
+            if (!slot.hora) slot.hora = hora;
+            if (!slot.max) slot.max = max;
+            if (!slot.min) slot.min = min;
+            if (!slot.atual) slot.atual = atual;
+            if (!slot.rubrica) slot.rubrica = linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '';
+            if (!rowsByDay[dia].obs) rowsByDay[dia].obs = obs;
+          }
+
+          return Object.values(rowsByDay)
+            .map(r => `
+              <tr>
+                <td style="text-align:center;">${r.dia}</td>
+                <td>${r.manha.hora}</td>
+                <td>${r.manha.max}</td>
+                <td>${r.manha.min}</td>
+                <td>${r.manha.atual}</td>
+                <td>${r.manha.rubrica}</td>
+                <td>${r.tarde.hora}</td>
+                <td>${r.tarde.max}</td>
+                <td>${r.tarde.min}</td>
+                <td>${r.tarde.atual}</td>
+                <td>${r.tarde.rubrica}</td>
+                <td>${r.obs}</td>
+              </tr>
+            `)
+            .join('');
+        })()
+      }}
+    </tbody>
+  </table>
+
+  <table class="footer-box">
+    <tr>
+      <td style="width: 30%;">Hora da falha</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Temp. no momento da falha</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Dias parados por falha</td>
+      <td></td>
+    </tr>
+  </table>
+</body>
+</html>

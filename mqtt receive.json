@@ -1,0 +1,841 @@
+{
+  "name": "mqtt receive",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "esp32",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -256,
+        -128
+      ],
+      "id": "055c82bb-37ed-4ea0-9684-2474eadde7aa",
+      "name": "Webhook",
+      "webhookId": "779ca9f1-da45-4b93-a744-876dc834aafb"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f6ef7d79-1613-4138-8942-0880afd426df",
+              "name": "body.data.key.fromMe",
+              "value": "={{ $json.body.data.key.fromMe }}",
+              "type": "boolean"
+            },
+            {
+              "id": "7b9ae23a-9797-42d3-87b7-2fbbd3637f43",
+              "name": "body.data.key.id",
+              "value": "={{ $json.body.data.key.id }}",
+              "type": "string"
+            },
+            {
+              "id": "30cdbaa7-e6f7-456e-8c06-9c9cd84f681f",
+              "name": "body.data.key.participant",
+              "value": "={{ $json.body.data.key.participant }}",
+              "type": "string"
+            },
+            {
+              "id": "35c0bf37-ff94-4b00-89cf-6b185f0201d9",
+              "name": "body.data.pushName",
+              "value": "={{ $json.body.data.pushName }}",
+              "type": "string"
+            },
+            {
+              "id": "e54dd26c-7e15-4d32-ade3-7ac1664cf900",
+              "name": "body.data.message.conversation",
+              "value": "={{ $json.body.data.message.conversation }}",
+              "type": "string"
+            },
+            {
+              "id": "3ec08920-4d6a-4058-b779-43eb3c8690af",
+              "name": "body.data.source",
+              "value": "={{ $json.body.data.source }}",
+              "type": "string"
+            },
+            {
+              "id": "7cd64fa4-81b3-463f-90a2-c3d4a90a2744",
+              "name": "body.data.key.remoteJid",
+              "value": "={{ $json.body.data.key.remoteJid }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -64,
+        -128
+      ],
+      "id": "7d0af0bf-40da-4cb6-a6c3-5ccb6069176c",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b47f232e-2326-4506-8257-2ce21454260d",
+              "leftValue": "={{ $json.body.data.key.fromMe }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "8e110a5d-16c4-4394-bdc5-665c3b70fc85",
+              "leftValue": "={{ $json.body.data.key.participant }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "f2e3937e-8fc4-4a8b-9934-33b8ad4b3d77",
+              "leftValue": "={{ $json.body.data.message.conversation }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        144,
+        -128
+      ],
+      "id": "5f068826-df88-4499-996f-28d6eb6fe5cf",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        592,
+        496
+      ],
+      "id": "973f3890-f689-400e-bbb1-547bb9628706",
+      "name": "No Operation, do nothing"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um tradutor de intenções para um sistema de automação ESP32.\nSua tarefa: Analisar a mensagem do usuário e retornar APENAS um JSON compatível com o código do dispositivo.\n\n---\nMENSAGEM DO USUÁRIO: {{ $json.body.data.message.conversation }}\n---\n\nINTENÇÕES E COMANDOS SUPORTADOS:\n\n1. ligar_rele: (ligar, ativar, on)\n2. desligar_rele: (desligar, desativar, off)\n3. configurar_limites: (configurar, ajustar, definir, setar, limite, temperatura)\n   - IMPORTANTE: Extraia números para \"valor_max\" (máximo/teto) e \"valor_min\" (mínimo/piso).\n4. ativar_automatico: (automático, auto, sair do manual)\n5. obter_status_atual: (status, temperatura agora, como está)\n6. consultar_relatorio: (relatório, histórico, dados de hoje, planilha)\n\n---\nFORMATO DE SAÍDA OBRIGATÓRIO (JSON):\n\n{\n  \"intencao\": \"<nome_da_intencao>\",\n  \"valor_max\": <numero_ou_null>,\n  \"valor_min\": <numero_ou_null>,\n  \"requer_dados\": <true|false>,\n  \"fonte_dados\": <\"google_sheets\"|\"mqtt\"|null>,\n  \"parametros\": {\n    \"solicitacao_original\": \"<MENSAGEM_EXATA_DO_USUARIO>\",\n    \"detalhe\": \"<periodo_ou_texto_extraido>\"\n  }\n}\n\nREGRAS DE EXTRAÇÃO DE LIMITES:\n- Se o usuário disser \"ajuste o máximo para 35\", envie: \"intencao\": \"configurar_limites\", \"valor_max\": 35.0, \"valor_min\": null.\n- Se o usuário disser \"mude o mínimo para 20\", envie: \"intencao\": \"configurar_limites\", \"valor_max\": null, \"valor_min\": 20.0.\n- Se o usuário disser \"limites entre 20 e 30\", envie: \"intencao\": \"configurar_limites\", \"valor_max\": 30.0, \"valor_min\": 20.0.\n\nMAPEAMENTO DE DADOS:\n- consultar_relatorio: requer_dados: true, fonte_dados: \"google_sheets\"\n- obter_status_atual: requer_dados: true, fonte_dados: \"mqtt\"\n- Outros: requer_dados: false, fonte_dados: null\n",
+        "options": {
+          "systemMessage": "You are a helpful assistant"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        416,
+        -144
+      ],
+      "id": "8321d7f4-5f2b-4024-9a17-3d7e58b59f7d",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        416,
+        48
+      ],
+      "id": "029c8e6d-84fa-4205-8e0f-e448383a492c",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "XMVmk3hYpFTHTSyt",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "501a11bc-7030-4a0d-b575-889f6f218d23",
+              "name": "intencao",
+              "value": "={{ $json.intencao }}",
+              "type": "string"
+            },
+            {
+              "id": "924d3022-2a45-4623-bcef-145cbb88d8b3",
+              "name": "valor_max",
+              "value": "={{ $json.valor_max }}",
+              "type": "number"
+            },
+            {
+              "id": "e1f170a1-1c6d-4e90-80b9-88cfdfe08c24",
+              "name": "valor_min",
+              "value": "={{ $json.valor_min }}",
+              "type": "number"
+            },
+            {
+              "id": "df466802-03bf-4947-b282-534bc31871be",
+              "name": "requer_dados",
+              "value": "={{ $json.requer_dados }}",
+              "type": "boolean"
+            },
+            {
+              "id": "5693f6b2-ea34-4b89-ab84-36b52140ffa8",
+              "name": "fonte_dados",
+              "value": "={{ $json.fonte_dados }}",
+              "type": "string"
+            },
+            {
+              "id": "5c9db55a-09fe-473e-9322-abfa194632e4",
+              "name": "parametros",
+              "value": "={{ $json.parametros }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1216,
+        -48
+      ],
+      "id": "9276e6f7-b0ee-4df7-a7da-0d7143b597ad",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c4036611-a886-455a-a82d-fcb1d5937801",
+              "leftValue": "={{ $json.intencao }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1376,
+        -48
+      ],
+      "id": "a38de2cf-fc01-44bd-abf7-f33d142ce38d",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "topic": "esp32c3/status/action",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        -64
+      ],
+      "id": "edbe2df2-1779-4edb-9e97-73adc19a94c7",
+      "name": "MQTT",
+      "credentials": {
+        "mqtt": {
+          "id": "BHuPlzoyNhQIduWz",
+          "name": "MQTT account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "eebcb8d0-26b2-4b99-9380-20fb9fe9dab5",
+              "leftValue": "={{ $json.intencao }}",
+              "rightValue": "consultar_relatorio",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        992,
+        -144
+      ],
+      "id": "d34d4216-65a4-4273-99e0-454400102f0d",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados = JSON.parse($input.item.json.output);\n\nreturn [\n  {\n    json: {\n      intencao: dados.intencao ? dados.intencao.trim() : null,\n      valor_max: dados.valor_max, \n      valor_min: dados.valor_min, \n      requer_dados: dados.requer_dados,\n      fonte_dados: dados.fonte_dados,\n      parametros: {\n        solicitacao_original: dados.parametros.solicitacao_original,\n        detalhe: dados.parametros.detalhe\n      }\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        -144
+      ],
+      "id": "a491dbdd-5d07-4547-b6fa-58ba5699092d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n    const outputRaw = $input.first().json.intencao;\n\n    if (!outputRaw) {\n        return { error: \"Campo 'intencao' não encontrado ou vazio\" };\n    }\n\n    let dados;\n\n    // CASO 1: já é um objeto\n    if (typeof outputRaw === 'object') {\n        dados = outputRaw;\n    }\n\n    // CASO 2: string simples → tratar como intenção direta\n    else if (typeof outputRaw === 'string') {\n        dados = {\n            intencao: outputRaw\n        };\n    }\n\n    else {\n        return { error: \"Formato inesperado no campo 'intencao'\" };\n    }\n\n    // Resposta normalizada\n    let resposta = {\n        intencao: dados.intencao || \"nenhuma_intencao\",\n        requer_dados: dados.requer_dados ?? false,\n        fonte_dados: dados.fonte_dados ?? null,\n        parametros: dados.parametros ?? {}\n    };\n\n    if (dados.valor_max !== undefined && dados.valor_max !== null) {\n        resposta.valor_max = parseFloat(dados.valor_max);\n    }\n\n    if (dados.valor_min !== undefined && dados.valor_min !== null) {\n        resposta.valor_min = parseFloat(dados.valor_min);\n    }\n\n    return resposta;\n\n} catch (e) {\n    return {\n        error: \"Erro ao processar o campo 'intencao'\",\n        detalhe: e.message\n    };\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        -64
+      ],
+      "id": "518eca92-63a7-4ff2-b548-ef56b849e423",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
+          "mode": "list",
+          "cachedResultName": "Temperaturas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Página1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1760,
+        -496
+      ],
+      "id": "ea50e059-a7b6-46d7-8be8-f30fd70690d2",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados =  JSON.parse($('AI Agent1').first().json.output);\nconst periodo = dados.periodo;\nconst valor = dados.valor;\n\n//const now = new Date();\nconst now = new Date(\n  new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })\n);\n\n// ===== Helpers =====\nconst pad = (n) => String(n).padStart(2, \"0\");\nconst formatDate = (d) => {\n  if (d instanceof Date && !isNaN(d)) {\n    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;\n  }\n  return null; // Retorna null se a data for inválida\n};\nconst formatTime = (d) =>\n  `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;\nconst cloneDate = (d) => new Date(d.getTime());\n\n// ===== Resultado =====\nlet result = {\n  dispositivo: null,\n  hora_inicio: null,\n  hora_fim: null,\n  data_inicio: null,\n  data_fim: null,\n};\n\n// ===== Switch determinístico =====\nswitch (periodo) {\n  case \"hoje\": {\n    const d = formatDate(now);\n    result.data_inicio = d;\n    result.data_fim = d;\n    break;\n  }\n  case \"ontem\": {\n    const d = cloneDate(now);\n    d.setDate(d.getDate() - 1);\n    const fd = formatDate(d);\n    result.data_inicio = fd;\n    result.data_fim = fd;\n    break;\n  }\n  case \"ultimas_24_horas\": {\n    const start = cloneDate(now);\n    start.setHours(start.getHours() - 24);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    result.hora_inicio = formatTime(start);\n    result.hora_fim = formatTime(now);\n    break;\n  }\n  case \"ultima_semana\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 7);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimo_mes\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 30);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimos_X_dias\": {\n    if (typeof valor === \"number\" && valor > 0) {\n      const start = cloneDate(now);\n      start.setDate(start.getDate() - valor);\n      result.data_inicio = formatDate(start);\n      result.data_fim = formatDate(now);\n    }\n    break;\n  }\n  case \"intervalo_datas\": {\n    // As datas já vêm formatadas como DD/MM/YYYY do classificador\n    if (dados.data_inicio) {\n      result.data_inicio = dados.data_inicio;\n    }\n    if (dados.data_fim) {\n      result.data_fim = dados.data_fim;\n    }\n    break;\n  }\n  case \"nenhum\":\n  default:\n    break;\n}\n\nreturn result;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        -496
+      ],
+      "id": "60eeab97-1954-4d75-94c0-f4a854cf88c7",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um classificador de intenção e período temporal.\nEntrada do usuário: {{ $json.parametros.solicitacao_original }}\nData atual: {{ $now.setZone('America/Sao_Paulo').format('dd/MM/yyyy HH:mm:ss') }}\nAnalise a mensagem do usuário e retorne:\n1) Intenção principal\n2) Período temporal NORMALIZADO\n\nNão calcule datas, não execute ações, não explique a resposta.\nRetorne APENAS JSON válido, sem texto extra e apenas um objeto.\n\nINTENÇÕES SUPORTADAS:\n- consultar_relatorio\n- nenhuma_intencao\n\nPERÍODOS SUPORTADOS:\n- hoje\n- ontem\n- ultimas_24_horas\n- ultima_semana\n- ultimo_mes\n- ultimos_X_dias\n- intervalo_datas\n- nenhum\n\nREGRAS:\n- O usuário pode escrever de qualquer forma (ex: \"24hs\", \"24 horas\", \"dia inteiro\", \"relatório do dia\").\n- Interprete semanticamente a intenção.\n- Normalize o período para UM dos valores suportados.\n- Se houver número explícito de dias, use \"ultimos_X_dias\" e informe o valor.\n- Se não houver referência temporal clara, use \"nenhum\".\n- Para 'intervalo_datas', se o mês ou ano não for especificado, considere o mês e/ou ano atual.\n\nFORMATO DE SAÍDA:\n{\n  \"intencao\": \"consultar_relatorio | nenhuma_intencao\",\n  \"periodo\": \"hoje | ontem | ultimas_24_horas | ultima_semana | ultimo_mes | ultimos_X_dias | intervalo_datas | nenhum\",\n  \"valor\": null,\n  \"data_inicio\": \"dd/MM/yyyy | null\",\n  \"data_fim\": \"dd/MM/yyyy | null\"\n}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1232,
+        -496
+      ],
+      "id": "2b8fc960-7652-4d5e-92ac-bbc349164d93",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        -288
+      ],
+      "id": "a287a0a0-4e2c-461c-8039-73226f3d54f5",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "XMVmk3hYpFTHTSyt",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==============================\n// Helpers\n// ==============================\nfunction parseDateBR(dateStr) {\n  if (!dateStr) return null;\n\n  const [day, month, year] = dateStr.split('/').map(Number);\n  return new Date(year, month - 1, day, 0, 0, 0);\n}\n\n// ==============================\n// Datas do filtro (vindas do agente)\n// ==============================\nconst filtro = $items('Code in JavaScript2')[0]?.json || {};\n\nconst dataInicio = parseDateBR(filtro.data_inicio);\nconst dataFim = parseDateBR(filtro.data_fim);\n\n// Proteção forte\nif (!dataInicio || !dataFim) {\n  return [];\n}\n\n// ==============================\n// Filtro + normalização\n// ==============================\nconst resultado = [];\n\nfor (const item of items) {\n  const linha = item.json;\n  const dataLinha = parseDateBR(linha.DATA);\n\n  if (!dataLinha) continue;\n\n  const t = dataLinha.getTime();\n\n  if (\n    t >= dataInicio.getTime() &&\n    t <= dataFim.getTime()\n  ) {\n    // 🔹 Aqui você entrega o JSON LIMPO\n    resultado.push(linha);\n  }\n}\n\n// ==============================\n// Saída FINAL para o HTML\n// ==============================\nreturn [\n  {\n    json: {\n      relatorio: resultado,\n      total: resultado.length,\n      periodo: {\n        inicio: filtro.data_inicio,\n        fim: filtro.data_fim\n      }\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        -496
+      ],
+      "id": "f965f431-5062-4887-ae18-f2224909f8ad",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Ata para Controle Diário de Temperatura</title>\n  <style>\n    :root {\n      --border: #000;\n      --thin: 1px;\n    }\n\n    * {\n      box-sizing: border-box;\n    }\n\n    body {\n      font-family: \"Times New Roman\", Times, serif;\n      font-size: 11px;\n      color: #000;\n      margin: 18px;\n    }\n\n    .line {\n      border-top: var(--thin) solid var(--border);\n      margin: 8px 0;\n    }\n\n    .header {\n      display: grid;\n      grid-template-columns: 1fr auto 1fr;\n      align-items: center;\n      gap: 8px;\n      margin: 6px 0 8px;\n    }\n\n    .header .left,\n    .header .right {\n      font-size: 10px;\n      text-transform: uppercase;\n    }\n\n    .header .center {\n      text-align: center;\n      font-style: italic;\n      font-size: 16px;\n      font-weight: bold;\n    }\n\n    .title {\n      font-weight: bold;\n      text-transform: uppercase;\n      margin: 6px 0 6px;\n    }\n\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      page-break-inside: auto;\n    }\n\n    th, td {\n      border: var(--thin) solid var(--border);\n      padding: 3px 4px;\n      vertical-align: middle;\n    }\n\n    th {\n      font-weight: bold;\n      text-transform: uppercase;\n      font-size: 9px;\n      text-align: center;\n    }\n\n    .meta th,\n    .meta td {\n      font-size: 10px;\n    }\n\n    .meta .label {\n      width: 90px;\n      text-transform: uppercase;\n      font-weight: bold;\n      text-align: left;\n    }\n\n    .meta .value {\n      height: 18px;\n      font-weight: normal;\n      text-transform: none;\n    }\n\n    .subhead th {\n      background: #f7f7f7;\n    }\n\n    .group {\n      text-align: center;\n      font-weight: bold;\n    }\n\n    .obs {\n      width: 16%;\n    }\n\n    .footer-box {\n      margin-top: 10px;\n      width: 55%;\n    }\n\n    .footer-box td {\n      height: 16px;\n      font-size: 10px;\n    }\n\n    @page {\n      size: A4;\n      margin: 15mm;\n    }\n\n    @media print {\n      body {\n        margin: 0;\n      }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"line\"></div>\n\n  <div class=\"header\">\n    <div class=\"left\">Secretaria de Saúde</div>\n    <div class=\"center\">Pernambuco</div>\n    <div class=\"right\">Governo do Estado</div>\n  </div>\n\n  <div class=\"line\"></div>\n\n  <div class=\"title\">Ata para controle diário de temperatura</div>\n\n  <table class=\"meta\">\n    <tr>\n      <td class=\"label\">Estado</td>\n      <td class=\"value\">Pernambuco</td>\n      <td class=\"label\">Município</td>\n      <td class=\"value\">__________________________</td>\n      <td class=\"label\">Unidade Sanitária III GIRES</td>\n      <td class=\"value\">__________________________</td>\n    </tr>\n    <tr>\n      <td class=\"label\">Ano</td>\n      <td class=\"value\">{{ (new Date()).getFullYear() }}</td>\n      <td class=\"label\">Mês</td>\n      <td class=\"value\">{{ (new Date()).toLocaleString('pt-BR', { month: 'long' }) }}</td>\n      <td class=\"label\">Marca da geladeira ou freezer</td>\n      <td class=\"value\">{{ $json.relatorio?.[0]?.DISPOSITIVO ?? '__________________________' }}</td>\n    </tr>\n  </table>\n\n  <table>\n    <thead>\n      <tr>\n        <th rowspan=\"2\">Dia</th>\n        <th class=\"group\" colspan=\"5\">Manhã</th>\n        <th class=\"group\" colspan=\"5\">Tarde</th>\n        <th class=\"obs\" rowspan=\"2\">Observação</th>\n      </tr>\n      <tr class=\"subhead\">\n        <th>Hora</th>\n        <th>Máx</th>\n        <th>Mín</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n        <th>Hora</th>\n        <th>Máx</th>\n        <th>Mín</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n      </tr>\n    </thead>\n    <tbody>\n      {{\n        (() => {\n          const toHour = (h) => {\n            if (!h) return null;\n            const m = String(h).match(/(\\d{1,2})(?::(\\d{2}))?/);\n            if (!m) return null;\n            return Number(m[1]);\n          };\n\n          const rowsByDay = {};\n\n          for (const linha of $json.relatorio || []) {\n            const dia = (linha.DATA || '').split('/')[0] || '';\n            if (!rowsByDay[dia]) {\n              rowsByDay[dia] = {\n                dia,\n                manha: { hora: '', max: '', min: '', atual: '', rubrica: '' },\n                tarde: { hora: '', max: '', min: '', atual: '', rubrica: '' },\n                obs: ''\n              };\n            }\n\n            const hora = linha.HORA ?? '';\n            const atual = linha[\"TEMP.\"] ?? linha.TEMP ?? '';\n            const max = linha.MAX ?? linha.MAXIMA ?? '';\n            const min = linha.MIN ?? linha.MINIMA ?? '';\n            const obs = linha.OBS ?? linha.OBSERVACAO ?? '';\n            const hour = toHour(hora);\n\n            const slot = hour !== null && hour >= 12 ? rowsByDay[dia].tarde : rowsByDay[dia].manha;\n            if (!slot.hora) slot.hora = hora;\n            if (!slot.max) slot.max = max;\n            if (!slot.min) slot.min = min;\n            if (!slot.atual) slot.atual = atual;\n            if (!slot.rubrica) slot.rubrica = linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '';\n            if (!rowsByDay[dia].obs) rowsByDay[dia].obs = obs;\n          }\n\n          return Object.values(rowsByDay)\n            .map(r => `\n              <tr>\n                <td style=\"text-align:center;\">${r.dia}</td>\n                <td>${r.manha.hora}</td>\n                <td>${r.manha.max}</td>\n                <td>${r.manha.min}</td>\n                <td>${r.manha.atual}</td>\n                <td>${r.manha.rubrica}</td>\n                <td>${r.tarde.hora}</td>\n                <td>${r.tarde.max}</td>\n                <td>${r.tarde.min}</td>\n                <td>${r.tarde.atual}</td>\n                <td>${r.tarde.rubrica}</td>\n                <td>${r.obs}</td>\n              </tr>\n            `)\n            .join('');\n        })()\n      }}\n    </tbody>\n  </table>\n\n  <table class=\"footer-box\">\n    <tr>\n      <td style=\"width: 30%;\">Hora da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Temp. no momento da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Dias parados por falha</td>\n      <td></td>\n    </tr>\n  </table>\n</body>\n</html>\n"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        2096,
+        -496
+      ],
+      "id": "aa1c3342-0c35-4195-ba4b-68c4063265aa",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "387af87a-327a-4cca-823f-b9c6a41d2d32",
+              "name": "html_base64",
+              "value": "={{ $json.html.base64Encode() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2272,
+        -496
+      ],
+      "id": "736f6798-92fb-4a6c-bba4-18bf17a0b5c6",
+      "name": "htmToBase64"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "html_base64",
+        "options": {
+          "fileName": "index.html",
+          "mimeType": "text/html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2448,
+        -496
+      ],
+      "id": "24325f51-a4d9-4a9b-bb63-6a7efbda279b",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://n8n.nikaotech.com:3000/forms/chromium/convert/html",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2640,
+        -496
+      ],
+      "id": "942a5ec6-7baf-44ff-981c-14ecd261c2c1",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Função correta para acessar binário no n8n\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\n\n// Converter para base64\nconst base64String = binaryData.toString('base64');\n\nreturn [{\n  json: {\n    base64Data: base64String,\n    fileName: '659d1edd-aa6a-467f-ae51-3bca1aae595c.pdf',\n    mimeType: 'application/pdf'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2832,
+        -496
+      ],
+      "id": "748c4bf4-ec84-4d40-a090-4724bff8a6ba",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-document",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.numeroDestinatario }}",
+        "media": "={{ $json.base64Data }}",
+        "caption": "Relatório",
+        "fileName": "relatorio.pdf",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        3248,
+        -496
+      ],
+      "id": "1a47923a-77b6-437b-a51a-14943bec6918",
+      "name": "Enviar documento1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const remoteJid = $('Webhook').first().json.body.data.key.remoteJid\nconst numero = remoteJid.split('@')[0];\n\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    numeroDestinatario: numero\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        -496
+      ],
+      "id": "22f26f84-cf8b-4c87-9d99-eabbe92a4807",
+      "name": "Code in JavaScript5"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "MQTT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "htmToBase64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "htmToBase64": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript5": {
+      "main": [
+        [
+          {
+            "node": "Enviar documento1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "634ca96a-d8cd-43ee-908f-6487d6005bc8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "be63eec592610c4f78e7b17a812f5d022e962bcad508e6c20e665203393891ed"
+  },
+  "id": "TSZ5JPZAnItVglGLcN694",
+  "tags": []
+}
