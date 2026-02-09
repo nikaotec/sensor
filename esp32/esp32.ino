@@ -141,6 +141,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
     salvarConfiguracoesAlarme();
     enviarDadosMqtt("feedback_limites_atualizados");
   } 
+  else if (intencao  == "obter_status_atual") {
+    enviarDadosMqtt("obter_status_atual");	
+  }
   else if (intencao == "ligar_rele") { 
     modoManual = true; releLigado = true; manualTimeout = millis(); 
     digitalWrite(RELAY_PIN, HIGH);
