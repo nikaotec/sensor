@@ -31,37 +31,31 @@
             {
               "id": "dc0ca98f-1d6d-4dbd-ad83-eedb7b235e5b",
               "name": "'0'].devic",
-              "value": "={{ $json['0'].device }}",
+              "value": "={{ $json['0'].DISPOSITIVO }}",
               "type": "string"
             },
             {
               "id": "bafc55d8-c929-46d1-a195-c5fafdb3f7b3",
               "name": "'0'].temperatur",
-              "value": "={{ $json['0'].temperatura }}",
+              "value": "={{ $json['0']['TEMP.'] }}",
               "type": "number"
-            },
-            {
-              "id": "4e647ab4-ee2b-48a7-a730-15c39b8fa35a",
-              "name": "'0'].rel",
-              "value": "={{ $json['0'].rele }}",
-              "type": "string"
             },
             {
               "id": "5e8d933f-f7f4-4005-a69d-ae9ded7730db",
               "name": "'0'].hor",
-              "value": "={{ $json['0'].hora }}",
+              "value": "={{ $json['0'].HORA }}",
               "type": "string"
             },
             {
               "id": "a1d8b7c4-0df9-4171-bb3c-521260ab5308",
               "name": "'0'].dat",
-              "value": "={{ $json['0'].data }}",
+              "value": "={{ $json['0'].DATA }}",
               "type": "string"
             },
             {
               "id": "6a269ce2-bf99-4198-bd20-2bb8251b4c6c",
               "name": "'0'].msg",
-              "value": "=Dispositivo: {{ $json['0'].device }}\nTemperature: {{ $json['0'].temperatura }}\nRele: {{ $json['0'].rele }}\nData: {{ $json['0'].data }}\nHora: {{ $json['0'].hora }}",
+              "value": "=Dispositivo: {{ $json['0'].DISPOSITIVO }}\nTemperature: {{ $json['0']['TEMP.'] }}\nMAX: {{ $json['0'].MAX }}\nMIN: {{ $json['0'].MIN }}\nData: {{ $json['0'].DATA }}\nHora: {{ $json['0'].HORA }}\nTipo: {{ $json['0'].TIPO }}",
               "type": "string"
             },
             {
@@ -69,18 +63,6 @@
               "name": "numeros",
               "value": "[{ \"phone\": \"5581995981890\" }, { \"phone\": \"5581996678501\" }]",
               "type": "array"
-            },
-            {
-              "id": "161d6c23-80e9-43ae-adab-ea4985f937cb",
-              "name": "0].event",
-              "value": "={{ $json[0].evento }}",
-              "type": "string"
-            },
-            {
-              "id": "aec8b278-af27-427e-b70d-68d54f60c001",
-              "name": "0].mod",
-              "value": "={{ $json[0].modo }}",
-              "type": "string"
             }
           ]
         },
@@ -335,7 +317,7 @@
             {
               "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
               "name": "msg",
-              "value": "={{ $json[\"'0'\"].msg }} O disositivo esta em modo: {{ $json[\"0\"].mod }}",
+              "value": "={{ $json[\"'0'\"].msg }}",
               "type": "string"
             }
           ]
@@ -358,7 +340,7 @@
             {
               "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
               "name": "msg",
-              "value": "={{ $json[\"'0'\"].msg }} O disositivo esta em modo: {{ $json[\"0\"].mod }}",
+              "value": "={{ $json[\"'0'\"].msg }}",
               "type": "string"
             }
           ]
@@ -381,7 +363,7 @@
             {
               "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
               "name": "msg",
-              "value": "={{ $json[\"'0'\"].msg }} O disositivo esta em modo: {{ $json[\"0\"].mod }}",
+              "value": "={{ $json[\"'0'\"].msg }}",
               "type": "string"
             }
           ]
@@ -417,13 +399,15 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "HORA": "={{ $('MQTT Trigger').item.json['0'].hora }}",
-            "DATA": "={{ $('MQTT Trigger').item.json['0'].data }}",
-            "TIPO": "={{ $('MQTT Trigger').item.json['0'].evento }}",
-            "DISPOSITIVO": "={{ $('MQTT Trigger').item.json['0'].device }}",
-            "RELE": "={{ $('MQTT Trigger').item.json['0'].rele }}",
-            "MODO": "={{ $('MQTT Trigger').item.json['0'].modo }}",
-            "TEMP.": "={{ $('MQTT Trigger').item.json['0'].temperatura }}"
+            "HORA": "={{ $('MQTT Trigger').item.json['0'].HORA }}",
+            "DATA": "={{ $('MQTT Trigger').item.json['0'].DATA }}",
+            "TIPO": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
+            "DISPOSITIVO": "={{ $('MQTT Trigger').item.json['0'].DISPOSITIVO }}",
+            "RELE": "={{ '' }}",
+            "MODO": "={{ '' }}",
+            "TEMP.": "={{ $('MQTT Trigger').item.json['0']['TEMP.'] }}",
+            "MAX": "={{ $('MQTT Trigger').item.json['0'].MAX }}",
+            "MIN": "={{ $('MQTT Trigger').item.json['0'].MIN }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -487,6 +471,26 @@
             {
               "id": "MODO",
               "displayName": "MODO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "MAX",
+              "displayName": "MAX",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "MIN",
+              "displayName": "MIN",
               "required": false,
               "defaultMatch": false,
               "display": true,

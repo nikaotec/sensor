@@ -187,52 +187,42 @@
             return Number(m[1]);
           };
 
-          const rowsByDay = {};
+          return ($json.relatorio || [])
+            .map(linha => {
+              const dia = (linha.DATA || '').split('/')[0] || '';
+              const hora = linha.HORA ?? '';
+              const atual = linha["TEMP."] ?? linha.TEMP ?? '';
+              const max = linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? linha.TEMPMAX ?? linha['TEMP MAX'] ?? linha['TEMP_MAX'] ?? '';
+              const min = linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '';
+              const obs = linha.OBS ?? linha.OBSERVACAO ?? '';
+              const hour = toHour(hora);
 
-          for (const linha of $json.relatorio || []) {
-            const dia = (linha.DATA || '').split('/')[0] || '';
-            if (!rowsByDay[dia]) {
-              rowsByDay[dia] = {
-                dia,
-                manha: { hora: '', max: '', min: '', atual: '', rubrica: '' },
-                tarde: { hora: '', max: '', min: '', atual: '', rubrica: '' },
-                obs: ''
-              };
-            }
+              const manha = { hora: '', max: '', min: '', atual: '', rubrica: '' };
+              const tarde = { hora: '', max: '', min: '', atual: '', rubrica: '' };
+              const slot = hour !== null && hour >= 12 ? tarde : manha;
+              slot.hora = hora;
+              slot.max = max;
+              slot.min = min;
+              slot.atual = atual;
+              slot.rubrica = linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '';
 
-            const hora = linha.HORA ?? '';
-            const atual = linha["TEMP."] ?? linha.TEMP ?? '';
-            const max = linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? linha.TEMPMAX ?? linha['TEMP MAX'] ?? linha['TEMP_MAX'] ?? '' ;
-            const min = linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '' ;
-            const obs = linha.OBS ?? linha.OBSERVACAO ?? '';
-            const hour = toHour(hora);
-
-            const slot = hour !== null && hour >= 12 ? rowsByDay[dia].tarde : rowsByDay[dia].manha;
-            if (!slot.hora) slot.hora = hora;
-            if (!slot.max) slot.max = max;
-            if (!slot.min) slot.min = min;
-            if (!slot.atual) slot.atual = atual;
-            if (!slot.rubrica) slot.rubrica = linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '';
-            if (!rowsByDay[dia].obs) rowsByDay[dia].obs = obs;
-          }
-
-          return Object.values(rowsByDay)
-            .map(r => `
-              <tr>
-                <td style="text-align:center;">${r.dia}</td>
-                <td>${r.manha.hora}</td>
-                <td>${r.manha.max}</td>
-                <td>${r.manha.min}</td>
-                <td>${r.manha.atual}</td>
-                <td>${r.manha.rubrica}</td>
-                <td>${r.tarde.hora}</td>
-                <td>${r.tarde.max}</td>
-                <td>${r.tarde.min}</td>
-                <td>${r.tarde.atual}</td>
-                <td>${r.tarde.rubrica}</td>
-                <td>${r.obs}</td>
-              </tr>
-            `)
+              return `
+                <tr>
+                  <td style="text-align:center;">${dia}</td>
+                  <td>${manha.hora}</td>
+                  <td>${manha.max}</td>
+                  <td>${manha.min}</td>
+                  <td>${manha.atual}</td>
+                  <td>${manha.rubrica}</td>
+                  <td>${tarde.hora}</td>
+                  <td>${tarde.max}</td>
+                  <td>${tarde.min}</td>
+                  <td>${tarde.atual}</td>
+                  <td>${tarde.rubrica}</td>
+                  <td>${obs}</td>
+                </tr>
+              `;
+            })
             .join('');
         })()
       }}
