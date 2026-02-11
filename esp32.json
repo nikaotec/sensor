@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "topics": "esp32c3/data",
+        "topics": "esp32/+/data",
         "options": {
           "jsonParseBody": true,
           "onlyMessage": true
@@ -23,6 +23,45 @@
           "name": "MQTT account"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "readings",
+          "mode": "list",
+          "cachedResultName": "readings"
+        },
+        "whereClause": "device_id = (SELECT id FROM devices WHERE device_key = '{{ $node[\"MQTT Trigger\"].json[\"topic\"].split(\"/\")[1] }}') ORDER BY timestamp DESC LIMIT 5",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
+      "position": [
+        256,
+        500
+      ],
+      "id": "fetch-history-node-id",
+      "name": "Fetch Last 5 Readings"
+    },
+    {
+      "parameters": {
+        "jsCode": "const readings = $input.all();\nif (readings.length < 5) return { trend: 'INSIGNIFICANT', rate: 0 };\n\nconst newest = readings[0].json.temperature;\nconst oldest = readings[readings.length - 1].json.temperature;\nconst delta = newest - oldest;\n\n// Se subir mais de 0.5 graus em 5 leituras (ex: 50 segundos)\nconst trend = delta > 0.5 ? 'WARNING_FAST_RISE' : 'NORMAL';\n\nreturn { \n  trend, \n  delta: delta.toFixed(2), \n  current: newest,\n  msg: trend === 'WARNING_FAST_RISE' ? `⚠️ *ALERTA PREDITIVO*: Temperatura subindo rápido demais! (${delta.toFixed(2)}°C nos últimos 50s)` : ''\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        500
+      ],
+      "id": "trend-analysis-node-id",
+      "name": "Check Temperature Trend"
     },
     {
       "parameters": {
@@ -61,8 +100,8 @@
             {
               "id": "5ea428bd-5b17-41b6-9585-3e9edfaec822",
               "name": "numeros",
-              "value": "[{ \"phone\": \"5581995981890\" }, { \"phone\": \"5581996678501\" }]",
-              "type": "array"
+              "value": "={{ $env.WHATSAPP_NUMBERS }}",
+              "type": "string"
             }
           ]
         },
@@ -381,141 +420,41 @@
     },
     {
       "parameters": {
-        "operation": "append",
-        "documentId": {
+        "operation": "insert",
+        "schema": {
           "__rl": true,
-          "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
           "mode": "list",
-          "cachedResultName": "Temperaturas",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
+          "value": "public"
         },
-        "sheetName": {
+        "table": {
           "__rl": true,
-          "value": "gid=0",
+          "value": "readings",
           "mode": "list",
-          "cachedResultName": "Página1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
+          "cachedResultName": "readings"
         },
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "HORA": "={{ $('MQTT Trigger').item.json['0'].HORA }}",
-            "DATA": "={{ $('MQTT Trigger').item.json['0'].DATA }}",
-            "TIPO": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
-            "DISPOSITIVO": "={{ $('MQTT Trigger').item.json['0'].DISPOSITIVO }}",
-            "RELE": "={{ '' }}",
-            "MODO": "={{ '' }}",
-            "TEMP.": "={{ $('MQTT Trigger').item.json['0']['TEMP.'] }}",
-            "MAX": "={{ $('MQTT Trigger').item.json['0'].MAX }}",
-            "MIN": "={{ $('MQTT Trigger').item.json['0'].MIN }}"
-          },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "DISPOSITIVO",
-              "displayName": "DISPOSITIVO",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "DATA",
-              "displayName": "DATA",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "HORA",
-              "displayName": "HORA",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "TEMP.",
-              "displayName": "TEMP.",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "TIPO",
-              "displayName": "TIPO",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "RELE",
-              "displayName": "RELE",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "MODO",
-              "displayName": "MODO",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "MAX",
-              "displayName": "MAX",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "MIN",
-              "displayName": "MIN",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            }
-          ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
+            "temperature": "={{ $node[\"MQTT Trigger\"].json[\"TEMP_ATUAL\"] || $node[\"MQTT Trigger\"].json[\"TEMP.\"] }}",
+            "relay_status": "={{ $node[\"MQTT Trigger\"].json[\"RELE\"] }}",
+            "is_alarm": "={{ $node[\"MQTT Trigger\"].json[\"TIPO\"] === 'SAIU_DA_FAIXA' }}",
+            "device_id": "={{ (SELECT id FROM devices WHERE device_key = $topic.split('/')[1]) }}"
+          }
         },
         "options": {}
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
       "position": [
         1328,
         336
       ],
-      "id": "c028d980-bd41-462f-8801-12112805de42",
-      "name": "salva temperatura",
+      "id": "postgres-insert-node-id",
+      "name": "salva temperatura no DB",
       "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "YFl1SEKGi4NmAyDc",
-          "name": "Google Sheets account"
+        "postgres": {
+          "id": "YOUR_POSTGRES_CRED_ID",
+          "name": "PostgreSQL Account"
         }
       }
     }
@@ -527,6 +466,33 @@
         [
           {
             "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Last 5 Readings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Last 5 Readings": {
+      "main": [
+        [
+          {
+            "node": "Check Temperature Trend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Temperature Trend": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto",
             "type": "main",
             "index": 0
           }

@@ -97,6 +97,15 @@
               }
             },
             {
+              "id": "token-check-id",
+              "leftValue": "={{ $json.query.token }}",
+              "rightValue": "={{ $env.WEBHOOK_TOKEN }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
               "id": "8e110a5d-16c4-4394-bdc5-665c3b70fc85",
               "leftValue": "={{ $json.body.data.key.participant }}",
               "rightValue": "",

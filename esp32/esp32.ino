@@ -1,4 +1,5 @@
 #include <WiFi.h>
+#include <WiFiManager.h> // Adicionado para Captive Portal
 #include <time.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -7,14 +8,7 @@
 #include <EEPROM.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
-
-// ---------- CONFIGURAÇÕES GERAIS ----------
-const char* ssid     = "VENANCIO";
-const char* password = "liza1980";
-const char* mqtt_server = "173.249.10.19";
-const int mqtt_port = 1883;
-const char* mqtt_user = "n8nuser";
-const char* mqtt_password = "123456";
+#include "config.h"
 
 #define DS18B20_PIN 33
 #define RELAY_PIN   2
@@ -50,6 +44,9 @@ String statusSeguranca = "OK";
 unsigned long lastTempCheck = 0;
 unsigned long lastDisplayUpdate = 0;
 unsigned long lastMqttReconnectAttempt = 0;
+unsigned long lastWiFiReconnectAttempt = 0;
+unsigned long lastEepromSave = 0;
+bool eepromDirty = false;
 int lastReportDay = -1;
 
 OneWire oneWire(DS18B20_PIN);
@@ -58,8 +55,17 @@ U8G2_SH1106_128X64_NONAME_F_HW_I2C display(U8G2_R0, U8X8_PIN_NONE);
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-const char* DATA_TOPIC = "esp32c3/data";
-const char* STATUS_TOPIC = "esp32c3/status/action";
+char DATA_TOPIC[40];
+char STATUS_TOPIC[40];
+char clientId[20];
+
+void setupMQTT() {
+  uint8_t mac[6];
+  WiFi.macAddress(mac);
+  sprintf(clientId, "ESP32_%02X%02X%02X", mac[3], mac[4], mac[5]);
+  sprintf(DATA_TOPIC, "esp32/%02X%02X%02X/data", mac[3], mac[4], mac[5]);
+  sprintf(STATUS_TOPIC, "esp32/%02X%02X%02X/status/action", mac[3], mac[4], mac[5]);
+}
 
 // ---------- FUNÇÕES AUXILIARES ----------
 
@@ -113,7 +119,7 @@ void enviarDadosMqtt(String evento) {
   
   String payload;
   serializeJson(doc, payload);
-  client.publish(DATA_TOPIC, payload.c_str());
+  client.publish(DATA_TOPIC, payload.c_str(), true); // Retain true for discovery
   lastMqttAlert = millis();
 }
 
@@ -166,7 +172,7 @@ void verificarMQTT() {
   if (WiFi.status() == WL_CONNECTED && !client.connected()) {
     if (millis() - lastMqttReconnectAttempt > 15000) {
       lastMqttReconnectAttempt = millis();
-      if (client.connect("ESP32_Monitor", mqtt_user, mqtt_password)) {
+      if (client.connect(clientId, mqtt_user, mqtt_password)) {
         client.subscribe(STATUS_TOPIC);
       }
     }
@@ -178,13 +184,32 @@ void verificarMQTT() {
 void setup() {
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
+  setupMQTT();
+  
+  // WiFiManager para Provisionamento Dinâmico
+  WiFiManager wm;
+  // wm.resetSettings(); // Descomente para limpar configurações salvas
+  
+  display.clearBuffer();
+  display.setFont(u8g2_font_6x12_tf);
+  display.drawStr(0, 30, "Configurar WiFi...");
+  display.drawStr(0, 45, clientId);
+  display.sendBuffer();
+
+  if (!wm.autoConnect(clientId)) {
+    Serial.println("Falha na conexão e timeout");
+    ESP.restart();
+  }
+
+  Serial.println("WiFi Conectado!");
+  
   Wire.begin(SDA_PIN, SCL_PIN);
   display.begin();
   sensors.begin();
   sensors.setWaitForConversion(false);
   EEPROM.begin(EEPROM_SIZE);
   carregarTudo();
-  WiFi.begin(ssid, password);
+  // WiFi.begin(ssid, password); // Removido, gerenciado pelo WiFiManager
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
   configTime(-3 * 3600, 0, "pool.ntp.org");
@@ -197,6 +222,12 @@ void loop() {
   verificarMQTT();
   client.loop();
 
+  // Timeout Modo Manual (30 min)
+  if (modoManual && (now - manualTimeout > 1800000)) {
+    modoManual = false;
+    enviarDadosMqtt("TIMEOUT_MANUAL_AUTO");
+  }
+
   if (now - lastTempCheck > 2000) {
     lastTempCheck = now;
     sensors.requestTemperatures();
@@ -204,10 +235,23 @@ void loop() {
 
     if (temperaturaAtual > -50 && temperaturaAtual < 80) {
       // Recordes Diários
-      if (temperaturaAtual > tempMaxRegistrada) { tempMaxRegistrada = temperaturaAtual; EEPROM.put(ADDR_MAX_REC, tempMaxRegistrada); EEPROM.commit(); }
-      if (temperaturaAtual < tempMinRegistrada) { tempMinRegistrada = temperaturaAtual; EEPROM.put(ADDR_MIN_REC, tempMinRegistrada); EEPROM.commit(); }
+      if (temperaturaAtual > tempMaxRegistrada) { 
+        tempMaxRegistrada = temperaturaAtual; 
+        eepromDirty = true;
+      }
+      if (temperaturaAtual < tempMinRegistrada) { 
+        tempMinRegistrada = temperaturaAtual; 
+        eepromDirty = true;
+      }
 
-      // Histerese
+      // Salva EEPROM com cooldown para proteger a Flash
+      if (eepromDirty && (now - lastEepromSave > 300000)) { // 5 minutos
+        EEPROM.put(ADDR_MAX_REC, tempMaxRegistrada);
+        EEPROM.put(ADDR_MIN_REC, tempMinRegistrada);
+        EEPROM.commit();
+        lastEepromSave = now;
+        eepromDirty = false;
+      }
       if (!modoManual) {
         if (temperaturaAtual >= TEMP_LIGA && !releLigado) { releLigado = true; digitalWrite(RELAY_PIN, HIGH); }
         else if (temperaturaAtual <= TEMP_DESLIGA && releLigado) { releLigado = false; digitalWrite(RELAY_PIN, LOW); }

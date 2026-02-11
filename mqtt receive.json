@@ -97,6 +97,15 @@
               }
             },
             {
+              "id": "token-check-id",
+              "leftValue": "={{ $json.query.token }}",
+              "rightValue": "={{ $env.WEBHOOK_TOKEN }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
               "id": "8e110a5d-16c4-4394-bdc5-665c3b70fc85",
               "leftValue": "={{ $json.body.data.key.participant }}",
               "rightValue": "",
@@ -144,9 +153,9 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Você é um tradutor de intenções para um sistema de automação ESP32.\nSua tarefa: Analisar a mensagem do usuário e retornar APENAS um JSON compatível com o código do dispositivo.\n\n---\nMENSAGEM DO USUÁRIO: {{ $json.body.data.message.conversation }}\n---\n\nINTENÇÕES E COMANDOS SUPORTADOS:\n\n1. ligar_rele: (ligar, ativar, on)\n2. desligar_rele: (desligar, desativar, off)\n3. configurar_limites: (configurar, ajustar, definir, setar, limite, temperatura)\n   - IMPORTANTE: Extraia números para \"valor_max\" (máximo/teto) e \"valor_min\" (mínimo/piso).\n4. ativar_automatico: (automático, auto, sair do manual)\n5. obter_status_atual: (status, temperatura agora, como está)\n6. consultar_relatorio: (relatório, histórico, dados de hoje, planilha)\n\n---\nFORMATO DE SAÍDA OBRIGATÓRIO (JSON):\n\n{\n  \"intencao\": \"<nome_da_intencao>\",\n  \"valor_max\": <numero_ou_null>,\n  \"valor_min\": <numero_ou_null>,\n  \"requer_dados\": <true|false>,\n  \"fonte_dados\": <\"google_sheets\"|\"mqtt\"|null>,\n  \"parametros\": {\n    \"solicitacao_original\": \"<MENSAGEM_EXATA_DO_USUARIO>\",\n    \"detalhe\": \"<periodo_ou_texto_extraido>\"\n  }\n}\n\nREGRAS DE EXTRAÇÃO DE LIMITES:\n- Se o usuário disser \"ajuste o máximo para 35\", envie: \"intencao\": \"configurar_limites\", \"valor_max\": 35.0, \"valor_min\": null.\n- Se o usuário disser \"mude o mínimo para 20\", envie: \"intencao\": \"configurar_limites\", \"valor_max\": null, \"valor_min\": 20.0.\n- Se o usuário disser \"limites entre 20 e 30\", envie: \"intencao\": \"configurar_limites\", \"valor_max\": 30.0, \"valor_min\": 20.0.\n\nMAPEAMENTO DE DADOS:\n- consultar_relatorio: requer_dados: true, fonte_dados: \"google_sheets\"\n- obter_status_atual: requer_dados: true, fonte_dados: \"mqtt\"\n- Outros: requer_dados: false, fonte_dados: null\n",
+        "text": "=Você é o assistente inteligente do sistema de monitoramento de temperatura da Secretaria de Saúde de Pernambuco.\nSuas capacidades incluem controlar dispositivos ESP32, gerar relatórios e analisar tendências.\n\n---\nCONTEXTO ATUAL:\n- Usuário: {{ $json.body.data.pushName }}\n- Mensagem: {{ $json.body.data.message.conversation }}\n- Horário: {{ $now.setZone('America/Sao_Paulo').format('HH:mm:ss') }}\n---\n\nSUAS TAREFAS:\n1. Traduzir a intenção do usuário para comandos JSON.\n2. Manter o contexto da conversa usando sua memória.\n3. Responder de forma natural quando não for um comando técnico.\n\nINTENÇÕES SUPORTADAS:\n- ligar_rele / desligar_rele\n- configurar_limites (requer valor_max ou valor_min)\n- ativar_automatico\n- obter_status_atual\n- consultar_relatorio\n\nFORMATO DE SAÍDA OBRIGATÓRIO (SEMPRE RESPONDA COM ESTE JSON SE FOR UM COMANDO):\n{\n  \"intencao\": \"<nome_da_intencao>\",\n  \"valor_max\": <numero|null>,\n  \"valor_min\": <numero|null>,\n  \"requer_dados\": <bool>,\n  \"fonte_dados\": <string|null>,\n  \"resposta_chat\": \"<Sua resposta amigável para o usuário aqui>\",\n  \"parametros\": { \"solicitacao_original\": \"...\" }\n}\n\nSe o usuário apenas estiver conversando ou fizer uma pergunta sobre o sistema, use o campo \"resposta_chat\" e defina \"intencao\": \"conversa_natural\".\n",
         "options": {
-          "systemMessage": "You are a helpful assistant"
+          "systemMessage": "Você é um engenheiro de automação prestativo e técnico."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -157,6 +166,31 @@
       ],
       "id": "8321d7f4-5f2b-4024-9a17-3d7e58b59f7d",
       "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "chat_memory",
+          "mode": "list",
+          "cachedResultName": "chat_memory"
+        },
+        "sessionId": "={{ $json.body.data.key.remoteJid }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1,
+      "position": [
+        560,
+        48
+      ],
+      "id": "postgres-memory-id",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "YOUR_POSTGRES_CRED_ID",
+          "name": "PostgreSQL Account"
+        }
+      }
     },
     {
       "parameters": {
@@ -346,34 +380,33 @@
     },
     {
       "parameters": {
-        "documentId": {
+        "operation": "select",
+        "schema": {
           "__rl": true,
-          "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
           "mode": "list",
-          "cachedResultName": "Temperaturas",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
+          "value": "public"
         },
-        "sheetName": {
+        "table": {
           "__rl": true,
-          "value": "gid=0",
+          "value": "readings",
           "mode": "list",
-          "cachedResultName": "Página1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
+          "cachedResultName": "readings"
         },
+        "whereClause": "device_id = (SELECT id FROM devices WHERE device_key = '{{ $node[\"Edit Fields\"].json[\"body\"][\"data\"][\"key\"][\"remoteJid\"] }}') AND timestamp BETWEEN '{{ $node[\"Code in JavaScript2\"].json[\"data_inicio\"] }}' AND '{{ $node[\"Code in JavaScript2\"].json[\"data_fim\"] }}'",
         "options": {}
       },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.2,
       "position": [
         1760,
         -496
       ],
-      "id": "ea50e059-a7b6-46d7-8be8-f30fd70690d2",
-      "name": "Get row(s) in sheet",
+      "id": "postgres-read-node-id",
+      "name": "Get readings from DB",
       "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "YFl1SEKGi4NmAyDc",
-          "name": "Google Sheets account"
+        "postgres": {
+          "id": "YOUR_POSTGRES_CRED_ID",
+          "name": "PostgreSQL Account"
         }
       }
     },
@@ -569,6 +602,34 @@
       ],
       "id": "22f26f84-cf8b-4c87-9d99-eabbe92a4807",
       "name": "Code in JavaScript5"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um especialista em logística de frio e saúde pública.\nAnalise os seguintes dados de temperatura de um freezer de vacinas:\n\n{{ JSON.stringify($json.relatorio) }}\n\nForneça um resumo muito curto (máximo 3 linhas) em português sobre a estabilidade térmica deste período e, se necessário, recomende ações rápidas.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2050,
+        -700
+      ],
+      "id": "ai-report-summary-id",
+      "name": "AI Report Insight"
+    },
+    {
+      "parameters": {
+        "jsCode": "const insight = $node[\"AI Report Insight\"].json.output;\nconst data = $node[\"Code in JavaScript3\"].json;\n\nreturn {\n  ...data,\n  ai_summary: insight\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2250,
+        -700
+      ],
+      "id": "merge-ai-insight-id",
+      "name": "Merge AI Insight"
     }
   ],
   "pinData": {},
@@ -630,6 +691,17 @@
           {
             "node": "Code in JavaScript",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
             "index": 0
           }
         ]
@@ -726,39 +798,6 @@
         ]
       ]
     },
-    "AI Agent1": {
-      "main": [
-        [
-          {
-            "node": "Code in JavaScript2",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenRouter Chat Model1": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent1",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript3": {
-      "main": [
-        [
-          {
-            "node": "HTML",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "HTML": {
       "main": [
         [
@@ -819,6 +858,66 @@
         [
           {
             "node": "Enviar documento1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "AI Report Insight",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "AI Report Insight",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Report Insight": {
+      "main": [
+        [
+          {
+            "node": "Merge AI Insight",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge AI Insight": {
+      "main": [
+        [
+          {
+            "node": "HTML",
             "type": "main",
             "index": 0
           }

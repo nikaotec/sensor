@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proposta Comercial — Monitoramento IoT Rede de Frio</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --primary: #0f4c81;
+            --primary-light: #e8f0f8;
+            --accent: #10b981;
+            --accent-light: #d1fae5;
+            --warn: #f59e0b;
+            --warn-light: #fef3c7;
+            --purple: #7c3aed;
+            --purple-light: #ede9fe;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --bg: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        @page {
+            size: A4;
+            margin: 16mm 14mm 16mm 14mm;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            color: var(--text);
+            font-size: 10px;
+            line-height: 1.45;
+            background: var(--bg);
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, var(--primary), #1a6fb5);
+            color: white;
+            padding: 22px 28px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 50%;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 3px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: 11px;
+            opacity: 0.85;
+            font-weight: 300;
+        }
+
+        .header .date {
+            position: absolute;
+            top: 22px;
+            right: 28px;
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        /* SECTIONS */
+        h2 {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 16px 0 8px 0;
+            padding-bottom: 4px;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        h3 {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text);
+            margin: 10px 0 5px 0;
+        }
+
+        /* TABLES */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            font-size: 9.5px;
+        }
+
+        thead th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            text-align: left;
+            padding: 6px 8px;
+            font-size: 8.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        thead th:first-child {
+            border-radius: 5px 0 0 0;
+        }
+
+        thead th:last-child {
+            border-radius: 0 5px 0 0;
+        }
+
+        tbody td {
+            padding: 5px 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        tbody tr:last-child td:first-child {
+            border-radius: 0 0 0 5px;
+        }
+
+        tbody tr:last-child td:last-child {
+            border-radius: 0 0 5px 0;
+        }
+
+        .highlight-row td {
+            font-weight: 700;
+            background: var(--primary-light) !important;
+            color: var(--primary);
+            border-top: 2px solid var(--primary);
+        }
+
+        .check {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .cross {
+            color: #cbd5e1;
+        }
+
+        .warn-text {
+            color: var(--warn);
+            font-weight: 600;
+        }
+
+        /* FEATURE COMPARISON - 4 columns */
+        .comparison-table thead th:nth-child(2) {
+            background: #6b7280;
+        }
+
+        .comparison-table thead th:nth-child(3) {
+            background: var(--purple);
+        }
+
+        .comparison-table thead th:nth-child(4) {
+            background: var(--accent);
+        }
+
+        /* NOTES */
+        .note {
+            background: var(--primary-light);
+            border-left: 3px solid var(--primary);
+            padding: 6px 10px;
+            border-radius: 0 5px 5px 0;
+            font-size: 9px;
+            color: var(--text-muted);
+            margin: 6px 0 10px 0;
+        }
+
+        .note strong {
+            color: var(--primary);
+        }
+
+        .note.green {
+            background: var(--accent-light);
+            border-left-color: var(--accent);
+        }
+
+        .note.green strong {
+            color: #059669;
+        }
+
+        .note.yellow {
+            background: var(--warn-light);
+            border-left-color: var(--warn);
+        }
+
+        .note.yellow strong {
+            color: #d97706;
+        }
+
+        /* THREE COLUMN */
+        .three-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .card.basico {
+            border-top: 3px solid #6b7280;
+        }
+
+        .card.profissional {
+            border-top: 3px solid var(--purple);
+        }
+
+        .card.completo {
+            border-top: 3px solid var(--accent);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            font-size: 10px;
+        }
+
+        .price-big {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .price-small {
+            font-size: 8.5px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* BADGE */
+        .badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 8px;
+            font-size: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .badge-free {
+            background: var(--accent-light);
+            color: #059669;
+        }
+
+        .badge-best {
+            background: var(--purple-light);
+            color: var(--purple);
+        }
+
+        /* FOOTER */
+        .footer {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 8.5px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            padding-top: 8px;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <div class="header">
+        <h1>🌡️ Monitoramento IoT — Rede de Frio</h1>
+        <p>Sistema de monitoramento de temperatura em tempo real para câmaras frias e imunobiológicos</p>
+        <div class="date">11/02/2026</div>
+    </div>
+
+    <!-- PLANOS -->
+    <h2>📋 Planos Disponíveis</h2>
+
+    <table class="comparison-table">
+        <thead>
+            <tr>
+                <th style="width:34%">Funcionalidade</th>
+                <th style="width:22%">💬 Básico</th>
+                <th style="width:22%">🌐 Profissional <span class="badge badge-best">Popular</span></th>
+                <th style="width:22%">📱 Completo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Alertas WhatsApp automáticos</td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+            </tr>
+            <tr>
+                <td>Assistente WhatsApp com IA</td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+            </tr>
+            <tr>
+                <td>Relatórios automáticos (PDF + IA)</td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+            </tr>
+            <tr>
+                <td>Comandos por WhatsApp (status, limites)</td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+            </tr>
+            <tr>
+                <td>Dashboard Web em tempo real</td>
+                <td class="cross">—</td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+            </tr>
+            <tr>
+                <td>Gráficos e histórico de temperatura</td>
+                <td class="cross">—</td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+            </tr>
+            <tr>
+                <td>App Mobile (Android + iOS)</td>
+                <td class="cross">—</td>
+                <td class="cross">—</td>
+                <td class="check">✅</td>
+            </tr>
+            <tr>
+                <td>Push Notifications no celular</td>
+                <td class="cross">—</td>
+                <td class="cross">—</td>
+                <td class="check">✅</td>
+            </tr>
+            <tr>
+                <td>Controle remoto de equipamentos</td>
+                <td class="check">✅ WhatsApp</td>
+                <td class="check">✅ Web</td>
+                <td class="check">✅ Web + App</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- INFRA -->
+    <h2>💻 Custos de Infraestrutura (Mensal)</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>💬 Básico</th>
+                <th>🌐 Profissional</th>
+                <th>📱 Completo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Servidor VPS (Contabo)</td>
+                <td>R$ 28–44</td>
+                <td>R$ 44</td>
+                <td>R$ 44–88</td>
+            </tr>
+            <tr>
+                <td>Inteligência Artificial (OpenRouter)</td>
+                <td>R$ 15–30</td>
+                <td>R$ 15–30</td>
+                <td>R$ 15–30</td>
+            </tr>
+            <tr>
+                <td>WhatsApp API (~300 alertas)</td>
+                <td>R$ 5–15</td>
+                <td>R$ 5–15</td>
+                <td>R$ 5–15</td>
+            </tr>
+            <tr>
+                <td>Domínio</td>
+                <td>—</td>
+                <td>R$ 8</td>
+                <td>R$ 8</td>
+            </tr>
+            <tr>
+                <td>SSL (Let's Encrypt)</td>
+                <td>—</td>
+                <td><span class="badge badge-free">Grátis</span></td>
+                <td><span class="badge badge-free">Grátis</span></td>
+            </tr>
+            <tr>
+                <td>Firebase (Push + Auth)</td>
+                <td>—</td>
+                <td>—</td>
+                <td><span class="badge badge-free">Grátis</span></td>
+            </tr>
+            <tr>
+                <td>Apple Developer ($99/ano)</td>
+                <td>—</td>
+                <td>—</td>
+                <td>R$ 52</td>
+            </tr>
+            <tr class="highlight-row">
+                <td><strong>Total Operacional</strong></td>
+                <td><strong>R$ 48–89</strong></td>
+                <td><strong>R$ 72–97</strong></td>
+                <td><strong>R$ 124–197</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="note green">
+        <strong>💡 Plano Básico:</strong> Custo mínimo — o cliente recebe alertas e interage por WhatsApp, sem
+        necessidade de domínio ou interface visual. Ideal para postos de saúde menores.<br>
+        <strong>💡 Plano Completo:</strong> Se publicar <strong>somente Android</strong>, cai para R$ 72–145/mês (sem
+        taxa Apple).
+    </div>
+
+    <!-- HARDWARE -->
+    <h2>🔧 Hardware por Ponto de Monitoramento (Investimento Único)</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Componente</th>
+                <th>Custo Unitário</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>ESP32 DevKit (WiFi + Bluetooth)</td>
+                <td>R$ 30–50</td>
+            </tr>
+            <tr>
+                <td>Sensor DS18B20 (à prova d'água)</td>
+                <td>R$ 8–13</td>
+            </tr>
+            <tr>
+                <td>Display OLED SH1106 128×64</td>
+                <td>R$ 15–25</td>
+            </tr>
+            <tr>
+                <td>Módulo Relé 5V</td>
+                <td>R$ 5–10</td>
+            </tr>
+            <tr>
+                <td>Fonte 5V + Cabo USB</td>
+                <td>R$ 10–15</td>
+            </tr>
+            <tr>
+                <td>Case / Caixa Protetora</td>
+                <td>R$ 10–20</td>
+            </tr>
+            <tr class="highlight-row">
+                <td><strong>Total por Ponto</strong></td>
+                <td><strong>R$ 78–133</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="note">
+        <strong>📦 Compra em lote (10+ unidades):</strong> ~R$ 70/unidade. Igual para todos os planos.
+    </div>
+
+    <!-- PAGE BREAK -->
+    <div class="page-break"></div>
+
+    <!-- IMPLANTAÇÃO -->
+    <h2>🚀 Implantação (Investimento Único)</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th>💬 Básico</th>
+                <th>🌐 Profissional</th>
+                <th>📱 Completo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Setup do servidor (VPS + deploy)</td>
+                <td>Incluído</td>
+                <td>Incluído</td>
+                <td>Incluído</td>
+            </tr>
+            <tr>
+                <td>Configuração n8n + WhatsApp IA</td>
+                <td>Incluído</td>
+                <td>Incluído</td>
+                <td>Incluído</td>
+            </tr>
+            <tr>
+                <td>Dashboard Web</td>
+                <td>—</td>
+                <td>Incluído</td>
+                <td>Incluído</td>
+            </tr>
+            <tr>
+                <td>Desenvolvimento do App Mobile</td>
+                <td>—</td>
+                <td>—</td>
+                <td>Incluído</td>
+            </tr>
+            <tr>
+                <td>Publicação Google Play</td>
+                <td>—</td>
+                <td>—</td>
+                <td>R$ 150 (único)</td>
+            </tr>
+            <tr>
+                <td>Publicação Apple Store</td>
+                <td>—</td>
+                <td>—</td>
+                <td>R$ 600/ano</td>
+            </tr>
+            <tr>
+                <td>1º ponto (hardware + instalação)</td>
+                <td>Incluído</td>
+                <td>Incluído</td>
+                <td>Incluído</td>
+            </tr>
+            <tr>
+                <td>Treinamento (~2h)</td>
+                <td>Incluído</td>
+                <td>Incluído</td>
+                <td>Incluído</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- PREÇOS -->
+    <h2>💰 Preços</h2>
+
+    <h3>Implantação (Setup Inicial)</h3>
+    <div class="three-col">
+        <div class="card basico">
+            <h3>💬 Plano Básico</h3>
+            <div class="price-big">R$ 800–1.500</div>
+            <div class="price-small">Servidor + n8n + WhatsApp + 1º ponto</div>
+            <br>
+            <div style="font-size:9.5px"><strong>R$ 200–350</strong> <span class="price-small">por ponto
+                    adicional</span></div>
+        </div>
+        <div class="card profissional">
+            <h3>🌐 Profissional <span class="badge badge-best">Popular</span></h3>
+            <div class="price-big">R$ 1.500–2.500</div>
+            <div class="price-small">Servidor + web + WhatsApp + 1º ponto</div>
+            <br>
+            <div style="font-size:9.5px"><strong>R$ 200–350</strong> <span class="price-small">por ponto
+                    adicional</span></div>
+        </div>
+        <div class="card completo">
+            <h3>📱 Plano Completo</h3>
+            <div class="price-big">R$ 3.000–5.000</div>
+            <div class="price-small">Servidor + web + app + WhatsApp + 1º ponto</div>
+            <br>
+            <div style="font-size:9.5px"><strong>R$ 200–350</strong> <span class="price-small">por ponto
+                    adicional</span></div>
+        </div>
+    </div>
+
+    <h3 style="margin-top:12px">Mensalidade</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Dispositivos</th>
+                <th>💬 Básico</th>
+                <th>🌐 Profissional</th>
+                <th>📱 Completo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Até 10 pontos</td>
+                <td><strong>R$ 200–350/mês</strong></td>
+                <td><strong>R$ 350–600/mês</strong></td>
+                <td><strong>R$ 600–900/mês</strong></td>
+            </tr>
+            <tr>
+                <td>Até 30 pontos</td>
+                <td><strong>R$ 300–500/mês</strong></td>
+                <td><strong>R$ 500–800/mês</strong></td>
+                <td><strong>R$ 800–1.200/mês</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="note">
+        <strong>Inclui:</strong> Hosting, inteligência artificial, suporte técnico, atualizações do sistema,
+        monitoramento 24/7 e manutenção preventiva.
+    </div>
+
+    <!-- ROI -->
+    <h2>📈 Retorno sobre Investimento (ROI)</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th></th>
+                <th>💬 Básico</th>
+                <th>🌐 Profissional</th>
+                <th>📱 Completo</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Custo real mensal</td>
+                <td>R$ 48–89</td>
+                <td>R$ 72–97</td>
+                <td>R$ 124–197</td>
+            </tr>
+            <tr>
+                <td>Mensalidade cobrada (10 disp.)</td>
+                <td>R$ 200–350</td>
+                <td>R$ 350–600</td>
+                <td>R$ 600–900</td>
+            </tr>
+            <tr class="highlight-row">
+                <td><strong>Margem bruta</strong></td>
+                <td><strong>~R$ 150–260</strong></td>
+                <td><strong>~R$ 280–500</strong></td>
+                <td><strong>~R$ 400–700</strong></td>
+            </tr>
+            <tr>
+                <td><strong>Margem (%)</strong></td>
+                <td><strong>~70–75%</strong></td>
+                <td><strong>~75–85%</strong></td>
+                <td><strong>~70–80%</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- COMPARATIVO -->
+    <h2>📊 Comparativo com o Mercado</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Solução</th>
+                <th>Mensal</th>
+                <th>Hardware</th>
+                <th>Web</th>
+                <th>App</th>
+                <th>WhatsApp IA</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr style="background: #f0fdf4;">
+                <td><strong>Básico</strong></td>
+                <td><strong>R$ 200–500</strong></td>
+                <td><strong>R$ 80–133</strong></td>
+                <td class="cross">—</td>
+                <td class="cross">—</td>
+                <td class="check">✅</td>
+            </tr>
+            <tr style="background: var(--purple-light);">
+                <td><strong>Profissional</strong></td>
+                <td><strong>R$ 350–800</strong></td>
+                <td><strong>R$ 80–133</strong></td>
+                <td class="check">✅</td>
+                <td class="cross">—</td>
+                <td class="check">✅</td>
+            </tr>
+            <tr style="background: var(--accent-light);">
+                <td><strong>Completo</strong></td>
+                <td><strong>R$ 600–1.200</strong></td>
+                <td><strong>R$ 80–133</strong></td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+                <td class="check">✅</td>
+            </tr>
+            <tr>
+                <td>SaaS genéricos</td>
+                <td>R$ 800–2.500</td>
+                <td>R$ 200–500</td>
+                <td class="check">✅</td>
+                <td class="warn-text">⚠️ Extra</td>
+                <td class="cross">—</td>
+            </tr>
+            <tr>
+                <td>Industriais (Danfoss, Emerson)</td>
+                <td>R$ 2.000–8.000</td>
+                <td>R$ 500–2.000</td>
+                <td class="check">✅</td>
+                <td class="warn-text">⚠️ Limitado</td>
+                <td class="cross">—</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- JUSTIFICATIVA -->
+    <h2>🎯 Valor Agregado</h2>
+
+    <div class="two-col">
+        <div>
+            <table>
+                <tbody>
+                    <tr>
+                        <td>🔒</td>
+                        <td><strong>Compliance ANVISA</strong> — RDC 430/2020, monitoramento contínuo obrigatório</td>
+                    </tr>
+                    <tr>
+                        <td>📉</td>
+                        <td><strong>Proteção de estoque</strong> — Câmaras frias armazenam R$ 50k–500k em vacinas</td>
+                    </tr>
+                    <tr>
+                        <td>⏰</td>
+                        <td><strong>Alertas em tempo real</strong> — Intervenção antes da perda do material</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div>
+            <table>
+                <tbody>
+                    <tr>
+                        <td>📊</td>
+                        <td><strong>Relatórios automáticos</strong> — Eliminação de registro manual</td>
+                    </tr>
+                    <tr>
+                        <td>🤖</td>
+                        <td><strong>IA integrada</strong> — Análise preditiva e insights</td>
+                    </tr>
+                    <tr>
+                        <td>📱</td>
+                        <td><strong>Escalável</strong> — Upgrade de plano a qualquer momento</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        Valores estimados com base em preços de mercado de fevereiro/2026. Custos de hardware podem variar conforme
+        cotação e volume.<br>
+        Proposta válida por 30 dias.
+    </div>
+
+</body>
+
+</html>
