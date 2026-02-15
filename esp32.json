@@ -37,13 +37,25 @@
             {
               "id": "bafc55d8-c929-46d1-a195-c5fafdb3f7b3",
               "name": "'0'].temperatur",
-              "value": "={{ $json['0']['TEMP.'] }}",
+              "value": "={{ $json['0'].TEMP_ATUAL }}",
               "type": "number"
             },
             {
               "id": "5e8d933f-f7f4-4005-a69d-ae9ded7730db",
               "name": "'0'].hor",
               "value": "={{ $json['0'].HORA }}",
+              "type": "string"
+            },
+            {
+              "id": "wifi-signal-uid",
+              "name": "'0'].wifi",
+              "value": "={{ $json['0'].WIFI_SIGNAL }}",
+              "type": "string"
+            },
+            {
+              "id": "voltagem-uid",
+              "name": "'0'].voltage",
+              "value": "={{ $json['0'].VOLTAGEM }}",
               "type": "string"
             },
             {
@@ -55,7 +67,7 @@
             {
               "id": "6a269ce2-bf99-4198-bd20-2bb8251b4c6c",
               "name": "'0'].msg",
-              "value": "=Dispositivo: {{ $json['0'].DISPOSITIVO }}\nTemperature: {{ $json['0']['TEMP.'] }}\nMAX: {{ $json['0'].MAX }}\nMIN: {{ $json['0'].MIN }}\nData: {{ $json['0'].DATA }}\nHora: {{ $json['0'].HORA }}\nTipo: {{ $json['0'].TIPO }}",
+              "value": "=Dispositivo: {{ $json['0'].DISPOSITIVO }}\nTemperatura: {{ $json['0'].TEMP_ATUAL }}°C\nVoltagem: {{ $json['0'].VOLTAGEM }}V\nMAX: {{ $json['0'].MAX }}\nMIN: {{ $json['0'].MIN }}\nData: {{ $json['0'].DATA }}\nHora: {{ $json['0'].HORA }}\nTipo: {{ $json['0'].TIPO }}",
               "type": "string"
             },
             {
@@ -405,9 +417,10 @@
             "DISPOSITIVO": "={{ $('MQTT Trigger').item.json['0'].DISPOSITIVO }}",
             "RELE": "={{ '' }}",
             "MODO": "={{ '' }}",
-            "TEMP.": "={{ $('MQTT Trigger').item.json['0']['TEMP.'] }}",
+            "TEMP.": "={{ $('MQTT Trigger').item.json['0'].TEMP_ATUAL }}",
             "MAX": "={{ $('MQTT Trigger').item.json['0'].MAX }}",
-            "MIN": "={{ $('MQTT Trigger').item.json['0'].MIN }}"
+            "MIN": "={{ $('MQTT Trigger').item.json['0'].MIN }}",
+            "VOLTAGEM": "={{ $('MQTT Trigger').item.json['0'].VOLTAGEM }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -491,6 +504,16 @@
             {
               "id": "MIN",
               "displayName": "MIN",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "VOLTAGEM",
+              "displayName": "VOLTAGEM",
               "required": false,
               "defaultMatch": false,
               "display": true,
