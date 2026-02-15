@@ -55,16 +55,17 @@ U8G2_SH1106_128X64_NONAME_F_HW_I2C display(U8G2_R0, U8X8_PIN_NONE);
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-char DATA_TOPIC[40];
-char STATUS_TOPIC[40];
+char DATA_TOPIC[60];
+char STATUS_TOPIC[60];
 char clientId[20];
 
 void setupMQTT() {
   uint8_t mac[6];
   WiFi.macAddress(mac);
   sprintf(clientId, "ESP32_%02X%02X%02X", mac[3], mac[4], mac[5]);
-  sprintf(DATA_TOPIC, "esp32/%02X%02X%02X/data", mac[3], mac[4], mac[5]);
-  sprintf(STATUS_TOPIC, "esp32/%02X%02X%02X/status/action", mac[3], mac[4], mac[5]);
+  // Multitenant MQTT topics: {tenant_slug}/esp32/{device_key}/data
+  sprintf(DATA_TOPIC, "%s/esp32/%02X%02X%02X/data", tenant_slug, mac[3], mac[4], mac[5]);
+  sprintf(STATUS_TOPIC, "%s/esp32/%02X%02X%02X/status/action", tenant_slug, mac[3], mac[4], mac[5]);
 }
 
 // ---------- FUNÇÕES AUXILIARES ----------

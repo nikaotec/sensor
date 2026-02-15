@@ -1,0 +1,26 @@
+# Mosquitto ACL - Multitenant IoT
+# ================================
+# 
+# Each tenant MQTT user can only access their own topics.
+# Format: user <mqtt_user>
+#         topic <read|write|readwrite> <topic_pattern>
+#
+# The backend (n8nuser) has full access to receive all messages.
+
+# ---- Backend / n8n (superuser) ----
+user n8nuser
+topic readwrite #
+
+# ---- Tenant users ----
+# Example: when a tenant with slug "empresa-a" registers,
+# add these lines:
+#
+# user mqtt_empresa-a
+# topic readwrite empresa-a/#
+#
+# NOTE: In production, automate ACL management via the backend
+# API when a new tenant registers.
+
+# ---- Template (copy for each tenant) ----
+# user mqtt_{slug}
+# topic readwrite {slug}/#
