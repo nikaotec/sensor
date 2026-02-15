@@ -7,6 +7,7 @@
 #include <EEPROM.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <WiFiManager.h>
 
 // ---------- CONFIGURAÇÕES GERAIS ----------
 const char* ssid     = "VENANCIO";
@@ -16,10 +17,10 @@ const int mqtt_port = 1883;
 const char* mqtt_user = "n8nuser";
 const char* mqtt_password = "123456";
 
-#define DS18B20_PIN 33
-#define RELAY_PIN   2
-#define SDA_PIN 4
-#define SCL_PIN 16
+#define DS18B20_PIN 5
+#define RELAY_PIN   32
+#define SDA_PIN 21
+#define SCL_PIN 22
 
 // ---------- ENDEREÇOS EEPROM ----------
 #define EEPROM_SIZE 32
@@ -45,6 +46,7 @@ unsigned long manualTimeout = 0;
 unsigned long inicioForaDaFaixa = 0; 
 unsigned long lastMqttAlert = 0; 
 bool alarmeAtivo = false;
+bool WIFIconectado = false;
 String statusSeguranca = "OK";
 
 unsigned long lastTempCheck = 0;
@@ -95,12 +97,12 @@ void enviarDadosMqtt(String evento) {
   if (!client.connected()) return;
   
   StaticJsonDocument<512> doc;
-  doc["DISPOSITIVO"] = "esp32c3";
+  doc["DISPOSITIVO"] = "02 CENTRO";
   doc["TIPO"] = evento;
-  doc["TEMP_ATUAL"] = temperaturaAtual;
-  doc["MAX"] = tempMaxRegistrada;
-  doc["MIN"] = tempMinRegistrada;
-  doc["RELE"] = releLigado ? "LIGADO" : "DESLIGADO";
+  doc["TEMP_ATUAL"] = serialized(String(temperaturaAtual, 1));
+  doc["MAX"] = serialized(String(tempMaxRegistrada, 1));
+  doc["MIN"] = serialized(String(tempMinRegistrada, 1));
+  //doc["RELE"] = releLigado ? "LIGADO" : "DESLIGADO";
   
   struct tm timeinfo;
   if (getLocalTime(&timeinfo)) {
@@ -116,6 +118,7 @@ void enviarDadosMqtt(String evento) {
   client.publish(DATA_TOPIC, payload.c_str());
   lastMqttAlert = millis();
 }
+
 
 void callback(char* topic, byte* payload, unsigned int length) {
   StaticJsonDocument<1024> doc;
@@ -141,9 +144,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
     salvarConfiguracoesAlarme();
     enviarDadosMqtt("feedback_limites_atualizados");
   } 
-  else if (intencao  == "obter_status_atual") {
-    enviarDadosMqtt("obter_status_atual");	
-  }
+
+
+ // else if (intencao  == "obter_status_atual") {
+  //  enviarDadosMqtt("obter_status_atual");	
+  //}
   else if (intencao == "ligar_rele") { 
     modoManual = true; releLigado = true; manualTimeout = millis(); 
     digitalWrite(RELAY_PIN, HIGH);
@@ -162,6 +167,29 @@ void callback(char* topic, byte* payload, unsigned int length) {
   enviarDadosMqtt("feedback_comando");
 }
 
+
+
+// ---------- SETUP ----------
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
+  Wire.begin(SDA_PIN, SCL_PIN);
+  display.begin();
+  sensors.begin();
+  display.clearBuffer();
+  sensors.setWaitForConversion(false);
+  EEPROM.begin(EEPROM_SIZE);
+  carregarTudo();
+  WiFi.begin(ssid, password);
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(callback);
+  configTime(-3 * 3600, 0, "pool.ntp.org");
+  WIFIconectado = false;
+}
+
+
 void verificarMQTT() {
   if (WiFi.status() == WL_CONNECTED && !client.connected()) {
     if (millis() - lastMqttReconnectAttempt > 15000) {
@@ -173,21 +201,10 @@ void verificarMQTT() {
   }
 }
 
-// ---------- SETUP ----------
-
-void setup() {
-  pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);
-  Wire.begin(SDA_PIN, SCL_PIN);
-  display.begin();
-  sensors.begin();
-  sensors.setWaitForConversion(false);
-  EEPROM.begin(EEPROM_SIZE);
-  carregarTudo();
-  WiFi.begin(ssid, password);
-  client.setServer(mqtt_server, mqtt_port);
-  client.setCallback(callback);
-  configTime(-3 * 3600, 0, "pool.ntp.org");
+void verificarWIFI(){
+ if (WiFi.status() == WL_CONNECTED){
+   WIFIconectado =  true;
+ }else{WIFIconectado = false;}
 }
 
 // ---------- LOOP ----------
@@ -196,6 +213,7 @@ void loop() {
   unsigned long now = millis();
   verificarMQTT();
   client.loop();
+  verificarWIFI();
 
   if (now - lastTempCheck > 2000) {
     lastTempCheck = now;
@@ -237,6 +255,16 @@ void loop() {
       resetarMaxMin();
     }
   }
+    if (getLocalTime(&t)) {
+    if (t.tm_hour == 16 && t.tm_mday != lastReportDay) {
+      lastReportDay = t.tm_mday;
+      enviarDadosMqtt("relatorio_diario_reset");
+      resetarMaxMin();
+    }
+  }
+  
+
+
 
   // Display
   if (now - lastDisplayUpdate > 250) {
@@ -247,21 +275,28 @@ void loop() {
       char hS[10]; strftime(hS, sizeof(hS), "%H:%M:%S", &t);
       display.drawStr(0, 10, hS);
     }
-    display.drawStr(70, 10, statusSeguranca.c_str());
+    //display.drawStr(70, 10, statusSeguranca.c_str());
+    if(WIFIconectado == false){
+      display.drawStr(80, 10, "OFF-LINE");
+    }
+    if(WIFIconectado == true){
+      display.drawStr(80, 10, " ON-LINE");
+    }
 
     char tB[10]; dtostrf(temperaturaAtual, 4, 1, tB);
     display.setFont(u8g2_font_logisoso24_tf);
     display.drawStr(0, 44, tB);
-    display.setFont(u8g2_font_6x12_tf);
+    display.setFont(u8g2_font_8x13_tf);
     display.drawStr(55, 44, "C");
 
     char mB[10];
+    display.setFont(u8g2_font_6x12_tf);
     dtostrf(tempMaxRegistrada, 4, 1, mB);
-    display.drawStr(80, 30, "Max"); display.drawStr(105, 30, mB);
+    display.drawStr(80, 26, "Max"); display.drawStr(105, 26, mB);
     dtostrf(tempMinRegistrada, 4, 1, mB);
     display.drawStr(80, 42, "Min"); display.drawStr(105, 42, mB);
 
-    display.drawLine(0, 48, 127, 48);
+    display.drawLine(0, 50, 127, 50);
     display.drawStr(0, 62, modoManual ? "MANU" : "AUTO");
     display.drawStr(40, 62, releLigado ? "GELANDO" : "MOTOR OFF");
     if (alarmeAtivo) display.drawStr(105, 62, "!!!");
