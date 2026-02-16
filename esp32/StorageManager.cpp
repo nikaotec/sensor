@@ -43,8 +43,11 @@ void StorageManager::load() {
   if (isnan(data.tempMaxRec) || data.tempMaxRec > 80.0)
     data.tempMaxRec = -50.0;
   if (isnan(data.tempMinRec) || data.tempMinRec < -40.0 ||
-      data.tempMinRec == 0.0)
+      data.tempMinRec == 0.0) {
     data.tempMinRec = 100.0;
+    EEPROM.put(ADDR_MIN_REC, data.tempMinRec);
+    EEPROM.commit();
+  }
 }
 
 void StorageManager::save() {

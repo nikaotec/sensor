@@ -67,7 +67,7 @@
             {
               "id": "6a269ce2-bf99-4198-bd20-2bb8251b4c6c",
               "name": "'0'].msg",
-              "value": "=📳Dispositivo: {{ $json['0'].DISPOSITIVO }}\n📅Data: {{ $json['0'].DATA }}\n🕖Hora: {{ $json['0'].HORA }}\n🌡Temp: {{ $json['0'].TEMP_ATUAL }}\n⬆️MAX: {{ $json['0'].MAX }}\n⬇️MIN: {{ $json['0'].MIN }}\n🪫Bateria: {{ $json['0'].BATERIA || 'N/A' }}\n🔌Tensão: {{ $json['0'].VOLTAGEM }}v",
+              "value": "=Voc\u00ea \u00e9 um assistente IoT inteligente cuidando de uma c\u00e2mara fria. Analise os dados abaixo e gere uma mensagem curta e amig\u00e1vel para o WhatsApp (use emojis):\n\nDispositivo: {{ $json['0'].DISPOSITIVO }}\nData/Hora: {{ $json['0'].DATA }} \u00e0s {{ $json['0'].HORA }}\nTemperatura: {{ $json['0'].TEMP_ATUAL }}\u00b0C (Max: {{ $json['0'].MAX }}, Min: {{ $json['0'].MIN }})\nTens\u00e3o: {{ $json['0'].VOLTAGEM }}V\nBateria: {{ $json['0'].BATERIA || 'N/A' }}\n\nSe estiver tudo normal, diga que est\u00e1 operando bem. Se houver alerta (temperatura alta/baixa, tens\u00e3o fora da faixa, porta aberta), alerte imediatamente!",
               "type": "string"
             },
             {
@@ -100,7 +100,7 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        1008,
+        1258,
         336
       ],
       "id": "e898a1e5-5323-41f7-999a-0cd34e083660",
@@ -117,7 +117,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1168,
+        1418,
         336
       ],
       "id": "7b6e4e2a-5d3b-43c3-9855-8b4c5f1bb0d5",
@@ -135,7 +135,7 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        1296,
+        1546,
         544
       ],
       "id": "19a4faf0-d5a0-429f-8f28-b6e38d6ef319",
@@ -270,7 +270,7 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        432,
+        682,
         288
       ],
       "id": "f51ad1af-af96-4c33-a35f-44053fe94626",
@@ -293,7 +293,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        720,
+        970,
         16
       ],
       "id": "caf2ffa0-8912-4a20-9ed6-763bf0976b00",
@@ -316,7 +316,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        720,
+        970,
         176
       ],
       "id": "e9f7d4e5-16f4-47d8-b281-cd4de6db03b2",
@@ -339,7 +339,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        720,
+        970,
         672
       ],
       "id": "0a874c78-b93f-4be4-a089-2679f63a08d9",
@@ -362,7 +362,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        720,
+        970,
         496
       ],
       "id": "b31a8f5b-24aa-4b3c-a40b-6189a0b2c5cc",
@@ -385,7 +385,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        720,
+        970,
         336
       ],
       "id": "ed49ef5e-b857-410e-827b-3c10483ed3d3",
@@ -405,7 +405,7 @@
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "Página1",
+          "cachedResultName": "P\u00e1gina1",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
         },
         "columns": {
@@ -530,7 +530,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1328,
+        1578,
         336
       ],
       "id": "c028d980-bd41-462f-8801-12112805de42",
@@ -539,6 +539,29 @@
         "googleSheetsOAuth2Api": {
           "id": "YFl1SEKGi4NmAyDc",
           "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "complete",
+        "prompt": "={{ $json[\"'0'\"].msg }}",
+        "model": "gpt-3.5-turbo",
+        "options": {}
+      },
+      "name": "AI Assistant",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        450,
+        336
+      ],
+      "id": "e76d71aa-7ded-4ea8-a6ef-a904673947bf",
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI account"
         }
       }
     }
@@ -560,7 +583,7 @@
       "main": [
         [
           {
-            "node": "Switch",
+            "node": "AI Assistant",
             "type": "main",
             "index": 0
           }
@@ -691,6 +714,17 @@
     "Enviar texto1": {
       "main": [
         []
+      ]
+    },
+    "AI Assistant": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },

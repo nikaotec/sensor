@@ -1,3 +1,4 @@
+#include "AlertManager.h"
 #include "AppNetworkManager.h"
 #include "BatterySensor.h"
 #include "Config.h"
@@ -19,6 +20,15 @@ DallasTemperature sensors(&oneWire);
 VoltageSensor voltSensor(PIN_ZMPT, VOLTAGE_CALIBRATION_DEFAULT);
 BatterySensor batterySensor(PIN_BATTERY, BATTERY_CALIBRATION_DEFAULT);
 
+AlertManager alertTempMax("TEMPERATURA_ALTA", ALERT_DEBOUNCE, ALERT_REPEAT);
+AlertManager alertTempMin("TEMPERATURA_BAIXA", ALERT_DEBOUNCE, ALERT_REPEAT);
+AlertManager alertVoltMax("TENSAO_ALTA", ALERT_DEBOUNCE, ALERT_REPEAT);
+AlertManager alertVoltMin("TENSAO_BAIXA", ALERT_DEBOUNCE, ALERT_REPEAT);
+AlertManager alertBatLow("BATERIA_BAIXA", ALERT_DEBOUNCE, ALERT_REPEAT);
+AlertManager alertPower("FALTA_ENERGIA", 2000,
+                        ALERT_REPEAT); // 2s debounce para falta de luz
+AlertManager alertDoor("PORTA_ABERTA", 2000, ALERT_REPEAT); // 2s debounce porta
+
 // ---------- ESTADO DO SISTEMA ----------
 float temperaturaAtual = 0.0;
 bool releLigado = false;
@@ -27,14 +37,9 @@ unsigned long manualTimeout = 0;
 String statusSeguranca = "OK";
 
 // ---------- TIMERS ----------
-unsigned long inicioForaDaFaixa = 0;
-unsigned long inicioAlarmeTensao = 0;
-unsigned long lastMqttAlert = 0;
-unsigned long lastMqttVoltAlert = 0; // Novo timer para tensao
 unsigned long lastTempCheck = 0;
 int lastReportDay = -1;
-bool alarmeAtivo = false;
-bool alarmeTensaoAtivo = false;
+// Removidos timers antigos pois AlertManager gerencia
 
 // ---------- PROTÓTIPOS ----------
 void processarMensagemMqtt(String topic, String payload);
@@ -83,57 +88,59 @@ void loop() {
   network.update();
 
   // 2. Ler Sensores (a cada 2s)
+  // 2. Ler Sensores (a cada 2s)
   if (now - lastTempCheck > 2000) {
     lastTempCheck = now;
 
     sensors.requestTemperatures();
     temperaturaAtual = sensors.getTempCByIndex(0);
     float tVoltagem = voltSensor.getVoltage();
+    float tBateria = batterySensor.getVoltage();
+    bool isDoorOpen =
+        digitalRead(PIN_DOOR) == HIGH; // HIGH = Aberto (se pullup interno)
 
-    // --- Lógica de Tensão ---
-    if (millis() > 60000) {   // Estabilização (reduzi para 60s)
-      if (tVoltagem > 50.0) { // Ignora se sensor desconectado
-        bool foraDaFaixa = (tVoltagem >= storage.data.voltMax ||
-                            tVoltagem <= storage.data.voltMin);
+    // --- VERIFICAÇÃO DE ALERTAS (AlertManager) ---
 
-        if (foraDaFaixa) {
-          String tipoAlarme = (tVoltagem >= storage.data.voltMax)
-                                  ? "TENSAO_ALTA"
-                                  : "TENSAO_BAIXA";
+    // 1. Falta de Energia (Prioridade)
+    if (alertPower.check(tVoltagem < VOLT_OUTAGE_THR) == ALERT_STARTED)
+      enviarDadosMqtt("ALERTA_FALTA_ENERGIA");
+    if (alertPower.check(tVoltagem < VOLT_OUTAGE_THR) == ALERT_NORMALIZED)
+      enviarDadosMqtt("ENERGIA_RESTABELECIDA");
 
-          if (inicioAlarmeTensao == 0) {
-            inicioAlarmeTensao = now;
-            enviarDadosMqtt(tipoAlarme);
-            lastMqttVoltAlert = now;
-          }
+    // 2. Bateria Baixa
+    if (alertBatLow.check(tBateria < BAT_MIN_VOLTAGE) == ALERT_STARTED)
+      enviarDadosMqtt("ALERTA_BATERIA_BAIXA");
+    if (alertBatLow.check(tBateria < BAT_MIN_VOLTAGE) == ALERT_NORMALIZED)
+      enviarDadosMqtt("BATERIA_OK");
 
-          // Repetição do Alerta
-          unsigned long intervaloVolt =
-              (now - inicioAlarmeTensao <= TEMPO_ALARME_MS) ? 120000 : 600000;
-          if (now - lastMqttVoltAlert >= intervaloVolt) {
-            enviarDadosMqtt("ALERTA_REPETITIVO_" + tipoAlarme);
-            lastMqttVoltAlert = now;
-          }
+    // 3. Porta Aberta
+    if (alertDoor.check(isDoorOpen) == ALERT_STARTED)
+      enviarDadosMqtt("ALERTA_PORTA_ABERTA");
+    if (alertDoor.check(isDoorOpen) == ALERT_NORMALIZED)
+      enviarDadosMqtt("PORTA_FECHADA");
 
-          alarmeTensaoAtivo = true;
-        } else {
-          if (inicioAlarmeTensao != 0) {
-            enviarDadosMqtt("TENSAO_NORMALIZADA");
-          }
-          inicioAlarmeTensao = 0;
-          alarmeTensaoAtivo = false;
-        }
-      } else {
-        inicioAlarmeTensao = 0;
-        alarmeTensaoAtivo = false;
-      }
+    // 4. Tensão da Rede (Só checa se tiver energia, > 20V)
+    if (tVoltagem > VOLT_OUTAGE_THR) {
+      // Alta
+      if (alertVoltMax.check(tVoltagem > storage.data.voltMax) == ALERT_STARTED)
+        enviarDadosMqtt("ALERTA_TENSAO_ALTA");
+      if (alertVoltMax.check(tVoltagem > storage.data.voltMax) ==
+          ALERT_NORMALIZED)
+        enviarDadosMqtt("TENSAO_NORMALIZADA");
+
+      // Baixa (Entre Outage e Min)
+      if (alertVoltMin.check(tVoltagem < storage.data.voltMin) == ALERT_STARTED)
+        enviarDadosMqtt("ALERTA_TENSAO_BAIXA");
+      if (alertVoltMin.check(tVoltagem < storage.data.voltMin) ==
+          ALERT_NORMALIZED)
+        enviarDadosMqtt("TENSAO_NORMALIZADA");
     }
 
-    // --- Lógica de Temperatura ---
+    // 5. Temperatura (Com lógica para não sobrepor Max/Min)
     if (temperaturaAtual > -50 && temperaturaAtual < 80) {
       storage.updateRecords(temperaturaAtual);
 
-      // Controle Relé (Histerese)
+      // Lógica Relé
       if (!modoManual) {
         if (temperaturaAtual >= TEMP_LIGA && !releLigado) {
           releLigado = true;
@@ -144,35 +151,24 @@ void loop() {
         }
       }
 
-      // Alarmes
-      if (millis() > 120000) {
-        if (temperaturaAtual >= storage.data.alarmMax ||
-            temperaturaAtual <= storage.data.alarmMin) {
-          if (inicioForaDaFaixa == 0) {
-            inicioForaDaFaixa = now;
-            enviarDadosMqtt("SAIU_DA_FAIXA");
-          }
-          statusSeguranca =
-              (temperaturaAtual >= storage.data.alarmMax) ? "QUENTE!" : "FRIO!";
+      // Alertas Temperatura
+      if (alertTempMax.check(temperaturaAtual > storage.data.alarmMax) ==
+          ALERT_STARTED) {
+        statusSeguranca = "QUENTE!";
+        enviarDadosMqtt("ALERTA_TEMP_ALTA");
+      }
+      if (alertTempMin.check(temperaturaAtual < storage.data.alarmMin) ==
+          ALERT_STARTED) {
+        statusSeguranca = "FRIO!";
+        enviarDadosMqtt("ALERTA_TEMP_BAIXA");
+      }
 
-          unsigned long intervalo =
-              (temperaturaAtual > storage.data.alarmMax &&
-               (now - inicioForaDaFaixa <= TEMPO_ALARME_MS))
-                  ? 120000
-                  : 600000;
-          if (now - lastMqttAlert >= intervalo) {
-            enviarDadosMqtt("ALERTA_REPETITIVO");
-          }
-          if (now - inicioForaDaFaixa >= TEMPO_ALARME_MS) {
-            alarmeAtivo = true;
-          }
-        } else {
-          if (inicioForaDaFaixa != 0) {
-            enviarDadosMqtt("VOLTOU_PARA_FAIXA");
-          }
-          inicioForaDaFaixa = 0;
-          alarmeAtivo = false;
+      // Normalização (usa OR pois qualquer um voltando ao normal é bom, mas
+      // ideal separar) Simplificação: Se AMBOS normais, status OK
+      if (!alertTempMax.isActive() && !alertTempMin.isActive()) {
+        if (statusSeguranca != "OK") {
           statusSeguranca = "OK";
+          enviarDadosMqtt("TEMP_NORMALIZADA");
         }
       }
     }
@@ -193,7 +189,10 @@ void loop() {
   display.update(temperaturaAtual, storage.data.tempMaxRec,
                  storage.data.tempMinRec, voltSensor.getVoltage(),
                  network.isWifiConnected(), modoManual, releLigado,
-                 alarmeAtivo);
+                 (alertTempMax.isActive() || alertTempMin.isActive() ||
+                  alertVoltMax.isActive() || alertVoltMin.isActive() ||
+                  alertBatLow.isActive() || alertPower.isActive() ||
+                  alertDoor.isActive()));
 }
 
 // ---------- CALLBACK MQTT ----------

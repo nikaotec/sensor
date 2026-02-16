@@ -20,6 +20,7 @@
 #define RELAY_PIN 32
 #define PIN_ZMPT 35
 #define PIN_BATTERY 34
+#define PIN_DOOR 19
 
 #define SDA_PIN 21
 #define SCL_PIN 22
@@ -37,12 +38,16 @@
 #define ADDR_BAT_CAL 28
 
 // ---------- CONSTANTES ----------
-#define VOLTAGE_CALIBRATION_DEFAULT 235.0
+#define VOLTAGE_CALIBRATION_DEFAULT 570.0
 #define BATTERY_CALIBRATION_DEFAULT 1.0
 
 #define TEMP_LIGA 4.0
 #define TEMP_DESLIGA 3.0
 #define TEMPO_ALARME_MS (30 * 60 * 1000)
+#define BAT_MIN_VOLTAGE 11.5
+#define VOLT_OUTAGE_THR 20.0
+#define ALERT_DEBOUNCE 5000
+#define ALERT_REPEAT 600000
 
 // ---------- ESTRUTURA DE DADOS ----------
 struct SystemSettings {
