@@ -144,7 +144,7 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Você é um tradutor de intenções para um sistema de automação ESP32.\nSua tarefa: Analisar a mensagem do usuário e retornar APENAS um JSON compatível com o código do dispositivo.\n\n---\nMENSAGEM DO USUÁRIO: {{ $json.body.data.message.conversation }}\n---\n\nINTENÇÕES E COMANDOS SUPORTADOS:\n\n1. ligar_rele: (ligar, ativar, on)\n2. desligar_rele: (desligar, desativar, off)\n3. configurar_limites: (configurar, ajustar, definir, setar, limite)\n   - IMPORTANTE: \n   - Se for TEMPERATURA: use \"valor_max\" (teto) e \"valor_min\" (piso).\n   - Se for TENSÃO/VOLTAGEM: use \"volt_max\" (teto) e \"volt_min\" (piso).\n4. ativar_automatico: (automático, auto, sair do manual)\n5. obter_status_atual: (status, temperatura agora, como está)\n6. consultar_relatorio: (relatório, histórico, dados de hoje, planilha)\n7. calibrar_tensao: (calibrar tensão, ajustar voltagem, definir tensão para X)\n   - IMPORTANTE: Extraia o valor numérico para \"novo_fator\". Ex: \"Ajuste a tensão para 235\" -> novo_fator: 235.0\n\n---\nFORMATO DE SAÍDA OBRIGATÓRIO (JSON):\n\n{\n  \"intencao\": \"<nome_da_intencao>\",\n  \"valor_max\": <numero_ou_null>, // APENAS PARA TEMPERATURA\n  \"valor_min\": <numero_ou_null>, // APENAS PARA TEMPERATURA\n  \"volt_max\": <numero_ou_null>,  // APENAS PARA TENSÃO\n  \"volt_min\": <numero_ou_null>,  // APENAS PARA TENSÃO\n  \"novo_fator\": <numero_ou_null>,\n  \"requer_dados\": <true|false>,\n  \"fonte_dados\": <\"google_sheets\"|\"mqtt\"|null>,\n  \"parametros\": {\n    \"solicitacao_original\": \"<MENSAGEM_EXATA_DO_USUARIO>\",\n    \"detalhe\": \"<periodo_ou_texto_extraido>\"\n  }\n}\n\nREGRAS CRÍTICAS:\n- NÃO escreva explicações, introduções ou notas.\n- Sua resposta deve começar com \"{\" e terminar com \"}\".\n- Apenas JSON puro.\n",
+        "text": "=Você é um tradutor de intenções para um sistema de automação ESP32.\nSua tarefa: Analisar a mensagem do usuário e retornar APENAS um JSON compatível com o código do dispositivo.\n\n---\nMENSAGEM DO USUÁRIO: {{ $json.body.data.message.conversation }}\n---\n\nINTENÇÕES E COMANDOS SUPORTADOS:\n\n1. ligar_rele: (ligar, ativar, on)\n2. desligar_rele: (desligar, desativar, off)\n3. configurar_limites: (configurar, ajustar, definir, setar, limite, mudar faixa)\n   - USE ESTES CAMPOS:\n   - Temperatura: \"temp_max\" (teto) e \"temp_min\" (piso).\n   - Tensão: \"volt_max\" (teto) e \"volt_min\" (piso).\n   - Ex: \"Mude temp max para 10\" -> {\"temp_max\": 10}\n4. ativar_automatico: (automático, auto, sair do manual)\n5. obter_status_atual: (status, temperatura agora, como está)\n6. consultar_relatorio: (relatório, histórico, dados de hoje, planilha)\n7. calibrar_tensao: (calibrar tensão, ajustar voltagem)\n   - Opção A (Referência - PREFERIDA): Extraia o valor ALVO para \"nova_tensao\". Ex: \"Calibrar para 220\" -> {\"nova_tensao\": 220}\n   - Opção B (Fator - Avançado): Extraia o fator para \"novo_fator\".\n\n---\nFORMATO DE SAÍDA OBRIGATÓRIO (JSON):\n\n{\n  \"intencao\": \"<nome_da_intencao>\",\n  \"temp_max\": <numero_ou_null>,\n  \"temp_min\": <numero_ou_null>,\n  \"volt_max\": <numero_ou_null>,\n  \"volt_min\": <numero_ou_null>,\n  \"nova_tensao\": <numero_ou_null>,\n  \"novo_fator\": <numero_ou_null>,\n  \"requer_dados\": <true|false>,\n  \"fonte_dados\": <\"google_sheets\"|\"mqtt\"|null>,\n  \"parametros\": {\n    \"solicitacao_original\": \"<MENSAGEM_EXATA_DO_USUARIO>\",\n    \"detalhe\": \"<periodo_ou_texto_extraido>\"\n  }\n}\n\nREGRAS CRÍTICAS:\n- NÃO escreva explicações, introduções ou notas.\n- Sua resposta deve começar com \"{\" e terminar com \"}\".\n- Apenas JSON puro.\n",
         "options": {
           "systemMessage": "You are a helpful assistant"
         }
@@ -190,13 +190,13 @@
             },
             {
               "id": "924d3022-2a45-4623-bcef-145cbb88d8b3",
-              "name": "valor_max",
-              "value": "={{ $json.valor_max }}",
+              "name": "temp_max",
+              "value": "={{ $json.temp_max }}",
               "type": "number"
             },
             {
-              "name": "valor_min",
-              "value": "={{ $json.valor_min }}",
+              "name": "temp_min",
+              "value": "={{ $json.temp_min }}",
               "type": "number"
             },
             {
@@ -222,6 +222,12 @@
               "name": "parametros",
               "value": "={{ $json.parametros }}",
               "type": "object"
+            },
+            {
+              "id": "remote-jid-uid",
+              "name": "remoteJid",
+              "value": "={{ $('Webhook').item.json.body.data.key.remoteJid }}",
+              "type": "string"
             }
           ]
         },
@@ -278,8 +284,8 @@
       "type": "n8n-nodes-base.mqtt",
       "typeVersion": 1,
       "position": [
-        1760,
-        -64
+        1984,
+        -128
       ],
       "id": "edbe2df2-1779-4edb-9e97-73adc19a94c7",
       "name": "MQTT",
@@ -325,7 +331,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const outputRaw = $input.item.json.output;\n\n// Extrai apenas o JSON (ignora texto antes ou depois)\nconst jsonMatch = outputRaw.match(/\\{[\\s\\S]*\\}/);\nconst jsonString = jsonMatch ? jsonMatch[0] : outputRaw;\n\nlet dados;\ntry {\n  dados = JSON.parse(jsonString);\n} catch (e) {\n  throw new Error(\"Falha ao fazer parse do JSON da IA: \" + e.message);\n}\n\nreturn [\n  {\n    json: {\n      intencao: dados.intencao ? dados.intencao.trim() : null,\n      valor_max: dados.valor_max, \n      valor_min: dados.valor_min,\n      volt_max: dados.volt_max,\n      volt_min: dados.volt_min,\n      novo_fator: dados.novo_fator, \n      requer_dados: dados.requer_dados,\n      fonte_dados: dados.fonte_dados,\n      parametros: {\n        solicitacao_original: dados.parametros.solicitacao_original,\n        detalhe: dados.parametros.detalhe\n      }\n    }\n  }\n];\n"
+        "jsCode": "const outputRaw = $input.item.json.output;\n\n// Extrai apenas o JSON (ignora texto antes ou depois)\nconst jsonMatch = outputRaw.match(/\\{[\\s\\S]*\\}/);\nconst jsonString = jsonMatch ? jsonMatch[0] : outputRaw;\n\nlet dados;\ntry {\n  dados = JSON.parse(jsonString);\n} catch (e) {\n  throw new Error(\"Falha ao fazer parse do JSON da IA: \" + e.message);\n}\n\nreturn [\n  {\n    json: {\n      intencao: dados.intencao ? dados.intencao.trim() : null,\n      temp_max: dados.temp_max, \n      temp_min: dados.temp_min,\n      volt_max: dados.volt_max,\n      volt_min: dados.volt_min,\n      nova_tensao: dados.nova_tensao,\n      novo_fator: dados.novo_fator, \n      requer_dados: dados.requer_dados,\n      fonte_dados: dados.fonte_dados,\n      parametros: {\n        solicitacao_original: dados.parametros.solicitacao_original,\n        detalhe: dados.parametros.detalhe\n      }\n    }\n  }\n];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -338,16 +344,81 @@
     },
     {
       "parameters": {
-        "jsCode": "try {\n    const outputRaw = $input.first().json.intencao;\n\n    if (!outputRaw) {\n        return { error: \"Campo 'intencao' não encontrado ou vazio\" };\n    }\n\n    let dados;\n\n    // CASO 1: já é um objeto (se vier do Edit Fields ou Code anterior como objeto)\n    if (typeof outputRaw === 'object') {\n        dados = outputRaw;\n    }\n\n    // CASO 2: string simples → tratar como intenção direta (fallback)\n    else if (typeof outputRaw === 'string') {\n         // Verifica se é uma string JSON válida (caso raro)\n        try {\n             dados = JSON.parse(outputRaw);\n        } catch(e) {\n             dados = { intencao: outputRaw };\n        }\n    }\n\n    else {\n        // Tenta usar o $input.item.json completo se 'intencao' for só uma string mas os outros campos estiverem no root\n        dados = $input.item.json;\n    }\n\n    // Resposta normalizada\n    let resposta = {\n        intencao: dados.intencao || \"nenhuma_intencao\",\n        requer_dados: dados.requer_dados ?? false,\n        fonte_dados: dados.fonte_dados ?? null,\n        parametros: dados.parametros ?? {}\n    };\n\n    if (dados.valor_max !== undefined && dados.valor_max !== null) {\n        resposta.valor_max = parseFloat(dados.valor_max);\n    }\n\n    if (dados.valor_min !== undefined && dados.valor_min !== null) {\n        resposta.valor_min = parseFloat(dados.valor_min);\n    }\n\n    if (dados.volt_max !== undefined && dados.volt_max !== null) {\n        resposta.volt_max = parseFloat(dados.volt_max);\n    }\n\n    if (dados.volt_min !== undefined && dados.volt_min !== null) {\n        resposta.volt_min = parseFloat(dados.volt_min);\n    }\n    \n    if (dados.novo_fator !== undefined && dados.novo_fator !== null) {\n        resposta.novo_fator = parseFloat(dados.novo_fator);\n    }\n    \n    // Garante que num nulos não sejam enviados como string \"null\" se não quiser\n    // Mas para o ESP32 JSON, enviar null é ok (ArduinoJson trata como null)\n\n    return resposta;\n\n} catch (e) {\n    return {\n        error: \"Erro ao processar o campo 'intencao'\",\n        detalhe: e.message\n    };\n}\n"
+        "jsCode": "try {\n    const item = $input.first().json;\n    const outputRaw = item.intencao;\n    const remoteJid = item.remoteJid;\n\n    if (!outputRaw) {\n        return { error: \"Campo 'intencao' não encontrado ou vazio\" };\n    }\n\n    let dados = item;\n    // Lógica de parser já feita antes, assumindo 'dados' limpo\n\n    // Resposta normalizada\n    let resposta = {\n        intencao: dados.intencao || \"nenhuma_intencao\",\n        destination: \"mqtt\", // Default\n        remoteJid: remoteJid\n    };\n\n    // === VALIDAÇÃO DE CALIBRAÇÃO ===\n    if (dados.intencao === \"calibrar_tensao\") {\n        const temTensao = (dados.nova_tensao !== undefined && dados.nova_tensao !== null);\n        const temFator = (dados.novo_fator !== undefined && dados.novo_fator !== null);\n        \n        if (!temTensao && !temFator) {\n            // Faltou o valor! Redireciona para WhatsApp\n            return {\n                destination: \"whatsapp\",\n                message: \"Entendi que você quer calibrar a tensão, mas qual é o valor de referência? (Por favor, digite apenas o número, ex: 220)\",\n                remoteJid: remoteJid\n            };\n        }\n    }\n    // ===============================\n\n    if (dados.temp_max !== undefined && dados.temp_max !== null) resposta.temp_max = parseFloat(dados.temp_max);\n    if (dados.temp_min !== undefined && dados.temp_min !== null) resposta.temp_min = parseFloat(dados.temp_min);\n    if (dados.volt_max !== undefined && dados.volt_max !== null) resposta.volt_max = parseFloat(dados.volt_max);\n    if (dados.volt_min !== undefined && dados.volt_min !== null) resposta.volt_min = parseFloat(dados.volt_min);\n    if (dados.novo_fator !== undefined && dados.novo_fator !== null) resposta.novo_fator = parseFloat(dados.novo_fator);\n    if (dados.nova_tensao !== undefined && dados.nova_tensao !== null) resposta.nova_tensao = parseFloat(dados.nova_tensao);\n    \n    return resposta;\n\n} catch (e) {\n    return {\n        error: \"Erro ao processar o campo 'intencao'\",\n        detalhe: e.message\n    };\n}\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1584,
-        -64
+        -48
       ],
       "id": "518eca92-63a7-4ff2-b548-ef56b849e423",
       "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cond-mqtt",
+              "leftValue": "={{ $json.destination }}",
+              "rightValue": "mqtt",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond-whatsapp",
+              "leftValue": "={{ $json.destination }}",
+              "rightValue": "whatsapp",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        1760,
+        -48
+      ],
+      "id": "switch-validation",
+      "name": "Switch Validation"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.remoteJid }}",
+        "messageText": "={{ $json.message }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1984,
+        64
+      ],
+      "id": "evo-reply-error",
+      "name": "Responder Erro",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
     },
     {
       "parameters": {
@@ -702,11 +773,34 @@
       "main": [
         [
           {
-            "node": "MQTT",
+            "node": "Switch Validation",
             "type": "main",
             "index": 0
           }
         ]
+      ]
+    },
+    "Switch Validation": {
+      "main": [
+        [
+          {
+            "node": "MQTT",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder Erro": {
+      "main": [
+        []
       ]
     },
     "Get row(s) in sheet": {
