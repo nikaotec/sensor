@@ -28,6 +28,7 @@ String statusSeguranca = "OK";
 unsigned long inicioForaDaFaixa = 0;
 unsigned long inicioAlarmeTensao = 0;
 unsigned long lastMqttAlert = 0;
+unsigned long lastMqttVoltAlert = 0; // Novo timer para tensao
 unsigned long lastTempCheck = 0;
 int lastReportDay = -1;
 bool alarmeAtivo = false;
@@ -85,13 +86,31 @@ void loop() {
         float tVoltagem = voltSensor.getVoltage();
 
         // --- Lógica de Tensão ---
-        if (millis() > 120000) { // Estabilização
-            if (tVoltagem > 50.0) {
-                if (tVoltagem >= storage.data.voltMax || tVoltagem <= storage.data.voltMin) {
-                    if (inicioAlarmeTensao == 0) { inicioAlarmeTensao = now; }
+        if (millis() > 60000) { // Estabilização (reduzi para 60s)
+            if (tVoltagem > 50.0) { // Ignora se sensor desconectado
+                bool foraDaFaixa = (tVoltagem >= storage.data.voltMax || tVoltagem <= storage.data.voltMin);
+
+                if (foraDaFaixa) {
+                    String tipoAlarme = (tVoltagem >= storage.data.voltMax) ? "TENSAO_ALTA" : "TENSAO_BAIXA";
+                    
+                    if (inicioAlarmeTensao == 0) { 
+                        inicioAlarmeTensao = now; 
+                        enviarDadosMqtt(tipoAlarme); 
+                        lastMqttVoltAlert = now;
+                    }
+
+                    // Repetição do Alerta
+                    unsigned long intervaloVolt = (now - inicioAlarmeTensao <= TEMPO_ALARME_MS) ? 120000 : 600000;
+                    if (now - lastMqttVoltAlert >= intervaloVolt) { 
+                        enviarDadosMqtt("ALERTA_REPETITIVO_" + tipoAlarme);
+                        lastMqttVoltAlert = now;
+                    }
+
                     alarmeTensaoAtivo = true;
                 } else {
-                    if (inicioAlarmeTensao != 0) { enviarDadosMqtt("TENSAO_NORMALIZADA"); }
+                    if (inicioAlarmeTensao != 0) { 
+                        enviarDadosMqtt("TENSAO_NORMALIZADA"); 
+                    }
                     inicioAlarmeTensao = 0;
                     alarmeTensaoAtivo = false;
                 }
@@ -169,40 +188,77 @@ void processarMensagemMqtt(String topic, String payload) {
     String intencao = doc["intencao"] | "";
 
     if (intencao == "configurar_limites") {
-        if (!doc["valor_max"].isNull()) storage.data.alarmMax = doc["valor_max"];
-        if (!doc["valor_min"].isNull()) storage.data.alarmMin = doc["valor_min"];
-        
+        bool alterouTemp = false;
         bool alterouTensao = false;
-        if (!doc["volt_max"].isNull()) { storage.data.voltMax = doc["volt_max"]; alterouTensao = true; }
-        if (!doc["volt_min"].isNull()) { storage.data.voltMin = doc["volt_min"]; alterouTensao = true; }
 
-        storage.save();
-        enviarDadosMqtt("feedback_limites_atualizados");
-        
-        if (alterouTensao) {
-            String msg = "Faixa Tensao: " + String(storage.data.voltMin, 0) + "V - " + String(storage.data.voltMax, 0) + "V";
-            display.showMessage(msg, 5000);
-        } else {
-            String msg = "LIM: " + String(storage.data.alarmMin, 1) + " - " + String(storage.data.alarmMax, 1);
-            display.showMessage(msg, 5000);
+        // Verifica e atualiza cada campo individualmente (Partial Update)
+        if (doc.containsKey("temp_max")) { storage.data.alarmMax = doc["temp_max"]; alterouTemp = true; }
+        if (doc.containsKey("temp_min")) { storage.data.alarmMin = doc["temp_min"]; alterouTemp = true; }
+        if (doc.containsKey("volt_max")) { storage.data.voltMax = doc["volt_max"]; alterouTensao = true; }
+        if (doc.containsKey("volt_min")) { storage.data.voltMin = doc["volt_min"]; alterouTensao = true; }
+
+        if (alterouTemp || alterouTensao) {
+            storage.save();
+            enviarDadosMqtt("feedback_configuracao");
+            
+            // Feedback Visual Inteligente
+            if (alterouTemp && alterouTensao) {
+                 display.showMessage("Limites Atualizados", 4000);
+            } else if (alterouTemp) {
+                 String msg = "LIM T: " + String(storage.data.alarmMin, 1) + " - " + String(storage.data.alarmMax, 1);
+                 display.showMessage(msg, 5000);
+            } else if (alterouTensao) {
+                 String msg = "LIM V: " + String(storage.data.voltMin, 0) + " - " + String(storage.data.voltMax, 0);
+                 display.showMessage(msg, 5000);
+            }
         }
     } 
     else if (intencao == "calibrar_tensao") {
         float novoFator = 0.0;
-        if (doc["novo_fator"].is<float>()) {
-            novoFator = doc["novo_fator"];
-        } else if (doc["novo_fator"].is<String>()) {
-            novoFator = String(doc["novo_fator"]).toFloat();
+        bool calculoAuto = false;
+        float tensaoAlvo = 0.0;
+
+        // Opção 1: Calibração por Referência (Tensão Real)
+        if (doc.containsKey("nova_tensao")) {
+             String tStr = doc["nova_tensao"].as<String>();
+             tStr.replace(",", "."); // Trata 220,5
+             tensaoAlvo = tStr.toFloat();
+
+             float tensaoAtual = voltSensor.getVoltage();
+             float fatorAtual = storage.data.voltCalFactor;
+
+             if (tensaoAtual > 10.0 && tensaoAlvo > 10.0) {
+                 novoFator = fatorAtual * (tensaoAlvo / tensaoAtual);
+                 calculoAuto = true;
+             } else {
+                 display.showMessage("Erro: Tensao Baixa/Zero", 4000);
+                 return;
+             }
+        } 
+        // Opção 2: Fator Direto (Legado/Manual)
+        else if (doc.containsKey("novo_fator")) {
+             // Lógica anterior
+             if (doc["novo_fator"].is<float>()) {
+                novoFator = doc["novo_fator"];
+            } else if (doc["novo_fator"].is<String>()) {
+                novoFator = String(doc["novo_fator"]).toFloat();
+            }
         }
 
-        Serial.print("DEBUG: Tentativa Calibracao Fator: "); Serial.println(novoFator);
+        Serial.print("DEBUG: Calib Fator Final: "); Serial.println(novoFator);
 
         if (novoFator > 10 && novoFator < 1000) {
             storage.data.voltCalFactor = novoFator;
             voltSensor.setCalibration(novoFator);
             storage.save();
             enviarDadosMqtt("feedback_calibracao_sucesso");
-            display.showMessage("Calib. Sucesso: " + String(novoFator, 1), 5000);
+            
+            if (calculoAuto) {
+                 String msg = "Calib: " + String(tensaoAlvo, 0) + "V (F:" + String(novoFator, 1) + ")";
+                 display.showMessage(msg, 5000);
+            } else {
+                 display.showMessage("Calib. Sucesso: " + String(novoFator, 1), 5000);
+            }
         } else {
              display.showMessage("Erro Calib: " + String(novoFator, 1), 5000);
         }
