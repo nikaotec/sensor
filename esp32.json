@@ -67,7 +67,7 @@
             {
               "id": "6a269ce2-bf99-4198-bd20-2bb8251b4c6c",
               "name": "'0'].msg",
-              "value": "=Dispositivo: {{ $json['0'].DISPOSITIVO }}\nTemperatura: {{ $json['0'].TEMP_ATUAL }}°C\nVoltagem: {{ $json['0'].VOLTAGEM }}V\nMAX: {{ $json['0'].MAX }}\nMIN: {{ $json['0'].MIN }}\nData: {{ $json['0'].DATA }}\nHora: {{ $json['0'].HORA }}\nTipo: {{ $json['0'].TIPO }}",
+              "value": "=📳Dispositivo: {{ $json['0'].DISPOSITIVO }}\n📅Data: {{ $json['0'].DATA }}\n🕖Hora: {{ $json['0'].HORA }}\n🌡Temp: {{ $json['0'].TEMP_ATUAL }}\n⬆️MAX: {{ $json['0'].MAX }}\n⬇️MIN: {{ $json['0'].MIN }}\n🪫Bateria: {{ $json['0'].BATERIA || 'N/A' }}\n🔌Tensão: {{ $json['0'].VOLTAGEM }}v",
               "type": "string"
             },
             {
