@@ -31,6 +31,7 @@ public:
   void publish(const char *topic, String payload);
   bool isConnected();
   bool isWifiConnected();
+  int getRSSI();
   String getCurrentTime();
 };
 

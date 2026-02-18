@@ -30,44 +30,37 @@
           "assignments": [
             {
               "id": "dc0ca98f-1d6d-4dbd-ad83-eedb7b235e5b",
-              "name": "'0'].devic",
-              "value": "={{ $json['0'].DISPOSITIVO }}",
+              "id": "dc0ca98f-1d6d-4dbd-ad83-eedb7b235e5b",
+              "name": "device",
+              "value": "={{ $json['0'].DISPOSITIVO || 'N/A' }}",
               "type": "string"
             },
             {
               "id": "bafc55d8-c929-46d1-a195-c5fafdb3f7b3",
-              "name": "'0'].temperatur",
-              "value": "={{ $json['0'].TEMP_ATUAL }}",
+              "id": "bafc55d8-c929-46d1-a195-c5fafdb3f7b3",
+              "name": "temperatura",
+              "value": "={{ $json['0']['TEMP.'] }}",
               "type": "number"
             },
             {
               "id": "5e8d933f-f7f4-4005-a69d-ae9ded7730db",
-              "name": "'0'].hor",
+              "id": "5e8d933f-f7f4-4005-a69d-ae9ded7730db",
+              "name": "hora",
               "value": "={{ $json['0'].HORA }}",
               "type": "string"
             },
             {
-              "id": "wifi-signal-uid",
-              "name": "'0'].wifi",
-              "value": "={{ $json['0'].WIFI_SIGNAL }}",
-              "type": "string"
-            },
-            {
-              "id": "voltagem-uid",
-              "name": "'0'].voltage",
-              "value": "={{ $json['0'].VOLTAGEM }}",
-              "type": "string"
-            },
-            {
               "id": "a1d8b7c4-0df9-4171-bb3c-521260ab5308",
-              "name": "'0'].dat",
+              "id": "a1d8b7c4-0df9-4171-bb3c-521260ab5308",
+              "name": "data",
               "value": "={{ $json['0'].DATA }}",
               "type": "string"
             },
             {
               "id": "6a269ce2-bf99-4198-bd20-2bb8251b4c6c",
-              "name": "'0'].msg",
-              "value": "=Voc\u00ea \u00e9 um assistente IoT inteligente da C\u00e2mara Fria. Sua fun\u00e7\u00e3o \u00e9 responder ao usu\u00e1rio baseado no EVENTO recebido.\n\nDADOS RECEBIDOS:\n- Evento: {{ $json['0'].TIPO }}\n- Dispositivo: {{ $json['0'].DISPOSITIVO }}\n- Temp: {{ $json['0'].TEMP_ATUAL }} (Max: {{ $json['0'].MAX }}, Min: {{ $json['0'].MIN }})\n- Tens\u00e3o: {{ $json['0'].VOLTAGEM }}V\n- Bateria: {{ $json['0'].BATERIA }}\n\n---\nREGRAS DE RESPOSTA (PRIORIDADE M\u00c1XIMA):\n\n1. SE O EVENTO FOR \"feedback_calibracao_sucesso\":\n   - Responda APENAS: \"\u2705 Calibra\u00e7\u00e3o realizada com sucesso! A nova tens\u00e3o j\u00e1 est\u00e1 ajustada.\" (Ignore sensores)\n\n2. SE O EVENTO FOR \"feedback_configuracao\":\n   - Responda APENAS: \"\u2699\ufe0f Configura\u00e7\u00f5es atualizadas no dispositivo!\" (Ignore sensores)\n\n3. SE O EVENTO FOR \"feedback_comando\":\n   - Responda APENAS: \"\ud83d\udc4d Comando recebido e executado.\"\n\n4. SE O EVENTO FOR \"MANUTENCAO_ATIVADA\":\n   - Responda: \"\ud83d\udee0\ufe0f Modo Manuten\u00e7\u00e3o ATIVADO. Os alertas foram silenciados.\"\n\n5. SE O EVENTO FOR \"MANUTENCAO_DESATIVADA\":\n   - Responda: \"\ud83d\udd14 Modo Manuten\u00e7\u00e3o DESATIVADO. O monitoramento autom\u00e1tico voltou ao normal.\"\n\n6. SE O EVENTO FOR UM ALERTA (\"ALERTA_...\"):\n   - ALERTE IMEDIATAMENTE com emojis de perigo! Informe o problema claramente.\n\n\n7. PARA STATUS (\"periodico\", \"STATUS_SOLICITADO\", etc.):\n   - Gere um relat\u00f3rio amig\u00e1vel:\n     \"\ud83c\udf21\ufe0f *Status Atual*\n      \u2744\ufe0f Temp: {{ $json['0'].TEMP_ATUAL }}\u00b0C\n      \u26a1 Tens\u00e3o: {{ $json['0'].VOLTAGEM }}V\n      \ud83d\udd0b Bateria: {{ $json['0'].BATERIA }}V\n      \n      Tudo operando normalmente (ou mencione se algo parece errado).\"\n",
+              "id": "6a269ce2-bf99-4198-bd20-2bb8251b4c6c",
+              "name": "msg",
+              "value": "=DISPOSITIVO: {{ $json['0'].DISPOSITIVO }}\nTIPO: {{ $json['0'].TIPO }}\nTEMP: {{ $json['0']['TEMP.'] }}\nMAX: {{ $json['0'].MAX }}\nMIN: {{ $json['0'].MIN }}\nALARM_MAX: {{ $json['0'].ALARM_MAX || 'N/A' }}\nALARM_MIN: {{ $json['0'].ALARM_MIN || 'N/A' }}\nVOLTAGEM: {{ $json['0'].VOLTAGEM }}\nBATERIA: {{ $json['0'].BATERIA }}\nDATA: {{ $json['0'].DATA }}\nHORA: {{ $json['0'].HORA }}",
               "type": "string"
             },
             {
@@ -94,13 +87,13 @@
         "resource": "messages-api",
         "instanceName": "sensor_temperatura",
         "remoteJid": "5581995981890",
-        "messageText": "={{ $json.msg }}",
+        "messageText": "={{ $json.output || $json.msg }}",
         "options_message": {}
       },
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        1258,
+        1008,
         336
       ],
       "id": "e898a1e5-5323-41f7-999a-0cd34e083660",
@@ -117,7 +110,7 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1418,
+        1168,
         336
       ],
       "id": "7b6e4e2a-5d3b-43c3-9855-8b4c5f1bb0d5",
@@ -135,7 +128,7 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        1546,
+        1296,
         544
       ],
       "id": "19a4faf0-d5a0-429f-8f28-b6e38d6ef319",
@@ -161,7 +154,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $json[\"0\"].event }}",
+                    "leftValue": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
                     "rightValue": "=comando_desligar_sucesso",
                     "operator": {
                       "type": "string",
@@ -184,562 +177,689 @@
                 "conditions": [
                   {
                     "id": "1dcab170-1d89-471c-a605-36e619bf0c84",
-                    "leftValue": "={{ $json[\"0\"].event }}",
+                    "leftValue": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
                     "rightValue": "periodico",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
+                    "combinator": "and"
                   }
-                ],
-                "combinator": "and"
-              }
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 3
                 },
-                "conditions": [
-                  {
-                    "id": "4e481fc8-9848-44eb-abf9-495384b54ba2",
-                    "leftValue": "={{ $json[\"0\"].event }}",
-                    "rightValue": "comando_ligar_sucesso",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 3
+                    },
+                    "conditions": [
+                      {
+                        "id": "daily_report",
+                        "leftValue": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
+                        "rightValue": "relatorio_diario",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        }
+                      }
+                    ],
+                    "combinator": "and"
                   }
-                ],
-                "combinator": "and"
-              }
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 3
                 },
-                "conditions": [
-                  {
-                    "id": "bada2f52-d36b-4d90-9168-a9243bf4dba3",
-                    "leftValue": "={{ $json[\"0\"].event }}",
-                    "rightValue": "limites_alterados",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals",
-                      "name": "filter.operator.equals"
-                    }
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 3
+                    },
+                    "conditions": [
+                      {
+                        "id": "4e481fc8-9848-44eb-abf9-495384b54ba2",
+                        "leftValue": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
+                        "rightValue": "comando_ligar_sucesso",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals"
+                        }
+                      }
+                    ],
+                    "combinator": "and"
                   }
-                ],
-                "combinator": "and"
-              }
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 3
                 },
-                "conditions": [
-                  {
-                    "id": "0b740cda-c2c6-4c1e-aa0b-0047e56d83a0",
-                    "leftValue": "",
-                    "rightValue": "",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals",
-                      "name": "filter.operator.equals"
-                    }
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 3
+                    },
+                    "conditions": [
+                      {
+                        "id": "bada2f52-d36b-4d90-9168-a9243bf4dba3",
+                        "leftValue": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
+                        "rightValue": "limites_alterados",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals",
+                          "name": "filter.operator.equals"
+                        }
+                      }
+                    ],
+                    "combinator": "and"
                   }
-                ],
-                "combinator": "and"
-              }
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.4,
-      "position": [
-        682,
-        288
-      ],
-      "id": "f51ad1af-af96-4c33-a35f-44053fe94626",
-      "name": "Switch"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
-              "name": "msg",
-              "value": "={{ $json[\"'0'\"].msg }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        970,
-        16
-      ],
-      "id": "caf2ffa0-8912-4a20-9ed6-763bf0976b00",
-      "name": "rele desligado"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
-              "name": "msg",
-              "value": "={{ $json[\"'0'\"].msg }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        970,
-        176
-      ],
-      "id": "e9f7d4e5-16f4-47d8-b281-cd4de6db03b2",
-      "name": "periodico"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
-              "name": "msg",
-              "value": "={{ $json[\"'0'\"].msg }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        970,
-        672
-      ],
-      "id": "0a874c78-b93f-4be4-a089-2679f63a08d9",
-      "name": "modo_automatico_ligado"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
-              "name": "msg",
-              "value": "={{ $json[\"'0'\"].msg }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        970,
-        496
-      ],
-      "id": "b31a8f5b-24aa-4b3c-a40b-6189a0b2c5cc",
-      "name": "limites_alterados"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
-              "name": "msg",
-              "value": "={{ $json[\"'0'\"].msg }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        970,
-        336
-      ],
-      "id": "ed49ef5e-b857-410e-827b-3c10483ed3d3",
-      "name": "lifado_sucesso"
-    },
-    {
-      "parameters": {
-        "operation": "append",
-        "documentId": {
-          "__rl": true,
-          "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
-          "mode": "list",
-          "cachedResultName": "Temperaturas",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "HORA": "={{ $('MQTT Trigger').item.json['0'].HORA }}",
-            "DATA": "={{ $('MQTT Trigger').item.json['0'].DATA }}",
-            "TIPO": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
-            "DISPOSITIVO": "={{ $('MQTT Trigger').item.json['0'].DISPOSITIVO }}",
-            "RELE": "={{ '' }}",
-            "MODO": "={{ '' }}",
-            "TEMP.": "={{ $('MQTT Trigger').item.json['0'].TEMP_ATUAL }}",
-            "MAX": "={{ $('MQTT Trigger').item.json['0'].MAX }}",
-            "MIN": "={{ $('MQTT Trigger').item.json['0'].MIN }}",
-            "VOLTAGEM": "={{ $('MQTT Trigger').item.json['0'].VOLTAGEM }}"
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 3
+                    },
+                    "conditions": [
+                      {
+                        "id": "alert_routing",
+                        "leftValue": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
+                        "rightValue": "ALERTA_",
+                        "operator": {
+                          "type": "string",
+                          "operation": "startsWith",
+                          "name": "filter.operator.startsWith"
+                        }
+                      }
+                    ],
+                    "combinator": "and"
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 3
+                    },
+                    "conditions": [
+                      {
+                        "id": "alert_normalized",
+                        "leftValue": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
+                        "rightValue": "NORMALIZADA",
+                        "operator": {
+                          "type": "string",
+                          "operation": "textView",
+                          "name": "filter.operator.endsWith"
+                        }
+                      }
+                    ],
+                    "combinator": "and"
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 3
+                    },
+                    "conditions": [
+                      {
+                        "id": "energy_restored",
+                        "leftValue": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
+                        "rightValue": "ENERGIA_RESTABELECIDA",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals",
+                          "name": "filter.operator.equals"
+                        }
+                      }
+                    ],
+                    "combinator": "and"
+                  }
+                },
+                {
+                  "conditions": {
+                    "options": {
+                      "caseSensitive": true,
+                      "leftValue": "",
+                      "typeValidation": "strict",
+                      "version": 3
+                    },
+                    "conditions": [
+                      {
+                        "id": "0b740cda-c2c6-4c1e-aa0b-0047e56d83a0",
+                        "leftValue": "",
+                        "rightValue": "",
+                        "operator": {
+                          "type": "string",
+                          "operation": "equals",
+                          "name": "filter.operator.equals"
+                        }
+                      }
+                    ],
+                    "combinator": "and"
+                  }
+                }
+              ]
+            },
+            "options": {}
           },
-          "matchingColumns": [],
-          "schema": [
-            {
-              "id": "DISPOSITIVO",
-              "displayName": "DISPOSITIVO",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "DATA",
-              "displayName": "DATA",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "HORA",
-              "displayName": "HORA",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "TEMP.",
-              "displayName": "TEMP.",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "TIPO",
-              "displayName": "TIPO",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "RELE",
-              "displayName": "RELE",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "MODO",
-              "displayName": "MODO",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "MAX",
-              "displayName": "MAX",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "MIN",
-              "displayName": "MIN",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "VOLTAGEM",
-              "displayName": "VOLTAGEM",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            }
+          "type": "n8n-nodes-base.switch",
+          "typeVersion": 3.4,
+          "position": [
+            432,
+            288
           ],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
+          "id": "f51ad1af-af96-4c33-a35f-44053fe94626",
+          "name": "Switch"
         },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        1578,
-        336
-      ],
-      "id": "c028d980-bd41-462f-8801-12112805de42",
-      "name": "salva temperatura",
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "YFl1SEKGi4NmAyDc",
-          "name": "Google Sheets account"
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
+                  "name": "msg",
+                  "value": "={{ $json.output }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            720,
+            16
+          ],
+          "id": "caf2ffa0-8912-4a20-9ed6-763bf0976b00",
+          "name": "rele desligado"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
+                  "name": "msg",
+                  "value": "={{ $json.output }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            720,
+            176
+          ],
+          "id": "e9f7d4e5-16f4-47d8-b281-cd4de6db03b2",
+          "name": "periodico"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
+                  "name": "msg",
+                  "value": "={{ $json.output }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            720,
+            672
+          ],
+          "id": "0a874c78-b93f-4be4-a089-2679f63a08d9",
+          "name": "modo_automatico_ligado"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
+                  "name": "msg",
+                  "value": "={{ $json.output }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            720,
+            496
+          ],
+          "id": "b31a8f5b-24aa-4b3c-a40b-6189a0b2c5cc",
+          "name": "limites_alterados"
+        },
+        {
+          "parameters": {
+            "assignments": {
+              "assignments": [
+                {
+                  "id": "3f459ea5-8749-469d-be27-50e9c00430f9",
+                  "name": "msg",
+                  "value": "={{ $json.output }}",
+                  "type": "string"
+                }
+              ]
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.set",
+          "typeVersion": 3.4,
+          "position": [
+            720,
+            336
+          ],
+          "id": "ed49ef5e-b857-410e-827b-3c10483ed3d3",
+          "name": "lifado_sucesso"
+        },
+        {
+          "parameters": {
+            "operation": "append",
+            "documentId": {
+              "__rl": true,
+              "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
+              "mode": "list",
+              "cachedResultName": "Temperaturas",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
+            },
+            "sheetName": {
+              "__rl": true,
+              "value": "gid=0",
+              "mode": "list",
+              "cachedResultName": "Página1",
+              "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
+            },
+            "columns": {
+              "mappingMode": "defineBelow",
+              "value": {
+                "HORA": "={{ $('MQTT Trigger').item.json['0'].HORA }}",
+                "DATA": "={{ $('MQTT Trigger').item.json['0'].DATA }}",
+                "TIPO": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
+                "DISPOSITIVO": "={{ $('MQTT Trigger').item.json['0'].DISPOSITIVO }}",
+                "RELE": "={{ '' }}",
+                "MODO": "={{ '' }}",
+                "TEMP.": "={{ $('MQTT Trigger').item.json['0']['TEMP.'] }}",
+                "MAX": "={{ $('MQTT Trigger').item.json['0'].MAX }}",
+                "MIN": "={{ $('MQTT Trigger').item.json['0'].MIN }}"
+              },
+              "matchingColumns": [],
+              "schema": [
+                {
+                  "id": "DISPOSITIVO",
+                  "displayName": "DISPOSITIVO",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true,
+                  "removed": false
+                },
+                {
+                  "id": "DATA",
+                  "displayName": "DATA",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "HORA",
+                  "displayName": "HORA",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "TEMP.",
+                  "displayName": "TEMP.",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true,
+                  "removed": false
+                },
+                {
+                  "id": "TIPO",
+                  "displayName": "TIPO",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true
+                },
+                {
+                  "id": "RELE",
+                  "displayName": "RELE",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true,
+                  "removed": false
+                },
+                {
+                  "id": "MODO",
+                  "displayName": "MODO",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true,
+                  "removed": false
+                },
+                {
+                  "id": "MAX",
+                  "displayName": "MAX",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true,
+                  "removed": false
+                },
+                {
+                  "id": "MIN",
+                  "displayName": "MIN",
+                  "required": false,
+                  "defaultMatch": false,
+                  "display": true,
+                  "type": "string",
+                  "canBeUsedToMatch": true,
+                  "removed": false
+                }
+              ],
+              "attemptToConvertTypes": false,
+              "convertFieldsToString": false
+            },
+            "options": {}
+          },
+          "type": "n8n-nodes-base.googleSheets",
+          "typeVersion": 4.7,
+          "position": [
+            1328,
+            336
+          ],
+          "id": "c028d980-bd41-462f-8801-12112805de42",
+          "name": "salva temperatura",
+          "credentials": {
+            "googleSheetsOAuth2Api": {
+              "id": "YFl1SEKGi4NmAyDc",
+              "name": "Google Sheets account"
+            }
+          }
+        },
+        {
+          "parameters": {
+            "promptType": "define",
+            "text": "={{ $json[\"'0'\"].msg }}",
+            "options": {
+              "systemMessage": "Voc\u00ea \u00e9 um assistente t\u00e9cnico inteligente de monitoramento de C\u00e2mara Fria. Sua fun\u00e7\u00e3o \u00e9 analisar dados de sensores IoT e gerar mensagens humanizadas para WhatsApp.\n\nVoc\u00ea recebe dados no formato:\nDISPOSITIVO: nome\nTIPO: tipo_do_evento\nTEMP: temperatura_atual\nMAX: pico_maximo_hoje\nMIN: pico_minimo_hoje\nALARM_MAX: limite_maximo_configurado\nALARM_MIN: limite_minimo_configurado\nVOLTAGEM: tensao_rede\nBATERIA: tensao_bateria\nDATA: data\nHORA: hora\n\nIMPORTANTE:\n- ALARM_MAX e ALARM_MIN s\u00e3o os LIMITES de seguran\u00e7a.\n- MAX e MIN s\u00e3o apenas os registros hist\u00f3ricos do dia (picos).\n- Use ALARM_MAX e ALARM_MIN para determinar se est\u00e1 fora da faixa.\n- Use MAX e MIN apenas para curiosidade hist\u00f3rica (\"Hoje chegou a X\").\n\n---\nREGRAS DE RESPOSTA POR TIPO DE EVENTO:\n\n1. TIPO = \"periodico\" ou \"STATUS_SOLICITADO\":\n   Gere um relat\u00f3rio amig\u00e1vel com emojis:\n   \ud83c\udf21\ufe0f *Status Atual*\n   \ud83d\udcf2Dispositivo: [nome]\n   \ud83d\udcc5Data: [data]\n   \ud83d\udd65Hora: [hora]\n   \ud83c\udf21Temp: [temp]\u00b0C\n   \u2699\ufe0fLimites: [alarm_min]\u00b0C a [alarm_max]\u00b0C\n   \ud83d\udcc8Picos Hoje: Min [min]\u00b0C / Max [max]\u00b0C\n   \ud83e\udeabBateria: [bat]V\n   \ud83d\udd0cTens\u00e3o: [volt]V\n\n   Depois, ANALISE os dados:\n   - Se VOLTAGEM > 200V: \u2705 Energia est\u00e1vel\n   - Se VOLTAGEM = 0V: \u26a0\ufe0f ALERTA: Sem energia!\n   - Se TEMP > ALARM_MAX: \u26a0\ufe0f Temperatura ACIMA do limite configurado ([alarm_max])\n   - Se TEMP < ALARM_MIN: \u26a0\ufe0f Temperatura ABAIXO do limite configurado ([alarm_min])\n   - Se TEMP entre ALARM_MIN e ALARM_MAX: \u2705 Temperatura normal\n\n2. TIPO = \"relatorio_diario\":\n   Inicie com uma sauda\u00e7\u00e3o adequada ao hor\u00e1rio (Bom dia \u2600\ufe0f se 08h, Boa tarde \u1f307 se 16h).\n   \"Aqui est\u00e1 o resumo di\u00e1rio do seu monitoramento:\"\n   Siga o mesmo formato do item 1 (Status Atual).\n   Adicione uma nota sobre o reset dos picos di\u00e1rios.\n\n3. TIPO come\u00e7a com \"ALERTA_\":\n   \ud83d\udea8 GERE UM ALERTA URGENTE! Use emojis de perigo (\ud83d\udca5\u26a0\ufe0f\ud83d\udd34).\n   Informe o problema claramente.\n   Indique a causa (Ex: Temp [temp] > Limite [alarm_max]).\n\n4. Outros tipos mantenha o padr\u00e3o anterior."
+            }
+          },
+          "type": "@n8n/n8n-nodes-langchain.agent",
+          "typeVersion": 3.1,
+          "position": [
+            432,
+            336
+          ],
+          "id": "ai-agent-esp32",
+          "name": "AI Agent"
+        },
+        {
+          "parameters": {
+            "model": "qwen/qwen3-235b-a22b-2507",
+            "options": {}
+          },
+          "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+          "typeVersion": 1,
+          "position": [
+            452,
+            556
+          ],
+          "id": "openrouter-esp32",
+          "name": "OpenRouter Chat Model",
+          "credentials": {
+            "openRouterApi": {
+              "id": "XMVmk3hYpFTHTSyt",
+              "name": "OpenRouter account"
+            }
+          }
         }
-      }
-    },
-    {
-      "parameters": {
-        "resource": "chat",
-        "operation": "complete",
-        "prompt": "={{ $json[\"'0'\"].msg }}",
-        "model": "gpt-3.5-turbo",
-        "options": {}
-      },
-      "name": "AI Assistant",
-      "type": "n8n-nodes-base.openAi",
-      "typeVersion": 1,
-      "position": [
-        450,
-        336
       ],
-      "id": "e76d71aa-7ded-4ea8-a6ef-a904673947bf",
-      "credentials": {
-        "openAiApi": {
-          "id": "YOUR_OPENAI_CREDENTIAL_ID",
-          "name": "OpenAI account"
+      "pinData": {},
+      "connections": {
+        "MQTT Trigger": {
+          "main": [
+            [
+              {
+                "node": "Edit Fields",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Edit Fields": {
+          "main": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "AI Agent": {
+          "main": [
+            [
+              {
+                "node": "Switch",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "OpenRouter Chat Model": {
+          "ai_languageModel": [
+            [
+              {
+                "node": "AI Agent",
+                "type": "ai_languageModel",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Enviar texto": {
+          "main": [
+            [
+              {
+                "node": "Wait",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Wait": {
+          "main": [
+            [
+              {
+                "node": "salva temperatura",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "Switch": {
+          "main": [
+            [
+              {
+                "node": "rele desligado",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "periodico",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "periodico",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "lifado_sucesso",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "limites_alterados",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Enviar texto",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Enviar texto",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "Enviar texto",
+                "type": "main",
+                "index": 0
+              }
+            ],
+            [
+              {
+                "node": "modo_automatico_ligado",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "rele desligado": {
+          "main": [
+            [
+              {
+                "node": "Enviar texto",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "periodico": {
+          "main": [
+            [
+              {
+                "node": "Enviar texto",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "modo_automatico_ligado": {
+          "main": [
+            [
+              {
+                "node": "Enviar texto",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "limites_alterados": {
+          "main": [
+            [
+              {
+                "node": "Enviar texto",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "lifado_sucesso": {
+          "main": [
+            [
+              {
+                "node": "Enviar texto",
+                "type": "main",
+                "index": 0
+              }
+            ]
+          ]
+        },
+        "salva temperatura": {
+          "main": [
+            []
+          ]
+        },
+        "Enviar texto1": {
+          "main": [
+            []
+          ]
         }
-      }
+      },
+      "active": true,
+      "settings": {
+        "executionOrder": "v1",
+        "availableInMCP": false,
+        "timeSavedMode": "fixed",
+        "callerPolicy": "workflowsFromSameOwner"
+      },
+      "versionId": "dbf1d448-ac60-4fea-8271-589e45e1bba4",
+      "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "be63eec592610c4f78e7b17a812f5d022e962bcad508e6c20e665203393891ed"
+      },
+      "id": "YGf8O2rGuqGCYpfdjsXX-",
+      "tags": []
     }
-  ],
-  "pinData": {},
-  "connections": {
-    "MQTT Trigger": {
-      "main": [
-        [
-          {
-            "node": "Edit Fields",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Edit Fields": {
-      "main": [
-        [
-          {
-            "node": "AI Assistant",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Enviar texto": {
-      "main": [
-        [
-          {
-            "node": "Wait",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Wait": {
-      "main": [
-        [
-          {
-            "node": "salva temperatura",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Switch": {
-      "main": [
-        [
-          {
-            "node": "rele desligado",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "periodico",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "lifado_sucesso",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "limites_alterados",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "modo_automatico_ligado",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "rele desligado": {
-      "main": [
-        [
-          {
-            "node": "Enviar texto",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "periodico": {
-      "main": [
-        [
-          {
-            "node": "Enviar texto",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "modo_automatico_ligado": {
-      "main": [
-        [
-          {
-            "node": "Enviar texto",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "limites_alterados": {
-      "main": [
-        [
-          {
-            "node": "Enviar texto",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "lifado_sucesso": {
-      "main": [
-        [
-          {
-            "node": "Enviar texto",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "salva temperatura": {
-      "main": [
-        []
-      ]
-    },
-    "Enviar texto1": {
-      "main": [
-        []
-      ]
-    },
-    "AI Assistant": {
-      "main": [
-        [
-          {
-            "node": "Switch",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": true,
-  "settings": {
-    "executionOrder": "v1",
-    "availableInMCP": false,
-    "timeSavedMode": "fixed",
-    "callerPolicy": "workflowsFromSameOwner"
-  },
-  "versionId": "dbf1d448-ac60-4fea-8271-589e45e1bba4",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "be63eec592610c4f78e7b17a812f5d022e962bcad508e6c20e665203393891ed"
-  },
-  "id": "YGf8O2rGuqGCYpfdjsXX-",
-  "tags": []
-}

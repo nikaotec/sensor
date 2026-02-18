@@ -75,9 +75,8 @@ void DisplayManager::update(float temp, float max, float min, float voltage,
 
   // Controle de Mensagem no Rodapé
   if (tempoMensagemRodape > 0 && now > tempoMensagemRodape) {
-    mensagemRodape = "OPERACIONAL";
+    mensagemRodape = manual ? "EM MANUTENCAO" : "OPERACIONAL";
     tempoMensagemRodape = 0;
-    // scrollOffset = 0; // REMOVED
     currentMsgPage = 0;
     totalPages = 1;
   }

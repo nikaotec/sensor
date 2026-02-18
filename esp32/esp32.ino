@@ -23,8 +23,10 @@ VoltageSensor voltSensor(PIN_ZMPT, VOLTAGE_CALIBRATION_DEFAULT);
 // ADC1) BatterySensor batterySensor(PIN_BATTERY, BATTERY_CALIBRATION_DEFAULT);
 AmbientSensor ambientSensor(PIN_DHT11);
 
-AlertManager alertTempMax("TEMPERATURA_ALTA", ALERT_DEBOUNCE, ALERT_REPEAT);
-AlertManager alertTempMin("TEMPERATURA_BAIXA", ALERT_DEBOUNCE, ALERT_REPEAT);
+AlertManager alertTempMax("TEMPERATURA_ALTA", ALERT_DEBOUNCE,
+                          300000); // Repete a cada 5 min
+AlertManager alertTempMin("TEMPERATURA_BAIXA", ALERT_DEBOUNCE,
+                          300000); // Repete a cada 5 min
 AlertManager alertVoltMax("TENSAO_ALTA", ALERT_DEBOUNCE, ALERT_REPEAT);
 AlertManager alertVoltMin("TENSAO_BAIXA", ALERT_DEBOUNCE, ALERT_REPEAT);
 AlertManager alertBatLow("BATERIA_BAIXA", ALERT_DEBOUNCE, ALERT_REPEAT);
@@ -75,6 +77,7 @@ void setup() {
   sensors.begin();
   sensors.setWaitForConversion(false);
   ambientSensor.begin();
+  pinMode(PIN_DOOR, INPUT_PULLUP);
 
   // Configura Calibração Inicial
   voltSensor.setCalibration(storage.data.voltCalFactor);
@@ -100,7 +103,8 @@ void loop() {
     lastTempCheck = now;
 
     // 2.1 Envio Periódico (A cada 5 minutos - 300000 ms)
-    if (now - lastReportTime > 300000) {
+    // NÃO envia relatórios periódicos durante manutenção
+    if (!modoManual && (now - lastReportTime > 300000)) {
       lastReportTime = now;
       enviarDadosMqtt("periodico");
     }
@@ -171,36 +175,49 @@ void loop() {
         }
 
         // Alertas Temperatura (Apenas em automático/não manutenção)
-        if (alertTempMax.check(temperaturaAtual > storage.data.alarmMax) ==
-            ALERT_STARTED) {
+        // Usa >= e <= para alertar quando TEMP iguala o limite
+        AlertStatus stMax =
+            alertTempMax.check(temperaturaAtual >= storage.data.alarmMax);
+        AlertStatus stMin =
+            alertTempMin.check(temperaturaAtual <= storage.data.alarmMin);
+
+        if (stMax == ALERT_STARTED) {
           statusSeguranca = "QUENTE!";
           enviarDadosMqtt("ALERTA_TEMP_ALTA");
+        } else if (stMax == ALERT_REPEATED) {
+          enviarDadosMqtt("ALERTA_TEMP_ALTA"); // Repete a cada 5 min
         }
-        if (alertTempMin.check(temperaturaAtual < storage.data.alarmMin) ==
-            ALERT_STARTED) {
+
+        if (stMin == ALERT_STARTED) {
           statusSeguranca = "FRIO!";
           enviarDadosMqtt("ALERTA_TEMP_BAIXA");
+        } else if (stMin == ALERT_REPEATED) {
+          enviarDadosMqtt("ALERTA_TEMP_BAIXA"); // Repete a cada 5 min
         }
 
         // Verifica Normalização
-        if (!alertTempMax.isActive() && !alertTempMin.isActive()) {
-          if (statusSeguranca != "OK") {
-            statusSeguranca = "OK";
-            enviarDadosMqtt("TEMP_NORMALIZADA");
-          }
+        if (stMax == ALERT_NORMALIZED || stMin == ALERT_NORMALIZED) {
+          statusSeguranca = "OK";
+          enviarDadosMqtt("TEMP_NORMALIZADA");
         }
       }
     }
   }
 
-  // 3. Reset Diário 08:00 e 16:00
+  // 3. Reset Diário 06:00 e 16:00
   struct tm t;
   if (getLocalTime(&t)) {
-    if ((t.tm_hour == 8 || t.tm_hour == 16) && t.tm_mday != lastReportDay) {
-      lastReportDay = t.tm_mday;
-      enviarDadosMqtt("relatorio_diario_reset");
+    // Check if hour changed to avoid multiple triggers within the same hour
+    static int lastReportHour = -1;
+    if ((t.tm_hour == 6 || t.tm_hour == 16) && t.tm_hour != lastReportHour) {
+      lastReportHour = t.tm_hour;
+      enviarDadosMqtt("relatorio_diario");
       storage.resetMinMax(temperaturaAtual);
       display.showMessage("Reset Diario", 5000);
+    }
+    // Update tracking variable when hour changes (to allow re-trigger next day)
+    if (t.tm_hour != 6 && t.tm_hour != 16) {
+      lastReportHour = -1;
     }
   }
 
@@ -231,13 +248,28 @@ void notificarUsuario(String mensagem, int tempo = 4000) {
 
 // ---------- CALLBACK MQTT ----------
 void processarMensagemMqtt(String topic, String payload) {
+  Serial.println("[MQTT RX] Topico: " + topic);
+  Serial.println("[MQTT RX] Payload: " + payload);
+
   StaticJsonDocument<1024> doc;
   DeserializationError error = deserializeJson(doc, payload);
 
-  if (error)
+  if (error) {
+    Serial.println("[MQTT RX] ERRO JSON: " + String(error.c_str()));
     return;
+  }
 
   String intencao = doc["intencao"] | "";
+  Serial.println("[MQTT RX] Intencao: " + intencao);
+
+  // --- MODO MANUTENÇÃO: Bloqueia todos os comandos exceto
+  // modo_manutencao/modo_operacional ---
+  if (modoManual && intencao != "modo_manutencao" &&
+      intencao != "modo_operacional") {
+    Serial.println("[MQTT RX] BLOQUEADO - Dispositivo em manutenção");
+    enviarDadosMqtt("EM_MANUTENCAO");
+    return;
+  }
 
   if (intencao == "configurar_limites") {
     bool alterouTemp = false;
@@ -289,25 +321,26 @@ void processarMensagemMqtt(String topic, String payload) {
       }
     }
   } else if (intencao == "modo_manutencao") {
-    // Toggle ou Set
-    if (doc.containsKey("ativo")) {
-      // Se o JSON trouxer explicitamente true/false
-      bool state = doc["ativo"];
-      if (state) {
-        modoManual = true; // RE Using existing manual mode flag as maintenance
-        notificarUsuario("Manutencao ATIVADA", 5000);
-      } else {
-        modoManual = false;
-        notificarUsuario("Manutencao DESATIVADA", 5000);
-      }
+    // Apenas ATIVA manutenção
+    if (!modoManual) {
+      modoManual = true;
+      display.showMessage("EM MANUTENCAO", 0); // Permanente no display
+      enviarDadosMqtt("MANUTENCAO_ATIVADA");
     } else {
-      // Toggle se não especificado
-      modoManual = !modoManual;
-      notificarUsuario(
-          modoManual ? "Manutencao ATIVADA" : "Manutencao DESATIVADA", 5000);
+      // Já está em manutenção
+      enviarDadosMqtt("EM_MANUTENCAO");
     }
-    enviarDadosMqtt(modoManual ? "MANUTENCAO_ATIVADA"
-                               : "MANUTENCAO_DESATIVADA");
+
+  } else if (intencao == "modo_operacional") {
+    // Apenas DESATIVA manutenção
+    if (modoManual) {
+      modoManual = false;
+      display.showMessage("OPERACIONAL", 0); // Permanente no display
+      enviarDadosMqtt("MANUTENCAO_DESATIVADA");
+    } else {
+      // Já está operacional
+      enviarDadosMqtt("feedback_comando");
+    }
 
   } else if (intencao == "silenciar_alarme") {
     // Apenas limpa a mensagem do display por enquanto,
@@ -319,6 +352,35 @@ void processarMensagemMqtt(String topic, String payload) {
   } else if (intencao == "obter_status_atual") {
     enviarDadosMqtt("STATUS_SOLICITADO");
 
+  } else if (intencao == "obter_ambiente") {
+    // Envia dados do sensor ambiente com mensagem já formatada
+    StaticJsonDocument<512> ambDoc;
+    ambDoc["DISPOSITIVO"] = "02 CENTRO";
+    ambDoc["TIPO"] = "DADOS_AMBIENTE";
+    float tempExt = ambientSensor.getTemperature();
+    float umid = ambientSensor.getHumidity();
+    ambDoc["TEMP_EXTERNA"] = serialized(String(tempExt, 1));
+    ambDoc["UMIDADE"] = serialized(String(umid, 1));
+    struct tm ti;
+    String dataStr = "", horaStr = "";
+    if (getLocalTime(&ti)) {
+      char d[20], h[10];
+      strftime(d, sizeof(d), "%d/%m/%Y", &ti);
+      strftime(h, sizeof(h), "%H:%M:%S", &ti);
+      ambDoc["DATA"] = d;
+      ambDoc["HORA"] = h;
+      dataStr = String(d);
+      horaStr = String(h);
+    }
+    // Mensagem formatada para WhatsApp
+    String msg = "🌡️ *Dados Ambientais*\n";
+    msg += "🌍 Temp Externa: " + String(tempExt, 1) + "°C\n";
+    msg += "💧 Umidade: " + String(umid, 1) + "%\n";
+    msg += "📅 " + dataStr + " às " + horaStr;
+    ambDoc["MSG"] = msg;
+    String ambPayload;
+    serializeJson(ambDoc, ambPayload);
+    network.publish(MSG_TOPIC_DATA, ambPayload.c_str());
   } else if (intencao == "calibrar_tensao") {
     float novoFator = 0.0;
     bool calculoAuto = false;
@@ -435,10 +497,15 @@ void processarMensagemMqtt(String topic, String payload) {
 
 // ---------- ENVIA DADOS COMPLETOS PARA MQTT ----------
 void enviarDadosMqtt(String evento) {
-  if (!network.isConnected())
+  Serial.println(
+      "[DATA] enviarDadosMqtt chamada - evento: " + evento +
+      " | conectado: " + String(network.isConnected() ? "SIM" : "NAO"));
+  if (!network.isConnected()) {
+    Serial.println("[DATA] ABORTADO: MQTT nao conectado!");
     return;
+  }
 
-  StaticJsonDocument<768> doc;
+  StaticJsonDocument<1024> doc;
   doc["DISPOSITIVO"] = "02 CENTRO";
   doc["TIPO"] = evento;
 
@@ -447,15 +514,32 @@ void enviarDadosMqtt(String evento) {
   doc["MAX"] = serialized(String(storage.data.tempMaxRec, 1));
   doc["MIN"] = serialized(String(storage.data.tempMinRec, 1));
 
+  // Limites Configurados (Separados dos Picos Diários)
+  doc["ALARM_MAX"] = serialized(String(storage.data.alarmMax, 1));
+  doc["ALARM_MIN"] = serialized(String(storage.data.alarmMin, 1));
+
   doc["VOLTAGEM"] = serialized(String(voltSensor.getVoltage(), 1));
   doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
 
-  // Sensor Ambiente (DHT11)
-  doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
-  doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
+  // Sensor Ambiente (DHT11) - só envia quando o usuário pedir
+  if (evento == "STATUS_SOLICITADO") {
+    doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
+    doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
+  }
 
   // Estado da Porta
   doc["PORTA"] = digitalRead(PIN_DOOR) == HIGH ? "ABERTA" : "FECHADA";
+
+  // Sinal WiFi (RSSI em dBm)
+  doc["RSSI"] = network.getRSSI();
+
+  // Saúde dos Sensores
+  JsonObject saude = doc.createNestedObject("SAUDE_SENSORES");
+  saude["DS18B20"] = (temperaturaAtual > -50 && temperaturaAtual < 80);
+  saude["DHT11"] = ambientSensor.isValid();
+  saude["ZMPT"] = true;
+  saude["BATERIA"] = (voltSensor.getBatteryVoltage() > 0);
+  saude["PORTA"] = true;
 
   // Timestamp
   struct tm timeinfo;
