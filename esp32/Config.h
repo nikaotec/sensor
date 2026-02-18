@@ -1,7 +1,11 @@
+
 #ifndef CONFIG_H
 #define CONFIG_H
 
 #include <Arduino.h>
+
+// ---------- DEVICE ----------
+#define DEVICE_NAME "02 CENTRO" // Added Device Name
 
 // ---------- REDE ----------
 #define WIFI_SSID "VENANCIO"
@@ -18,24 +22,25 @@
 // ---------- PINOS ----------
 #define DS18B20_PIN 5
 #define RELAY_PIN 32
-#define PIN_ZMPT 35
-#define PIN_BATTERY 34
+#define PIN_ZMPT 34
+#define PIN_BATTERY 35
 #define PIN_DOOR 19
 
 #define SDA_PIN 21
 #define SCL_PIN 22
 
 // ---------- ENDEREÇOS EEPROM ----------
-#define EEPROM_SIZE 32
+#define EEPROM_SIZE 40
 #define ADDR_MAX_REC 0
 #define ADDR_MIN_REC 4
 #define ADDR_ALM_MAX 8
 #define ADDR_ALM_MIN 12
 #define ADDR_VOLT_MAX 16
-// #define ADDR_VOLT_MAX 16 // Duplicado no original, removido
 #define ADDR_VOLT_MIN 20
 #define ADDR_VOLT_CAL 24
 #define ADDR_BAT_CAL 28
+#define ADDR_BAT_MIN 32
+#define ADDR_DOOR_TIME 36
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0
@@ -44,7 +49,8 @@
 #define TEMP_LIGA 4.0
 #define TEMP_DESLIGA 3.0
 #define TEMPO_ALARME_MS (30 * 60 * 1000)
-#define BAT_MIN_VOLTAGE 11.5
+#define BAT_MIN_DEFAULT 11.5
+#define DOOR_TIME_DEFAULT 30
 #define VOLT_OUTAGE_THR 20.0
 #define ALERT_DEBOUNCE 5000
 #define ALERT_REPEAT 600000
@@ -59,6 +65,8 @@ struct SystemSettings {
   float voltMin;
   float voltCalFactor;
   float batCalFactor;
+  float batMinLimit;
+  int doorMaxTime;
 };
 
 #endif
