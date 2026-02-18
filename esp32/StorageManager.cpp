@@ -15,6 +15,8 @@ void StorageManager::load() {
   EEPROM.get(ADDR_VOLT_MIN, data.voltMin);
   EEPROM.get(ADDR_VOLT_CAL, data.voltCalFactor);
   EEPROM.get(ADDR_BAT_CAL, data.batCalFactor);
+  EEPROM.get(ADDR_BAT_MIN, data.batMinLimit);
+  EEPROM.get(ADDR_DOOR_TIME, data.doorMaxTime);
 
   // Validação e Valores Padrão
   if (isnan(data.voltCalFactor) || data.voltCalFactor < 10.0 ||
@@ -28,6 +30,20 @@ void StorageManager::load() {
       data.batCalFactor > 10.0) {
     data.batCalFactor = BATTERY_CALIBRATION_DEFAULT;
     EEPROM.put(ADDR_BAT_CAL, data.batCalFactor);
+    EEPROM.commit();
+  }
+
+  if (isnan(data.batMinLimit) || data.batMinLimit < 9.0 ||
+      data.batMinLimit > 15.0) {
+    data.batMinLimit = BAT_MIN_DEFAULT;
+    EEPROM.put(ADDR_BAT_MIN, data.batMinLimit);
+    EEPROM.commit();
+  }
+
+  if (isnan(data.doorMaxTime) || data.doorMaxTime < 5 ||
+      data.doorMaxTime > 300) {
+    data.doorMaxTime = DOOR_TIME_DEFAULT;
+    EEPROM.put(ADDR_DOOR_TIME, data.doorMaxTime);
     EEPROM.commit();
   }
 
@@ -55,9 +71,11 @@ void StorageManager::save() {
   EEPROM.put(ADDR_ALM_MIN, data.alarmMin);
   EEPROM.put(ADDR_VOLT_MAX, data.voltMax);
   EEPROM.put(ADDR_VOLT_MIN, data.voltMin);
-  EEPROM.put(ADDR_VOLT_MIN, data.voltMin);
+  EEPROM.put(ADDR_VOLT_MIN, data.voltMin); // Remover duplicata se houver
   EEPROM.put(ADDR_VOLT_CAL, data.voltCalFactor);
   EEPROM.put(ADDR_BAT_CAL, data.batCalFactor);
+  EEPROM.put(ADDR_BAT_MIN, data.batMinLimit);
+  EEPROM.put(ADDR_DOOR_TIME, data.doorMaxTime);
 
   // Não salvamos Max/Min aqui para não desgastar à toa, eles são salvos em
   // updateRecords

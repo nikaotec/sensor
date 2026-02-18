@@ -12,10 +12,10 @@
       "type": "n8n-nodes-base.mqttTrigger",
       "typeVersion": 1,
       "position": [
-        80,
-        336
+        3824,
+        1344
       ],
-      "id": "4e2f0521-c549-4fce-9c44-f0e89a511b64",
+      "id": "b3fa28c8-259e-4fe1-9291-66a70d127b39",
       "name": "MQTT Trigger",
       "credentials": {
         "mqtt": {
@@ -67,7 +67,7 @@
             {
               "id": "6a269ce2-bf99-4198-bd20-2bb8251b4c6c",
               "name": "'0'].msg",
-              "value": "=Voc\u00ea \u00e9 um assistente IoT inteligente da C\u00e2mara Fria. Sua fun\u00e7\u00e3o \u00e9 responder ao usu\u00e1rio baseado no EVENTO recebido.\n\nDADOS RECEBIDOS:\n- Evento: {{ $json['0'].TIPO }}\n- Dispositivo: {{ $json['0'].DISPOSITIVO }}\n- Temp: {{ $json['0'].TEMP_ATUAL }} (Max: {{ $json['0'].MAX }}, Min: {{ $json['0'].MIN }})\n- Tens\u00e3o: {{ $json['0'].VOLTAGEM }}V\n- Bateria: {{ $json['0'].BATERIA }}\n\n---\nREGRAS DE RESPOSTA (PRIORIDADE M\u00c1XIMA):\n\n1. SE O EVENTO FOR \"feedback_calibracao_sucesso\":\n   - Responda APENAS: \"\u2705 Calibra\u00e7\u00e3o realizada com sucesso! A nova tens\u00e3o j\u00e1 est\u00e1 ajustada.\" (Ignore sensores)\n\n2. SE O EVENTO FOR \"feedback_configuracao\":\n   - Responda APENAS: \"\u2699\ufe0f Configura\u00e7\u00f5es atualizadas no dispositivo!\" (Ignore sensores)\n\n3. SE O EVENTO FOR \"feedback_comando\":\n   - Responda APENAS: \"\ud83d\udc4d Comando recebido e executado.\"\n\n4. SE O EVENTO FOR \"MANUTENCAO_ATIVADA\":\n   - Responda: \"\ud83d\udee0\ufe0f Modo Manuten\u00e7\u00e3o ATIVADO. Os alertas foram silenciados.\"\n\n5. SE O EVENTO FOR \"MANUTENCAO_DESATIVADA\":\n   - Responda: \"\ud83d\udd14 Modo Manuten\u00e7\u00e3o DESATIVADO. O monitoramento autom\u00e1tico voltou ao normal.\"\n\n6. SE O EVENTO FOR UM ALERTA (\"ALERTA_...\"):\n   - ALERTE IMEDIATAMENTE com emojis de perigo! Informe o problema claramente.\n\n\n7. PARA STATUS (\"periodico\", \"STATUS_SOLICITADO\", etc.):\n   - Gere um relat\u00f3rio amig\u00e1vel:\n     \"\ud83c\udf21\ufe0f *Status Atual*\n      \u2744\ufe0f Temp: {{ $json['0'].TEMP_ATUAL }}\u00b0C\n      \u26a1 Tens\u00e3o: {{ $json['0'].VOLTAGEM }}V\n      \ud83d\udd0b Bateria: {{ $json['0'].BATERIA }}V\n      \n      Tudo operando normalmente (ou mencione se algo parece errado).\"\n",
+              "value": "=📳Dispositivo: {{ $json['0'].DISPOSITIVO }}\n📅Data: {{ $json['0'].DATA }}\n🕖Hora: {{ $json['0'].HORA }}\n🌡Temp: {{ $json['0'].TEMP_ATUAL }}\n⬆️MAX: {{ $json['0'].MAX }}\n⬇️MIN: {{ $json['0'].MIN }}\n🪫Bateria: {{ $json['0'].BATERIA || 'N/A' }}\n🔌Tensão: {{ $json['0'].VOLTAGEM }}v",
               "type": "string"
             },
             {
@@ -83,10 +83,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        256,
-        336
+        4000,
+        1344
       ],
-      "id": "680de25a-c883-4561-8adc-b397a51d9b7d",
+      "id": "9597bace-5671-4ea3-801e-79779823922e",
       "name": "Edit Fields"
     },
     {
@@ -100,10 +100,10 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        1258,
-        336
+        4752,
+        1344
       ],
-      "id": "e898a1e5-5323-41f7-999a-0cd34e083660",
+      "id": "012d6962-da67-4e3c-afa2-391ef08cfa96",
       "name": "Enviar texto",
       "credentials": {
         "evolutionApi": {
@@ -117,10 +117,10 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1418,
-        336
+        4912,
+        1344
       ],
-      "id": "7b6e4e2a-5d3b-43c3-9855-8b4c5f1bb0d5",
+      "id": "b1054f17-c1a4-4eea-8d8e-186dff9640fa",
       "name": "Wait",
       "webhookId": "a07f83fa-9ef3-4fb6-9dce-fb47fd6b95bb"
     },
@@ -135,10 +135,10 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        1546,
-        544
+        5040,
+        1552
       ],
-      "id": "19a4faf0-d5a0-429f-8f28-b6e38d6ef319",
+      "id": "3c9bf144-bffe-42c1-8ff0-5e20d70cc7bd",
       "name": "Enviar texto1",
       "credentials": {
         "evolutionApi": {
@@ -270,10 +270,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        682,
-        288
+        4176,
+        1296
       ],
-      "id": "f51ad1af-af96-4c33-a35f-44053fe94626",
+      "id": "6926544f-7390-4ed0-b582-dff3a646a7a1",
       "name": "Switch"
     },
     {
@@ -293,10 +293,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        970,
-        16
+        4464,
+        1024
       ],
-      "id": "caf2ffa0-8912-4a20-9ed6-763bf0976b00",
+      "id": "3611ee2e-28b0-44ff-a20e-ee6d275fbb96",
       "name": "rele desligado"
     },
     {
@@ -316,10 +316,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        970,
-        176
+        4464,
+        1184
       ],
-      "id": "e9f7d4e5-16f4-47d8-b281-cd4de6db03b2",
+      "id": "a2b25058-315e-4c2a-9da4-b4ebb34aa43c",
       "name": "periodico"
     },
     {
@@ -339,10 +339,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        970,
-        672
+        4464,
+        1680
       ],
-      "id": "0a874c78-b93f-4be4-a089-2679f63a08d9",
+      "id": "92baaed2-901d-4fcd-9ba9-127eb69a244e",
       "name": "modo_automatico_ligado"
     },
     {
@@ -362,10 +362,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        970,
-        496
+        4464,
+        1504
       ],
-      "id": "b31a8f5b-24aa-4b3c-a40b-6189a0b2c5cc",
+      "id": "a26139d0-5a11-4e06-a0f1-b5e1d4405559",
       "name": "limites_alterados"
     },
     {
@@ -385,10 +385,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        970,
-        336
+        4464,
+        1344
       ],
-      "id": "ed49ef5e-b857-410e-827b-3c10483ed3d3",
+      "id": "1b4912ec-5df2-4649-a5f4-a25fd50858a4",
       "name": "lifado_sucesso"
     },
     {
@@ -405,7 +405,7 @@
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
+          "cachedResultName": "Página1",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
         },
         "columns": {
@@ -413,10 +413,7 @@
           "value": {
             "HORA": "={{ $('MQTT Trigger').item.json['0'].HORA }}",
             "DATA": "={{ $('MQTT Trigger').item.json['0'].DATA }}",
-            "TIPO": "={{ $('MQTT Trigger').item.json['0'].TIPO }}",
             "DISPOSITIVO": "={{ $('MQTT Trigger').item.json['0'].DISPOSITIVO }}",
-            "RELE": "={{ '' }}",
-            "MODO": "={{ '' }}",
             "TEMP.": "={{ $('MQTT Trigger').item.json['0'].TEMP_ATUAL }}",
             "MAX": "={{ $('MQTT Trigger').item.json['0'].MAX }}",
             "MIN": "={{ $('MQTT Trigger').item.json['0'].MIN }}",
@@ -463,35 +460,6 @@
               "removed": false
             },
             {
-              "id": "TIPO",
-              "displayName": "TIPO",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "RELE",
-              "displayName": "RELE",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "MODO",
-              "displayName": "MODO",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
               "id": "MAX",
               "displayName": "MAX",
               "required": false,
@@ -530,38 +498,15 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        1578,
-        336
+        5072,
+        1344
       ],
-      "id": "c028d980-bd41-462f-8801-12112805de42",
+      "id": "2ad6103f-3ffd-44bf-987a-53d99fddfd44",
       "name": "salva temperatura",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "YFl1SEKGi4NmAyDc",
           "name": "Google Sheets account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "resource": "chat",
-        "operation": "complete",
-        "prompt": "={{ $json[\"'0'\"].msg }}",
-        "model": "gpt-3.5-turbo",
-        "options": {}
-      },
-      "name": "AI Assistant",
-      "type": "n8n-nodes-base.openAi",
-      "typeVersion": 1,
-      "position": [
-        450,
-        336
-      ],
-      "id": "e76d71aa-7ded-4ea8-a6ef-a904673947bf",
-      "credentials": {
-        "openAiApi": {
-          "id": "YOUR_OPENAI_CREDENTIAL_ID",
-          "name": "OpenAI account"
         }
       }
     }
@@ -583,7 +528,7 @@
       "main": [
         [
           {
-            "node": "AI Assistant",
+            "node": "Switch",
             "type": "main",
             "index": 0
           }
@@ -705,27 +650,6 @@
           }
         ]
       ]
-    },
-    "salva temperatura": {
-      "main": [
-        []
-      ]
-    },
-    "Enviar texto1": {
-      "main": [
-        []
-      ]
-    },
-    "AI Assistant": {
-      "main": [
-        [
-          {
-            "node": "Switch",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     }
   },
   "active": true,
@@ -735,7 +659,7 @@
     "timeSavedMode": "fixed",
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "dbf1d448-ac60-4fea-8271-589e45e1bba4",
+  "versionId": "7d57e9cf-2e8b-44b2-9e28-da464fb3527d",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "be63eec592610c4f78e7b17a812f5d022e962bcad508e6c20e665203393891ed"

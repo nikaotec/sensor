@@ -7,85 +7,118 @@ class VoltageSensor {
 private:
   int _pin;
   float _calibrationFactor;
-  float _voltageRMS;
+  volatile float _voltageRMS;
   TaskHandle_t _taskHandle;
 
-  // Parâmetros de amostragem
-  // 60Hz = 16.6ms. Amostrar por 100ms garante ~6 ciclos completos.
+  // Bateria (lida sequencialmente na mesma Task para evitar contenção ADC1)
+  int _batteryPin;
+  float _batteryCalFactor;
+  volatile float _batteryVoltage;
+
+  // Amostragem Pico-a-Pico por 100ms (~6 ciclos de 60Hz, ~10000 leituras)
   static const int SAMPLE_WINDOW_MS = 100;
 
-  // Função da Task que roda no Core 0 (ou 1, dependendo da config)
   static void sampleTask(void *pvParameters) {
     VoltageSensor *sensor = (VoltageSensor *)pvParameters;
 
     while (true) {
-      while (true) {
-        unsigned long startMillis = millis();
-        int minVal = 4096;
-        int maxVal = 0;
+      // === 1. True RMS - Welford (tight loop, 100ms, ~10000 amostras) ===
+      // Calcula offset DC e variância AC em uma única passada
+      unsigned long startMillis = millis();
+      float mean = 0.0;
+      float M2 = 0.0;
+      int n = 0;
 
-        // Amostra por 100ms (aprox 6 ciclos de 60Hz)
-        while (millis() - startMillis < 100) {
-          int val = analogRead(sensor->_pin);
-          if (val < minVal)
-            minVal = val;
-          if (val > maxVal)
-            maxVal = val;
-          // Amostragem mais rápida possível, sem delay arbitrário
-        }
-
-        int p2p = maxVal - minVal;
-
-        // Filtro de Ruído: Se pico-a-pico for muito baixo (ruído), zera.
-        // Ruído típico sem carga é < 50 unidades.
-        if (p2p < 25) {
-          sensor->_voltageRMS = 0.0;
-        } else {
-          // Tensão Pico-a-Pico em Volts (ESP32 ADC -> 3.3V)
-          // Vpp = p2p * (3.3 / 4095.0)
-          // Vrms = Vpp * (1 / (2 * sqrt(2))) = Vpp * 0.35355
-          // V_Real = V_rms * Calibração
-
-          float v_p2p_adc = p2p * (3.3 / 4095.0);
-          float v_rms_est = v_p2p_adc * 0.35355;
-
-          // Aplica o Fator de Calibração (que deve ser alto agora, ex:
-          // ~500-700)
-          sensor->_voltageRMS = v_rms_est * sensor->_calibrationFactor;
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(250)); // Atualiza 4x por segundo
+      while (millis() - startMillis < SAMPLE_WINDOW_MS) {
+        int val = analogRead(sensor->_pin);
+        n++;
+        float delta = val - mean;
+        mean += delta / n;
+        float delta2 = val - mean;
+        M2 += delta * delta2;
       }
+
+      // RMS AC = desvio padrão do sinal (ignora componente DC automaticamente)
+      float rmsADC = (n > 1) ? sqrt(M2 / n) : 0.0;
+
+      // Filtro de ruído: sem sinal AC → 0V imediato (detecção rápida de queda)
+      if (rmsADC < 20.0) {
+        sensor->_voltageRMS = 0.0;
+      } else {
+        // Converte ADC RMS para tensão real
+        float adcVoltage = rmsADC * (3.3 / 4095.0);
+        float newVoltage = adcVoltage * sensor->_calibrationFactor;
+
+        // EMA leve para suavizar transições (alpha=0.3)
+        if (sensor->_voltageRMS < 1.0) {
+          sensor->_voltageRMS = newVoltage; // Boot rápido
+        } else {
+          sensor->_voltageRMS = 0.3 * newVoltage + 0.7 * sensor->_voltageRMS;
+        }
+      }
+
+      // === 2. Leitura Bateria (sequencial, sem contenção) ===
+      if (sensor->_batteryPin >= 0) {
+        long sum = 0;
+        for (int i = 0; i < 10; i++) {
+          sum += analogRead(sensor->_batteryPin);
+          delay(2);
+        }
+        float average = (float)sum / 10;
+        sensor->_batteryVoltage =
+            (average * 3.3 / 4095.0) * sensor->_batteryCalFactor;
+      }
+
+      vTaskDelay(pdMS_TO_TICKS(250));
+    }
+  }
+
+public:
+  VoltageSensor(int pin, float calibrationFactor = 500.0) {
+    _pin = pin;
+    _calibrationFactor = calibrationFactor;
+    _voltageRMS = 0.0;
+    _taskHandle = NULL;
+    _batteryPin = -1;
+    _batteryCalFactor = 1.0;
+    _batteryVoltage = 0.0;
+  }
+
+  void begin() {
+    analogReadResolution(12);
+    analogSetAttenuation(ADC_11db);
+    pinMode(_pin, INPUT);
+
+    if (_batteryPin >= 0) {
+      pinMode(_batteryPin, INPUT);
     }
 
-  public:
-    VoltageSensor(int pin, float calibrationFactor = 500.0) {
-      _pin = pin;
-      _calibrationFactor = calibrationFactor;
-      _voltageRMS = 0.0;
-      _taskHandle = NULL;
+    xTaskCreatePinnedToCore(sampleTask, "SensorTask", 4096, this, 1,
+                            &_taskHandle, 0);
+  }
+
+  // Configura pino e calibração da bateria (chamar ANTES de begin())
+  void setBatteryConfig(int pin, float calFactor) {
+    _batteryPin = pin;
+    _batteryCalFactor = calFactor;
+  }
+
+  // Tensão RAW (sem corte, para calibração)
+  float getRawVoltage() { return _voltageRMS; }
+
+  // Tensão processada (com corte de zero para UX limpa)
+  float getVoltage() {
+    if (_voltageRMS < 20.0) {
+      return 0.0;
     }
+    return _voltageRMS;
+  }
 
-    void begin() {
-      analogReadResolution(12);
-      analogSetAttenuation(ADC_11db);
-      pinMode(_pin, INPUT);
+  void setCalibration(float newFactor) { _calibrationFactor = newFactor; }
 
-      // Criar tarefa no Core 0 (o loop do Arduino roda no Core 1 no ESP32
-      // padrão)
-      xTaskCreatePinnedToCore(sampleTask,    // Função da tarefa
-                              "VoltageTask", // Nome
-                              4096,          // Stack size
-                              this, // Parâmetro (ponteiro para o objeto)
-                              1,    // Prioridade (baixa)
-                              &_taskHandle, // Handle
-                              0             // Core 0
-      );
-    }
-
-    float getVoltage() { return _voltageRMS; }
-
-    void setCalibration(float newFactor) { _calibrationFactor = newFactor; }
-  };
+  // Bateria
+  float getBatteryVoltage() { return _batteryVoltage; }
+  void setBatteryCalibration(float newFactor) { _batteryCalFactor = newFactor; }
+};
 
 #endif
