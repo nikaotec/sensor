@@ -25,6 +25,7 @@
 #define PIN_ZMPT 34
 #define PIN_BATTERY 35
 #define PIN_DOOR 19
+#define PIN_DHT11 17
 
 #define SDA_PIN 21
 #define SCL_PIN 22

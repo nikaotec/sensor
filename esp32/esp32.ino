@@ -1,4 +1,5 @@
 #include "AlertManager.h"
+#include "AmbientSensor.h"
 #include "AppNetworkManager.h"
 #include "BatterySensor.h"
 #include "Config.h"
@@ -20,6 +21,7 @@ DallasTemperature sensors(&oneWire);
 VoltageSensor voltSensor(PIN_ZMPT, VOLTAGE_CALIBRATION_DEFAULT);
 // BatterySensor agora é lida dentro da Task do VoltageSensor (evita contenção
 // ADC1) BatterySensor batterySensor(PIN_BATTERY, BATTERY_CALIBRATION_DEFAULT);
+AmbientSensor ambientSensor(PIN_DHT11);
 
 AlertManager alertTempMax("TEMPERATURA_ALTA", ALERT_DEBOUNCE, ALERT_REPEAT);
 AlertManager alertTempMin("TEMPERATURA_BAIXA", ALERT_DEBOUNCE, ALERT_REPEAT);
@@ -72,6 +74,7 @@ void setup() {
   // Sensores
   sensors.begin();
   sensors.setWaitForConversion(false);
+  ambientSensor.begin();
 
   // Configura Calibração Inicial
   voltSensor.setCalibration(storage.data.voltCalFactor);
@@ -106,6 +109,7 @@ void loop() {
     temperaturaAtual = sensors.getTempCByIndex(0);
     float tVoltagem = voltSensor.getVoltage();
     float tBateria = voltSensor.getBatteryVoltage();
+    ambientSensor.read();
     bool isDoorOpen =
         digitalRead(PIN_DOOR) == HIGH; // HIGH = Aberto (se pullup interno)
 
@@ -368,6 +372,38 @@ void processarMensagemMqtt(String topic, String payload) {
       notificarUsuario("Erro Calib: " + String(novoFator, 1), 5000);
       enviarDadosMqtt("ALERTA_ERRO_CALIBRACAO_FATOR");
     }
+  } else if (intencao == "calibrar_bateria") {
+    float novoFator = 0.0;
+
+    if (doc.containsKey("nova_tensao")) {
+      String tStr = doc["nova_tensao"].as<String>();
+      tStr.replace(",", ".");
+      float tensaoAlvo = tStr.toFloat();
+      float tensaoAtual = voltSensor.getBatteryVoltage();
+
+      if (tensaoAtual > 1.0 && tensaoAlvo > 1.0) {
+        novoFator = storage.data.batCalFactor * (tensaoAlvo / tensaoAtual);
+      } else {
+        notificarUsuario("Erro: Bat. Baixa/Zero", 4000);
+        return;
+      }
+    } else if (doc.containsKey("novo_fator")) {
+      if (doc["novo_fator"].is<float>()) {
+        novoFator = doc["novo_fator"];
+      } else {
+        novoFator = String(doc["novo_fator"]).toFloat();
+      }
+    }
+
+    if (novoFator > 0.1 && novoFator < 100.0) {
+      storage.data.batCalFactor = novoFator;
+      voltSensor.setBatteryCalibration(novoFator);
+      storage.save();
+      notificarUsuario("Bat Calib: " + String(novoFator, 2), 5000);
+      enviarDadosMqtt("feedback_calibracao_bateria");
+    } else {
+      notificarUsuario("Erro Bat Cal: " + String(novoFator, 2), 5000);
+    }
   } else if (intencao == "ligar_rele") {
     modoManual = true;
     releLigado = true;
@@ -402,7 +438,7 @@ void enviarDadosMqtt(String evento) {
   if (!network.isConnected())
     return;
 
-  StaticJsonDocument<512> doc;
+  StaticJsonDocument<768> doc;
   doc["DISPOSITIVO"] = "02 CENTRO";
   doc["TIPO"] = evento;
 
@@ -413,6 +449,13 @@ void enviarDadosMqtt(String evento) {
 
   doc["VOLTAGEM"] = serialized(String(voltSensor.getVoltage(), 1));
   doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
+
+  // Sensor Ambiente (DHT11)
+  doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
+  doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
+
+  // Estado da Porta
+  doc["PORTA"] = digitalRead(PIN_DOOR) == HIGH ? "ABERTA" : "FECHADA";
 
   // Timestamp
   struct tm timeinfo;
