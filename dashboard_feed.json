@@ -1,0 +1,117 @@
+{
+    "name": "Dashboard Feed",
+    "nodes": [
+        {
+            "parameters": {
+                "topics": "esp32c3/web_status/action",
+                "jsonParse": true
+            },
+            "id": "mqtt-trigger",
+            "name": "MQTT Trigger",
+            "type": "n8n-nodes-base.mqttTrigger",
+            "typeVersion": 1,
+            "position": [
+                460,
+                460
+            ],
+            "credentials": {
+                "mqtt": {
+                    "id": "BHuPlzoyNhQIduWz",
+                    "name": "MQTT account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// Transform ESP32 payload to Dashboard Schema\nconst mqttData = $input.all()[0].json;\nconst deviceName = mqttData.DISPOSITIVO || 'Unknown Device';\n\n// Basic mapping\nconst dashboardPayload = {\n  tenantId: 't1', // Hardcoded for single tenant scenario\n  locationId: 'l1', // Hardcoded for single location\n  deviceId: 'd1',   // Ideally map this from topic or device ID\n  \n  // Device Data\n  temperature: typeof mqttData.TEMP_ATUAL === 'number' ? mqttData.TEMP_ATUAL : (parseFloat(mqttData.TEMP_ATUAL) || 0),\n  humidity: typeof mqttData.UMIDADE === 'number' ? mqttData.UMIDADE : (parseFloat(mqttData.UMIDADE) || 0),\n  voltage: typeof mqttData.VOLTAGEM === 'number' ? mqttData.VOLTAGEM : (parseFloat(mqttData.VOLTAGEM) || 0),\n  battery: typeof mqttData.BATERIA === 'number' ? mqttData.BATERIA : (parseFloat(mqttData.BATERIA) || 0),\n  doorOpen: mqttData.PORTA === 'ABERTA',\n  signalStrength: typeof mqttData.RSSI === 'number' ? mqttData.RSSI : (parseInt(mqttData.RSSI) || -60),\n  \n  // Daily Stats\n  dailyStats: {\n    minTemp: typeof mqttData.MIN === 'number' ? mqttData.MIN : (parseFloat(mqttData.MIN) || 0),\n    maxTemp: typeof mqttData.MAX === 'number' ? mqttData.MAX : (parseFloat(mqttData.MAX) || 0),\n    avgTemp: 0 // Calc on backend or omitted\n  },\n  \n  // Alerts (Construct from ALARM status if needed, or pass through event type)\n  alerts: [],\n  \n  // Config Mapping\n  config: {\n    minTempInfo: parseFloat(mqttData.ALARM_MIN) || -20,\n    maxTempInfo: parseFloat(mqttData.ALARM_MAX) || -10,\n    monitoring: {\n      voltage: true,\n      battery: true,\n      door: true,\n      ambient: true\n    }\n  }\n};\n\nreturn { json: dashboardPayload };"
+            },
+            "id": "transform-data",
+            "name": "Transform to Schema",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                680,
+                460
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "http://SEU_IP_LOCAL_OU_TUNNEL:3000/api/sensors",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "tenantId",
+                            "value": "={{ $json.tenantId }}"
+                        },
+                        {
+                            "name": "locationId",
+                            "value": "={{ $json.locationId }}"
+                        },
+                        {
+                            "name": "deviceId",
+                            "value": "={{ $json.deviceId }}"
+                        },
+                        {
+                            "name": "data",
+                            "value": "={{ $json }}"
+                        },
+                        {
+                            "name": "config",
+                            "value": "={{ $json.config }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "post-to-dashboard",
+            "name": "Update Dashboard",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.1,
+            "position": [
+                900,
+                460
+            ]
+        },
+        {
+            "parameters": {
+                "content": "⚠️ IMPORTANTE:\nComo seu n8n está na nuvem (VPS) e o Dashboard está local:\n\n1. Você precisa de um TUNNEL (ex: ngrok) para que o n8n veja seu PC.\n   Comando: `ngrok http 3000`\n2. Copie a URL gerada pelo ngrok.\n3. Cole no nó \"Update Dashboard\" substituindo \"http://SEU_IP...\"\n\nTopico MQTT Configurado: esp32c3/data",
+                "height": 218,
+                "width": 381
+            },
+            "id": "note-setup",
+            "name": "Sticky Note",
+            "type": "n8n-nodes-base.stickyNote",
+            "typeVersion": 1,
+            "position": [
+                500,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "MQTT Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Transform to Schema",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Transform to Schema": {
+            "main": [
+                [
+                    {
+                        "node": "Update Dashboard",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

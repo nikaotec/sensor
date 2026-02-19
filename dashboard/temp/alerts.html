@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Central de Alertas Midnight V1</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f2a20d",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221c10",
+                        "slate-900": "#0f172a",
+                        "slate-800": "#1e293b",
+                        "slate-700": "#334155",
+                        "slate-100": "#f1f5f9",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen overflow-x-hidden">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-72 bg-[#221910] border-r border-slate-800 flex flex-col justify-between py-6">
+<div class="flex flex-col gap-8 px-6">
+<!-- Branding -->
+<div class="flex items-center gap-3">
+<div class="bg-primary rounded-lg size-10 flex items-center justify-center text-background-dark">
+<span class="material-symbols-outlined font-bold">dark_mode</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-slate-100 text-lg font-black tracking-tight uppercase leading-none">Midnight</h1>
+<p class="text-primary text-[10px] font-bold tracking-[0.2em] uppercase">V1 Console</p>
+</div>
+</div>
+<!-- Nav Items -->
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl bg-primary text-background-dark font-bold shadow-lg shadow-primary/20" href="#">
+<span class="material-symbols-outlined">notifications_active</span>
+<span class="text-sm">Alertas</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">devices</span>
+<span class="text-sm font-medium">Dispositivos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="text-sm font-medium">Analíticos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Configurações</span>
+</a>
+</nav>
+</div>
+<!-- Bottom Nav -->
+<div class="px-6 flex flex-col gap-2">
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="text-sm font-medium">Suporte</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-3 rounded-xl text-rose-400 hover:bg-rose-500/10 transition-colors" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="text-sm font-medium">Sair</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col overflow-y-auto">
+<!-- Top Header Bar -->
+<header class="h-20 flex items-center justify-between px-8 border-b border-slate-800 shrink-0">
+<div class="flex items-center gap-4">
+<h2 class="text-2xl font-black text-slate-100">Central de Alertas</h2>
+<span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest border border-primary/20">Live View</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 px-4 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-sm font-semibold transition-all">
+<span class="material-symbols-outlined text-lg">checklist</span>
+<span>Marcar todos como lidos</span>
+</button>
+<div class="h-10 w-10 rounded-full border border-slate-700 bg-cover bg-center" data-alt="Avatar of the system administrator" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAt4dYilEUaFLSBHmWNeD9KoMnlmXLKjaJScxPa_6zUOiK-g6lJ_d8USuxVt2GC1_FtO_7i6f3PvoKgbtVRNj4agJoV3yfhM6yxtfXHNKnluicGaz-9fCLfDwrgwByb_VkCewuSyO8VBTdiPcuHozM6J4mCtjqlGLTROl-dY5A5Si8PxCT_OEzJ063PCvWHVCPoLZuo8VemPhx9-kVvGInJR2bAWyVSV6HZAIFlsVbxFFrgD5mUCrYleV-wdIVDcNHccZdYG85vaTB3')"></div>
+</div>
+</header>
+<div class="p-8 flex flex-col gap-8">
+<!-- Summary Metrics Cards -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-slate-900 border border-slate-800 p-6 rounded-xl flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="text-slate-400 text-sm font-medium">Total de Alertas</span>
+<span class="material-symbols-outlined text-slate-400">equalizer</span>
+</div>
+<div class="text-3xl font-black text-slate-100">1.248</div>
+<div class="text-xs text-emerald-500 font-bold flex items-center gap-1 mt-2">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>+12% vs. ontem</span>
+</div>
+</div>
+<div class="bg-slate-900 border border-slate-800 p-6 rounded-xl flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="text-slate-400 text-sm font-medium">Críticos</span>
+<span class="material-symbols-outlined text-rose-500">error</span>
+</div>
+<div class="text-3xl font-black text-rose-500">12</div>
+<div class="text-xs text-rose-400 font-bold flex items-center gap-1 mt-2">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>+2 novos agora</span>
+</div>
+</div>
+<div class="bg-slate-900 border border-slate-800 p-6 rounded-xl flex flex-col gap-1">
+<div class="flex items-center justify-between">
+<span class="text-slate-400 text-sm font-medium">Avisos</span>
+<span class="material-symbols-outlined text-amber-500">warning</span>
+</div>
+<div class="text-3xl font-black text-amber-500">48</div>
+<div class="text-xs text-emerald-500 font-bold flex items-center gap-1 mt-2">
+<span class="material-symbols-outlined text-sm">trending_down</span>
+<span>-5% vs. período anterior</span>
+</div>
+</div>
+</section>
+<!-- Filter Pills -->
+<section class="flex items-center gap-3">
+<button class="px-5 py-2 rounded-full bg-primary text-background-dark font-bold text-xs uppercase tracking-widest transition-all">Todos</button>
+<button class="px-5 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-widest transition-all">Críticos</button>
+<button class="px-5 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-widest transition-all">Avisos</button>
+<div class="ml-auto flex items-center gap-2 text-slate-400 bg-slate-900 px-3 py-2 rounded-lg border border-slate-800">
+<span class="material-symbols-outlined text-xl">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-64 placeholder:text-slate-600" placeholder="Buscar alerta ou dispositivo..." type="text"/>
+</div>
+</section>
+<!-- Alert Table Container -->
+<section class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-800/50">
+<th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-800">Gravidade</th>
+<th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-800">Dispositivo</th>
+<th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-800">Mensagem</th>
+<th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-800">Horário</th>
+<th class="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-800 text-right">Ações</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-800">
+<!-- Row 1 -->
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                                            Crítico
+                                        </span>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-slate-100 font-bold text-sm">Smart Meter IND-01</span>
+<span class="text-slate-500 text-[10px] font-medium">Setor Industrial A</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<p class="text-slate-400 text-sm max-w-xs truncate">Pico de voltagem detectado: 240V na rede trifásica de alta tensão.</p>
+</td>
+<td class="px-6 py-5">
+<span class="text-slate-400 text-xs font-medium">Há 2 minutos</span>
+</td>
+<td class="px-6 py-5 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-primary text-background-dark text-[11px] font-black uppercase tracking-wider hover:brightness-110 transition-all">Reconhecer</button>
+<button class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                            Aviso
+                                        </span>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-slate-100 font-bold text-sm">Smart Meter IND-02</span>
+<span class="text-slate-500 text-[10px] font-medium">Área de Refrigeração</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<p class="text-slate-400 text-sm max-w-xs truncate">Alerta de temperatura elevada nos compressores externos.</p>
+</td>
+<td class="px-6 py-5">
+<span class="text-slate-400 text-xs font-medium">Há 15 minutos</span>
+</td>
+<td class="px-6 py-5 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-[11px] font-black uppercase tracking-wider hover:bg-slate-700 transition-all">Reconhecer</button>
+<button class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                                            Crítico
+                                        </span>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-slate-100 font-bold text-sm">Gateway CTRL-09</span>
+<span class="text-slate-500 text-[10px] font-medium">Backbone Central</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<p class="text-slate-400 text-sm max-w-xs truncate">Conexão perdida com o nó sensor 4 da subrede experimental.</p>
+</td>
+<td class="px-6 py-5">
+<span class="text-slate-400 text-xs font-medium">Há 42 minutos</span>
+</td>
+<td class="px-6 py-5 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-primary text-background-dark text-[11px] font-black uppercase tracking-wider hover:brightness-110 transition-all">Reconhecer</button>
+<button class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                            Aviso
+                                        </span>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-slate-100 font-bold text-sm">Sensor SN-202</span>
+<span class="text-slate-500 text-[10px] font-medium">Tanque de Combustível</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<p class="text-slate-400 text-sm max-w-xs truncate">Nível de bateria baixo (10%). Manutenção necessária em breve.</p>
+</td>
+<td class="px-6 py-5">
+<span class="text-slate-400 text-xs font-medium">Há 1 hora</span>
+</td>
+<td class="px-6 py-5 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-[11px] font-black uppercase tracking-wider hover:bg-slate-700 transition-all">Reconhecer</button>
+<button class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-white/[0.02] transition-colors group">
+<td class="px-6 py-5">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest bg-slate-700/30 text-slate-400 border border-slate-700/50">
+                                            Informação
+                                        </span>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-col">
+<span class="text-slate-100 font-bold text-sm">HVAC System 04</span>
+<span class="text-slate-500 text-[10px] font-medium">Administrativo</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<p class="text-slate-400 text-sm max-w-xs truncate">Ciclo de manutenção preventiva agendado para as 14:00.</p>
+</td>
+<td class="px-6 py-5">
+<span class="text-slate-400 text-xs font-medium">Há 2 horas</span>
+</td>
+<td class="px-6 py-5 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-[11px] font-black uppercase tracking-wider hover:bg-slate-700 transition-all">Reconhecer</button>
+<button class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-100 transition-colors">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Pagination/Footer -->
+<div class="bg-slate-800/30 px-6 py-4 flex items-center justify-between border-t border-slate-800">
+<span class="text-xs text-slate-500">Mostrando 5 de 1.248 alertas</span>
+<div class="flex items-center gap-1">
+<button class="p-1 rounded bg-slate-800 text-slate-500 hover:text-slate-100 transition-colors cursor-not-allowed">
+<span class="material-symbols-outlined text-lg">chevron_left</span>
+</button>
+<button class="h-6 w-6 rounded bg-primary text-background-dark text-[10px] font-black">1</button>
+<button class="h-6 w-6 rounded bg-slate-800 text-slate-300 text-[10px] font-black hover:bg-slate-700">2</button>
+<button class="h-6 w-6 rounded bg-slate-800 text-slate-300 text-[10px] font-black hover:bg-slate-700">3</button>
+<button class="p-1 rounded bg-slate-800 text-slate-300 hover:text-slate-100 transition-colors">
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</body></html>

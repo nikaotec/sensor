@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Industrial IoT Dark Dashboard V1</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "primary": "#3d3df5",
+                "background-light": "#f5f5f8",
+                "background-dark": "#0f172a", // Void Black as requested
+                "surface": "#1e293b", // Slate Grey as requested
+                "accent-green": "#10b981",
+                "accent-red": "#ef4444",
+                "accent-amber": "#f59e0b",
+              },
+              fontFamily: {
+                "display": ["Plus Jakarta Sans", "sans-serif"]
+              },
+              borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .custom-glow-primary {
+            box-shadow: 0 0 15px -3px rgba(61, 61, 245, 0.4);
+        }
+        .neon-line {
+            filter: drop-shadow(0 0 8px rgba(61, 61, 245, 0.6));
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex overflow-hidden">
+<!-- Sidebar Component -->
+<aside class="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-surface flex flex-col h-screen transition-all duration-300">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white custom-glow-primary">
+<span class="material-symbols-outlined">factory</span>
+</div>
+<div>
+<h1 class="font-bold text-lg leading-tight tracking-tight">Cyber-I/O</h1>
+<p class="text-xs text-slate-500 dark:text-slate-400 font-medium">V1 Control Center</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-2 mt-4">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white font-semibold transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all" href="#">
+<span class="material-symbols-outlined">developer_board</span>
+<span>Devices</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all" href="#">
+<span class="material-symbols-outlined">map</span>
+<span>Maps</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span>Alerts</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all" href="#">
+<span class="material-symbols-outlined">insights</span>
+<span>Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="p-4 mt-auto">
+<button class="w-full flex items-center justify-center gap-2 py-3 bg-primary/10 text-primary hover:bg-primary/20 rounded-xl font-bold transition-all border border-primary/20">
+<span class="material-symbols-outlined">add_circle</span>
+<span>New Node</span>
+</button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col overflow-y-auto">
+<!-- Top Bar Header -->
+<header class="h-16 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-background-dark/50 backdrop-blur-md flex items-center justify-between px-8 sticky top-0 z-10">
+<div class="flex items-center gap-6 w-1/3">
+<div class="relative w-full max-w-sm">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="w-full bg-slate-100 dark:bg-surface border-none rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/50 text-slate-200" placeholder="Command search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex flex-col items-end mr-4">
+<span class="text-sm font-bold">22:48:15</span>
+<span class="text-[10px] text-slate-400 font-medium uppercase tracking-widest">Oct 24, 2023</span>
+</div>
+<button class="p-2 rounded-lg bg-slate-100 dark:bg-surface text-slate-600 dark:text-slate-400 relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-accent-red rounded-full border-2 border-surface"></span>
+</button>
+<div class="size-9 rounded-full bg-gradient-to-br from-primary to-indigo-400 p-0.5">
+<img alt="User avatar" class="rounded-full bg-surface" data-alt="Portrait of an industrial system operator avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCti53aR42nmqEmoqKgcWiueVE1WwA93l6L8x85naYn5tUCQV2whQ5mKXZAdtv87xnojmZuWt5sYU_feVCSjuFROqt_KjG8Ns8iY1E3WM3cVb1RoYMPu0KU2-menx-cgqk-37SlBGxYVOIBvi-8T9f1rhj8snHg7SeEBc5lliF-xAZPglKO9CCaoqdSZompAn5yHrKem2DJftoTPnVDlSC2IoUF0xGUdP9eyATGgQRxXj5fyZEv_emXOGR6isaDdZtY4LtCSK0owqxK"/>
+</div>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="p-8 space-y-8">
+<!-- 4 Status Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Total Devices -->
+<div class="bg-white dark:bg-surface p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Devices</span>
+<span class="material-symbols-outlined text-primary">sensors</span>
+</div>
+<div class="flex items-baseline gap-2">
+<h3 class="text-3xl font-bold">1,248</h3>
+<span class="text-accent-green text-xs font-bold flex items-center bg-accent-green/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-xs">trending_up</span> 0.0%
+                        </span>
+</div>
+<div class="h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
+<div class="h-full bg-primary w-4/5"></div>
+</div>
+</div>
+<!-- Active Alerts -->
+<div class="bg-white dark:bg-surface p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="text-slate-500 dark:text-slate-400 text-sm font-medium">Active Alerts</span>
+<span class="material-symbols-outlined text-accent-red">warning</span>
+</div>
+<div class="flex items-baseline gap-2">
+<h3 class="text-3xl font-bold text-slate-100">12</h3>
+<span class="text-accent-red text-xs font-bold flex items-center bg-accent-red/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-xs">priority_high</span> High
+                        </span>
+</div>
+<p class="text-[10px] text-slate-500 font-medium uppercase mt-1">4 Critical, 8 Warnings</p>
+</div>
+<!-- Online % -->
+<div class="bg-white dark:bg-surface p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="text-slate-500 dark:text-slate-400 text-sm font-medium">Online %</span>
+<span class="material-symbols-outlined text-accent-green">wifi_tethering</span>
+</div>
+<div class="flex items-baseline gap-2">
+<h3 class="text-3xl font-bold">99.8%</h3>
+<span class="text-accent-green text-xs font-bold flex items-center bg-accent-green/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-xs">expand_less</span> 0.1%
+                        </span>
+</div>
+<div class="h-1 w-full bg-slate-200 dark:bg-slate-700 rounded-full mt-2 overflow-hidden">
+<div class="h-full bg-accent-green w-[99.8%]"></div>
+</div>
+</div>
+<!-- Traffic -->
+<div class="bg-white dark:bg-surface p-6 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="text-slate-500 dark:text-slate-400 text-sm font-medium">Network Traffic</span>
+<span class="material-symbols-outlined text-accent-amber">swap_vert</span>
+</div>
+<div class="flex items-baseline gap-2">
+<h3 class="text-3xl font-bold">4.2 GB/s</h3>
+<span class="text-accent-amber text-xs font-bold flex items-center bg-accent-amber/10 px-1.5 py-0.5 rounded">
+<span class="material-symbols-outlined text-xs">expand_more</span> 0.5%
+                        </span>
+</div>
+<p class="text-[10px] text-slate-500 font-medium uppercase mt-1">Payload: JSON / Binary</p>
+</div>
+</div>
+<!-- Middle Section: Map and Recent Alerts -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Map Widget -->
+<div class="lg:col-span-2 bg-white dark:bg-surface rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+<div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+<h2 class="font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">location_on</span>
+                            Geographic Node Distribution
+                        </h2>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-xs font-semibold rounded-lg">Sat</button>
+<button class="px-3 py-1 bg-primary text-white text-xs font-semibold rounded-lg">Vector</button>
+</div>
+</div>
+<div class="relative flex-1 min-h-[400px] bg-slate-900 overflow-hidden">
+<!-- Simulated Map Background -->
+<div class="absolute inset-0 opacity-40 mix-blend-screen" data-alt="Dark stylized vector map of global industrial hubs" data-location="Global Industrial Hubs" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDdWcO20K_Zujl5v7P920CnJHQEiw0CCOhFgCaot8H7GNPCygTLygx0il1Pc9RMaJbheHU0KRPZEnSjeH-L_IPYeOZ5Z8v-tEMFoasv9aw7eUKFv953fAmENErBz8r6yyNH1pciXt_lgBGBdi0dC705Mh1DwEf8tFvW8yp4aS_wJ7c7zf4wF_ibiHzBz8BhFU_G-XUg2eDNTXpmINQf4BRVd4HFUn41dypd465Pl5FjF0JlvtXzm7OIjUGNedSmD7PWNqbNeegKcH3h'); background-size: cover;"></div>
+<!-- Map Markers -->
+<div class="absolute top-1/4 left-1/3 group cursor-pointer">
+<div class="size-4 bg-primary rounded-full animate-ping absolute opacity-75"></div>
+<div class="size-4 bg-primary rounded-full relative border-2 border-white shadow-[0_0_10px_rgba(61,61,245,0.8)]"></div>
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-slate-900 border border-slate-700 text-[10px] p-2 rounded-lg whitespace-nowrap shadow-xl">
+<strong>Node: HUB-01</strong><br/>Status: Operational
+                            </div>
+</div>
+<div class="absolute top-1/2 left-2/3 group cursor-pointer">
+<div class="size-4 bg-accent-red rounded-full animate-ping absolute opacity-75"></div>
+<div class="size-4 bg-accent-red rounded-full relative border-2 border-white shadow-[0_0_10px_rgba(239,68,68,0.8)]"></div>
+</div>
+<div class="absolute bottom-1/4 left-1/2 group cursor-pointer">
+<div class="size-3 bg-accent-green rounded-full relative border-2 border-white"></div>
+</div>
+<!-- Map Controls -->
+<div class="absolute bottom-4 right-4 flex flex-col gap-2">
+<button class="size-8 bg-slate-900/80 border border-slate-700 rounded-lg flex items-center justify-center text-white"><span class="material-symbols-outlined text-sm">add</span></button>
+<button class="size-8 bg-slate-900/80 border border-slate-700 rounded-lg flex items-center justify-center text-white"><span class="material-symbols-outlined text-sm">remove</span></button>
+</div>
+</div>
+</div>
+<!-- Recent Alerts Feed -->
+<div class="bg-white dark:bg-surface rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col">
+<div class="p-4 border-b border-slate-200 dark:border-slate-800">
+<h2 class="font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-accent-red">history</span>
+                            Recent System Alerts
+                        </h2>
+</div>
+<div class="flex-1 overflow-y-auto max-h-[400px] divide-y divide-slate-100 dark:divide-slate-800">
+<!-- Alert Item -->
+<div class="p-4 flex gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
+<div class="size-10 rounded-lg bg-accent-red/10 flex items-center justify-center text-accent-red shrink-0">
+<span class="material-symbols-outlined">error</span>
+</div>
+<div>
+<div class="flex justify-between">
+<h4 class="text-sm font-bold">Turbine XB-402 Error</h4>
+<span class="text-[10px] text-slate-500 font-medium">2m ago</span>
+</div>
+<p class="text-xs text-slate-400 mt-1 line-clamp-1 leading-relaxed">Critical overheating detected in secondary cooling chamber.</p>
+<div class="mt-2 flex gap-2">
+<span class="px-2 py-0.5 rounded bg-accent-red text-white text-[10px] font-bold">CRITICAL</span>
+<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] font-bold">ID: 4902</span>
+</div>
+</div>
+</div>
+<!-- Alert Item -->
+<div class="p-4 flex gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
+<div class="size-10 rounded-lg bg-accent-amber/10 flex items-center justify-center text-accent-amber shrink-0">
+<span class="material-symbols-outlined">warning</span>
+</div>
+<div>
+<div class="flex justify-between">
+<h4 class="text-sm font-bold">Grid 4 Voltage Drop</h4>
+<span class="text-[10px] text-slate-500 font-medium">14m ago</span>
+</div>
+<p class="text-xs text-slate-400 mt-1 line-clamp-1 leading-relaxed">Voltage levels fell below threshold 220V on Phase 2.</p>
+<div class="mt-2 flex gap-2">
+<span class="px-2 py-0.5 rounded bg-accent-amber text-white text-[10px] font-bold">WARNING</span>
+</div>
+</div>
+</div>
+<!-- Alert Item -->
+<div class="p-4 flex gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
+<div class="size-10 rounded-lg bg-accent-green/10 flex items-center justify-center text-accent-green shrink-0">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<div>
+<div class="flex justify-between">
+<h4 class="text-sm font-bold">Server SYNC Complete</h4>
+<span class="text-[10px] text-slate-500 font-medium">45m ago</span>
+</div>
+<p class="text-xs text-slate-400 mt-1 line-clamp-1 leading-relaxed">Daily node synchronization process completed successfully.</p>
+<div class="mt-2 flex gap-2">
+<span class="px-2 py-0.5 rounded bg-accent-green text-white text-[10px] font-bold">OK</span>
+</div>
+</div>
+</div>
+<!-- Alert Item -->
+<div class="p-4 flex gap-4 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all">
+<div class="size-10 rounded-lg bg-accent-amber/10 flex items-center justify-center text-accent-amber shrink-0">
+<span class="material-symbols-outlined">settings_backup_restore</span>
+</div>
+<div>
+<div class="flex justify-between">
+<h4 class="text-sm font-bold">Firmware Update Pending</h4>
+<span class="text-[10px] text-slate-500 font-medium">2h ago</span>
+</div>
+<p class="text-xs text-slate-400 mt-1 line-clamp-1 leading-relaxed">6 devices in Sector 7 are awaiting firmware patch 2.4.1.</p>
+<div class="mt-2 flex gap-2">
+<span class="px-2 py-0.5 rounded bg-slate-600 text-white text-[10px] font-bold">ACTION REQUIRED</span>
+</div>
+</div>
+</div>
+</div>
+<div class="p-4 bg-slate-50/50 dark:bg-slate-800/20 text-center border-t border-slate-100 dark:border-slate-800">
+<a class="text-xs font-bold text-primary hover:underline uppercase tracking-widest" href="#">View History Logs</a>
+</div>
+</div>
+</div>
+<!-- Bottom Section: Telemetry Chart -->
+<div class="bg-white dark:bg-surface rounded-xl border border-slate-200 dark:border-slate-800 p-6 flex flex-col gap-6">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h2 class="text-xl font-bold">Real-time Telemetry Analytics</h2>
+<p class="text-sm text-slate-500 font-medium">Voltage (V) and Temperature (°C) history over last 24 hours</p>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<span class="size-3 rounded-full bg-primary neon-line"></span>
+<span class="text-xs font-semibold text-slate-300">Voltage (V)</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="size-3 rounded-full bg-accent-amber"></span>
+<span class="text-xs font-semibold text-slate-300">Temp (°C)</span>
+</div>
+<select class="bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-xs font-bold px-4 py-2 text-slate-300">
+<option>Last 24 Hours</option>
+<option>Last 7 Days</option>
+<option>Month to Date</option>
+</select>
+</div>
+</div>
+<!-- Custom SVG Chart Visualization -->
+<div class="w-full h-64 relative">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 1000 200">
+<!-- Grid Lines -->
+<line class="text-slate-800" stroke="currentColor" stroke-dasharray="4" stroke-width="1" x1="0" x2="1000" y1="50" y2="50"></line>
+<line class="text-slate-800" stroke="currentColor" stroke-dasharray="4" stroke-width="1" x1="0" x2="1000" y1="100" y2="100"></line>
+<line class="text-slate-800" stroke="currentColor" stroke-dasharray="4" stroke-width="1" x1="0" x2="1000" y1="150" y2="150"></line>
+<!-- Voltage Line (Primary) -->
+<path class="neon-line" d="M0,150 Q100,140 200,160 T400,130 T600,145 T800,110 T1000,120" fill="none" stroke="#3d3df5" stroke-width="3"></path>
+<path d="M0,150 Q100,140 200,160 T400,130 T600,145 T800,110 T1000,120 L1000,200 L0,200 Z" fill="url(#gradient-primary)" fill-opacity="0.1"></path>
+<!-- Temperature Line (Amber) -->
+<path d="M0,80 Q100,90 200,70 T400,85 T600,60 T800,95 T1000,75" fill="none" stroke="#f59e0b" stroke-width="2"></path>
+<defs>
+<lineargradient id="gradient-primary" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#3d3df5;stop-opacity:1"></stop>
+<stop offset="100%" style="stop-color:#3d3df5;stop-opacity:0"></stop>
+</lineargradient>
+</defs>
+</svg>
+<!-- Chart X-Axis Labels -->
+<div class="flex justify-between text-[10px] font-bold text-slate-500 mt-2 uppercase tracking-tighter">
+<span>00:00</span>
+<span>04:00</span>
+<span>08:00</span>
+<span>12:00</span>
+<span>16:00</span>
+<span>20:00</span>
+<span>24:00</span>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

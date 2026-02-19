@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-br"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Relatórios e Analytics Midnight V1</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f48c25",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-gradient {
+            background: linear-gradient(180deg, rgba(244, 140, 37, 0.2) 0%, rgba(244, 140, 37, 0) 100%);
+        }
+        .glow-orange {
+            filter: drop-shadow(0 0 4px rgba(244, 140, 37, 0.6));
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased font-display">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-64 flex-shrink-0 bg-background-dark border-r border-slate-800 flex flex-col justify-between py-6">
+<div class="px-6">
+<div class="flex items-center gap-3 mb-10">
+<div class="bg-primary rounded-lg p-2 flex items-center justify-center">
+<span class="material-symbols-outlined text-background-dark font-bold">query_stats</span>
+</div>
+<div>
+<h1 class="text-white text-base font-bold leading-none">Midnight V1</h1>
+<p class="text-slate-500 text-xs mt-1">IoT Platform</p>
+</div>
+</div>
+<nav class="space-y-2">
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">memory</span>
+<span class="text-sm font-medium">Dispositivos</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 bg-primary text-background-dark font-bold rounded-lg shadow-lg shadow-primary/20" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-sm font-bold">Relatórios</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="text-sm font-medium">Alertas</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:text-white transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Configurações</span>
+</a>
+</nav>
+</div>
+<div class="px-6 space-y-4">
+<div class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+<p class="text-xs text-slate-400 mb-2 leading-relaxed">Assine o plano Pro para relatórios ilimitados.</p>
+<button class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-lg transition-all">
+                        Upgrade Now
+                    </button>
+</div>
+<div class="flex items-center gap-3 px-2">
+<div class="w-10 h-10 rounded-full bg-slate-700 border border-slate-600 bg-cover bg-center" data-alt="User avatar icon" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDjrcZAIixEKqBoASfOyylmUoRpeN5Y6HwF1Cdz7HRjkrFg3wz-g7SMTx2RhpjuBcFzUD0gRx0QgDxQN7Dv61jGz3r3csSWc0W2SHNcLNclA-aLe6fsC5wgeFMZEIFlady-PLRqrAd-Oya1kOqEuiOBN_fJMM1jj5HCIHt5nM66Z1jJfkZ1BYJZOJMpSgZ8hTz9iih50ju4Cp-Xjet40sAKRuULGijufbTTNeLxt3n18hRaU2ADpSLuA0LblXvWJJWo087hdCBWpr_N')"></div>
+<div>
+<p class="text-sm font-bold text-white leading-none">Admin User</p>
+<p class="text-xs text-slate-500 mt-1">Sair</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto bg-slate-950">
+<!-- Top Bar -->
+<header class="sticky top-0 z-10 flex items-center justify-between px-8 py-4 bg-slate-950/80 backdrop-blur-md border-b border-slate-800">
+<div>
+<h2 class="text-xl font-bold text-white tracking-tight">Reports &amp; Analytics</h2>
+<p class="text-sm text-slate-400">Monitoramento avançado de consumo e performance</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-2 rounded-lg text-slate-300">
+<span class="material-symbols-outlined text-lg">calendar_today</span>
+<span class="text-sm font-medium">Últimos 30 Dias</span>
+<span class="material-symbols-outlined text-lg">expand_more</span>
+</div>
+<div class="flex gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
+<button class="flex items-center gap-2 px-4 py-1.5 bg-primary text-background-dark text-xs font-bold rounded-md hover:bg-primary/90 transition-colors">
+<span class="material-symbols-outlined text-sm">picture_as_pdf</span> PDF
+                        </button>
+<button class="flex items-center gap-2 px-4 py-1.5 text-slate-300 hover:bg-slate-800 text-xs font-bold rounded-md transition-colors">
+<span class="material-symbols-outlined text-sm">csv</span> CSV
+                        </button>
+</div>
+</div>
+</header>
+<div class="p-8 space-y-6">
+<!-- KPI Metric Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- Metric 1 -->
+<div class="bg-slate-900 border border-slate-800 p-6 rounded-xl relative overflow-hidden">
+<p class="text-slate-400 text-sm font-medium">Total Energy</p>
+<h3 class="text-3xl font-bold text-white mt-1 tabular-nums">4,250 <span class="text-sm font-medium text-slate-500">kWh</span></h3>
+<div class="mt-4 h-10 w-full flex items-end">
+<div class="flex-1 h-2 bg-primary/20 rounded-full overflow-hidden relative">
+<div class="absolute inset-0 bg-primary w-2/3 glow-orange"></div>
+</div>
+</div>
+<div class="mt-2 flex items-center gap-1 text-emerald-500 text-xs font-bold">
+<span class="material-symbols-outlined text-xs">arrow_upward</span> 12.5%
+                        </div>
+</div>
+<!-- Metric 2 -->
+<div class="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+<p class="text-slate-400 text-sm font-medium">Peak Power</p>
+<h3 class="text-3xl font-bold text-white mt-1 tabular-nums">850 <span class="text-sm font-medium text-slate-500">kW</span></h3>
+<div class="mt-4 flex gap-1 items-end h-8">
+<div class="w-2 bg-primary/40 rounded-t h-[40%]"></div>
+<div class="w-2 bg-primary/60 rounded-t h-[60%]"></div>
+<div class="w-2 bg-primary/40 rounded-t h-[30%]"></div>
+<div class="w-2 bg-primary/80 rounded-t h-[80%] glow-orange"></div>
+<div class="w-2 bg-primary/50 rounded-t h-[50%]"></div>
+<div class="w-2 bg-primary rounded-t h-[90%] glow-orange"></div>
+</div>
+<div class="mt-2 flex items-center gap-1 text-emerald-500 text-xs font-bold">
+<span class="material-symbols-outlined text-xs">arrow_upward</span> 5.2%
+                        </div>
+</div>
+<!-- Metric 3 -->
+<div class="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+<p class="text-slate-400 text-sm font-medium">Avg Uptime</p>
+<h3 class="text-3xl font-bold text-white mt-1 tabular-nums">99.9 <span class="text-sm font-medium text-slate-500">%</span></h3>
+<div class="mt-4 h-10 w-full flex items-center justify-between">
+<span class="w-full h-1 bg-emerald-500/30 rounded-full relative">
+<span class="absolute top-0 left-0 h-full w-[99%] bg-emerald-500"></span>
+</span>
+</div>
+<div class="mt-2 flex items-center gap-1 text-rose-500 text-xs font-bold">
+<span class="material-symbols-outlined text-xs">arrow_downward</span> 0.1%
+                        </div>
+</div>
+<!-- Metric 4 -->
+<div class="bg-slate-900 border border-slate-800 p-6 rounded-xl">
+<p class="text-slate-400 text-sm font-medium">Total Incidents</p>
+<h3 class="text-3xl font-bold text-white mt-1 tabular-nums">12</h3>
+<div class="mt-4 flex justify-between">
+<div class="flex flex-col gap-1 w-full">
+<div class="flex justify-between text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
+<span>Resolution Rate</span>
+<span>85%</span>
+</div>
+<div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+<div class="h-full bg-primary/70 w-[85%]"></div>
+</div>
+</div>
+</div>
+<div class="mt-2 flex items-center gap-1 text-rose-500 text-xs font-bold">
+<span class="material-symbols-outlined text-xs">arrow_upward</span> 15%
+                        </div>
+</div>
+</div>
+<!-- Main Chart Area -->
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h3 class="text-lg font-bold text-white">Energy Consumption Trend</h3>
+<p class="text-sm text-slate-500">Variação de carga em tempo real (kW/h)</p>
+</div>
+<div class="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-slate-500">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-primary glow-orange"></span>
+<span>Current Period</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full border border-slate-600 border-dashed"></span>
+<span>Predicted</span>
+</div>
+</div>
+</div>
+<div class="relative h-[300px] w-full mt-4 flex items-end gap-1">
+<!-- Simulated Technical Area Chart -->
+<div class="absolute inset-0 flex items-end">
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 1000 300">
+<defs>
+<lineargradient id="areaGradient" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#f48c25" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#f48c25" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<path d="M0 300 L0 250 Q100 200 200 220 T400 150 T600 100 T800 180 T1000 50 L1000 300 Z" fill="url(#areaGradient)"></path>
+<path class="glow-orange" d="M0 250 Q100 200 200 220 T400 150 T600 100 T800 180 T1000 50" fill="none" stroke="#f48c25" stroke-linecap="round" stroke-width="3"></path>
+<circle class="glow-orange" cx="600" cy="100" fill="#f48c25" r="4"></circle>
+</svg>
+</div>
+<!-- Tooltip Overlay -->
+<div class="absolute left-[60%] top-[15%] transform -translate-x-1/2 -translate-y-full bg-background-dark border border-primary/50 p-2 rounded-lg shadow-xl pointer-events-none">
+<p class="text-[10px] text-slate-400 font-bold uppercase">Peak Detected</p>
+<p class="text-xs font-bold text-white">12:45 PM - 842 kW</p>
+</div>
+<!-- Grid Lines -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20">
+<div class="border-b border-slate-600 w-full h-0"></div>
+<div class="border-b border-slate-600 w-full h-0"></div>
+<div class="border-b border-slate-600 w-full h-0"></div>
+<div class="border-b border-slate-600 w-full h-0"></div>
+<div class="border-b border-slate-600 w-full h-0"></div>
+</div>
+</div>
+<div class="flex justify-between mt-4 px-2 text-[10px] font-bold text-slate-500 uppercase">
+<span>00:00</span>
+<span>04:00</span>
+<span>08:00</span>
+<span>12:00</span>
+<span>16:00</span>
+<span>20:00</span>
+<span>23:59</span>
+</div>
+</div>
+<!-- Bottom Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Device Performance Heatmap -->
+<div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-base font-bold text-white">Device Performance Heatmap</h3>
+<div class="flex gap-2">
+<span class="text-[10px] text-slate-500 font-bold uppercase">Efficiency Index</span>
+<div class="flex h-3 w-24 rounded overflow-hidden">
+<div class="flex-1 bg-slate-800"></div>
+<div class="flex-1 bg-primary/30"></div>
+<div class="flex-1 bg-primary/60"></div>
+<div class="flex-1 bg-primary"></div>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-10 gap-2">
+<!-- Generate a 10x4 grid of sensor blocks -->
+<div class="aspect-square bg-primary rounded shadow-inner" title="Sensor 01: 98%"></div>
+<div class="aspect-square bg-primary/80 rounded" title="Sensor 02: 82%"></div>
+<div class="aspect-square bg-primary/60 rounded" title="Sensor 03: 65%"></div>
+<div class="aspect-square bg-primary rounded shadow-inner" title="Sensor 04: 94%"></div>
+<div class="aspect-square bg-slate-800 rounded" title="Sensor 05: 12%"></div>
+<div class="aspect-square bg-primary/90 rounded" title="Sensor 06: 91%"></div>
+<div class="aspect-square bg-primary rounded" title="Sensor 07: 100%"></div>
+<div class="aspect-square bg-primary/40 rounded" title="Sensor 08: 45%"></div>
+<div class="aspect-square bg-primary/70 rounded" title="Sensor 09: 72%"></div>
+<div class="aspect-square bg-primary/90 rounded" title="Sensor 10: 93%"></div>
+<div class="aspect-square bg-primary/80 rounded"></div>
+<div class="aspect-square bg-primary rounded"></div>
+<div class="aspect-square bg-primary/90 rounded"></div>
+<div class="aspect-square bg-primary/20 rounded"></div>
+<div class="aspect-square bg-primary/80 rounded"></div>
+<div class="aspect-square bg-primary rounded"></div>
+<div class="aspect-square bg-slate-800 rounded"></div>
+<div class="aspect-square bg-primary rounded"></div>
+<div class="aspect-square bg-primary/60 rounded"></div>
+<div class="aspect-square bg-primary/90 rounded"></div>
+<div class="aspect-square bg-primary/40 rounded"></div>
+<div class="aspect-square bg-primary/70 rounded"></div>
+<div class="aspect-square bg-primary rounded"></div>
+<div class="aspect-square bg-primary/90 rounded"></div>
+<div class="aspect-square bg-primary/30 rounded"></div>
+<div class="aspect-square bg-primary rounded"></div>
+<div class="aspect-square bg-primary/80 rounded"></div>
+<div class="aspect-square bg-primary/50 rounded"></div>
+<div class="aspect-square bg-primary rounded"></div>
+<div class="aspect-square bg-primary/90 rounded"></div>
+<div class="aspect-square bg-primary/70 rounded"></div>
+<div class="aspect-square bg-primary/90 rounded"></div>
+<div class="aspect-square bg-primary/20 rounded"></div>
+<div class="aspect-square bg-primary rounded"></div>
+<div class="aspect-square bg-primary/80 rounded"></div>
+<div class="aspect-square bg-primary/60 rounded"></div>
+<div class="aspect-square bg-primary/40 rounded"></div>
+<div class="aspect-square bg-primary/90 rounded"></div>
+<div class="aspect-square bg-primary rounded shadow-inner"></div>
+<div class="aspect-square bg-primary/80 rounded"></div>
+</div>
+<div class="mt-6 flex justify-between items-center text-xs text-slate-500 font-medium">
+<span>Showing 40 active sensors</span>
+<a class="text-primary hover:underline font-bold" href="#">View full map</a>
+</div>
+</div>
+<!-- Incident Distribution -->
+<div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+<h3 class="text-base font-bold text-white mb-6">Incident Distribution</h3>
+<div class="flex flex-col items-center">
+<div class="relative w-40 h-40">
+<!-- Donut SVG -->
+<svg class="w-full h-full" viewbox="0 0 36 36">
+<circle cx="18" cy="18" fill="transparent" r="15.9" stroke="#1e293b" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="transparent" r="15.9" stroke="#f43f5e" stroke-dasharray="15 85" stroke-dashoffset="25" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="transparent" r="15.9" stroke="#f59e0b" stroke-dasharray="35 65" stroke-dashoffset="10" stroke-width="4"></circle>
+<circle cx="18" cy="18" fill="transparent" r="15.9" stroke="#10b981" stroke-dasharray="50 50" stroke-dashoffset="75" stroke-width="4"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-2xl font-bold text-white">12</span>
+<span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Total</span>
+</div>
+</div>
+<div class="mt-8 w-full space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+<span class="text-sm font-medium text-slate-300">Critical</span>
+</div>
+<span class="text-sm font-bold text-white">02</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+<span class="text-sm font-medium text-slate-300">Warning</span>
+</div>
+<span class="text-sm font-bold text-white">04</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+<span class="text-sm font-medium text-slate-300">Healthy</span>
+</div>
+<span class="text-sm font-bold text-white">06</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

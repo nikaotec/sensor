@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard IoT Midnight V1</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f48c25",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                        "slate-card": "#0f172a",
+                        "slate-border": "#1e293b",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="w-64 flex-shrink-0 bg-background-light dark:bg-background-dark border-r border-slate-200 dark:border-slate-border flex flex-col">
+<div class="p-6 flex items-center gap-3">
+<div class="bg-primary size-10 rounded-lg flex items-center justify-center text-background-dark">
+<span class="material-symbols-outlined font-bold">nights_stay</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-slate-900 dark:text-slate-100 text-base font-bold leading-tight">Midnight IoT</h1>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-medium">Dashboard V1.0</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-2 mt-4">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-background-dark font-semibold transition-all" href="#">
+<span class="material-symbols-outlined fill-1">dashboard</span>
+<span class="text-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-card transition-all" href="#">
+<span class="material-symbols-outlined">sensors</span>
+<span class="text-sm">Dispositivos</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-card transition-all" href="#">
+<span class="material-symbols-outlined">notifications</span>
+<span class="text-sm">Alertas</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-card transition-all" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span class="text-sm">Relatórios</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-card transition-all" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="text-sm">Mapas Locais</span>
+</a>
+</nav>
+<div class="p-4 border-t border-slate-200 dark:border-slate-border space-y-2">
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">help</span>
+<span class="text-sm font-medium">Suporte</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+<span class="text-sm font-medium">Sair</span>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+<!-- Top Bar -->
+<header class="h-16 flex items-center justify-between px-8 bg-background-light dark:bg-background-dark border-b border-slate-200 dark:border-slate-border">
+<div class="flex items-center gap-4 flex-1 max-w-xl">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="w-full bg-slate-100 dark:bg-slate-card border-none rounded-xl pl-10 pr-4 py-2 text-sm text-slate-200 focus:ring-1 focus:ring-primary placeholder-slate-500" placeholder="Buscar dispositivos, sensores ou alertas..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<button class="flex items-center gap-2 bg-primary text-background-dark px-4 py-2 rounded-xl text-sm font-bold hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>Novo Dispositivo</span>
+</button>
+<div class="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-border">
+<div class="text-right hidden sm:block">
+<p class="text-sm font-bold leading-none">Alex Thompson</p>
+<p class="text-xs text-slate-500 mt-1">Admin Geral</p>
+</div>
+<img class="size-10 rounded-full border-2 border-primary" data-alt="User profile avatar portrait" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuvJxwIYI2ukCFYUtXPSMayB8BpLHmEotkogLjSjOQ112ykOzUVYvJ4MHSGuM4BbprncbzyMdBkQ5Y1QA06KSc6hpyh1QaV7J4m49eLRdxd49i5o-hzMTcZWjEHb_RH_9B60Kbum0rSUodzt_g8aXuqEGl_ORLCxspvx15TCAdv0XaF1YVCR6IL5KUNoumMerRWqMX-5X2QgyzoMLcuGaKLHVsqUcToRdlrw2rK8NucgvsZVuzXgHXeDYqzjkp3oyaz6Jctll6EJNa"/>
+</div>
+</div>
+</header>
+<!-- Dashboard Scroll Area -->
+<div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+<!-- Stat Cards Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div class="bg-white dark:bg-slate-card p-6 rounded-xl border border-slate-200 dark:border-slate-border shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-primary bg-primary/10 p-2 rounded-lg">router</span>
+<span class="text-emerald-500 text-xs font-bold">+5.2%</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Dispositivos Ativos</p>
+<h3 class="text-2xl font-bold mt-1">1,284</h3>
+</div>
+<div class="bg-white dark:bg-slate-card p-6 rounded-xl border border-slate-200 dark:border-slate-border shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-red-500 bg-red-500/10 p-2 rounded-lg">report</span>
+<span class="text-red-500 text-xs font-bold">-2.1%</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Alertas Críticos</p>
+<h3 class="text-2xl font-bold mt-1">12</h3>
+</div>
+<div class="bg-white dark:bg-slate-card p-6 rounded-xl border border-slate-200 dark:border-slate-border shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-emerald-500 bg-emerald-500/10 p-2 rounded-lg">speed</span>
+<span class="text-emerald-500 text-xs font-bold">+0.01%</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Uptime 24h</p>
+<h3 class="text-2xl font-bold mt-1">99.9%</h3>
+</div>
+<div class="bg-white dark:bg-slate-card p-6 rounded-xl border border-slate-200 dark:border-slate-border shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<span class="material-symbols-outlined text-amber-500 bg-amber-500/10 p-2 rounded-lg">swap_horiz</span>
+<span class="text-emerald-500 text-xs font-bold">+12%</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">Tráfego MQTT</p>
+<h3 class="text-2xl font-bold mt-1">450 req/s</h3>
+</div>
+</div>
+<!-- Center Section: Telemetry & Alerts -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+<!-- Telemetry Chart Card -->
+<div class="lg:col-span-2 bg-white dark:bg-slate-card p-6 rounded-xl border border-slate-200 dark:border-slate-border shadow-sm">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h3 class="text-lg font-bold">Telemetria em Tempo Real</h3>
+<p class="text-sm text-slate-500">Média de temperatura e umidade da rede</p>
+</div>
+<div class="flex gap-4">
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-primary"></span>
+<span class="text-xs font-medium text-slate-400">Temp</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-amber-400"></span>
+<span class="text-xs font-medium text-slate-400">Umid</span>
+</div>
+</div>
+</div>
+<div class="h-[300px] w-full relative">
+<!-- SVG Chart Simulation -->
+<svg class="w-full h-full" preserveaspectratio="none" viewbox="0 0 800 300">
+<defs>
+<lineargradient id="grad-orange" x1="0" x2="0" y1="0" y2="1">
+<stop offset="0%" stop-color="#f48c25" stop-opacity="0.2"></stop>
+<stop offset="100%" stop-color="#f48c25" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<!-- Grid Lines -->
+<line stroke="#1e293b" stroke-dasharray="4" stroke-width="1" x1="0" x2="800" y1="50" y2="50"></line>
+<line stroke="#1e293b" stroke-dasharray="4" stroke-width="1" x1="0" x2="800" y1="150" y2="150"></line>
+<line stroke="#1e293b" stroke-dasharray="4" stroke-width="1" x1="0" x2="800" y1="250" y2="250"></line>
+<!-- Amber Line (Humidity) -->
+<path d="M0 200 Q 100 220 200 180 T 400 200 T 600 140 T 800 160" fill="none" stroke="#fbbf24" stroke-width="2"></path>
+<!-- Primary Line (Temp) -->
+<path d="M0 150 Q 100 120 200 160 T 400 100 T 600 180 T 800 110" fill="none" stroke="#f48c25" stroke-width="3"></path>
+<path d="M0 150 Q 100 120 200 160 T 400 100 T 600 180 T 800 110 L 800 300 L 0 300 Z" fill="url(#grad-orange)"></path>
+</svg>
+<div class="flex justify-between mt-4 px-2">
+<span class="text-[10px] text-slate-500 uppercase font-bold">00:00</span>
+<span class="text-[10px] text-slate-500 uppercase font-bold">06:00</span>
+<span class="text-[10px] text-slate-500 uppercase font-bold">12:00</span>
+<span class="text-[10px] text-slate-500 uppercase font-bold">18:00</span>
+<span class="text-[10px] text-slate-500 uppercase font-bold">23:59</span>
+</div>
+</div>
+</div>
+<!-- Alerts Feed Card -->
+<div class="bg-white dark:bg-slate-card rounded-xl border border-slate-200 dark:border-slate-border shadow-sm flex flex-col">
+<div class="p-6 border-b border-slate-200 dark:border-slate-border">
+<h3 class="text-lg font-bold">Alertas Recentes</h3>
+<p class="text-sm text-slate-500">Eventos críticos do sistema</p>
+</div>
+<div class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+<!-- Alert Item -->
+<div class="p-3 bg-slate-50 dark:bg-background-dark/50 rounded-lg flex items-start gap-3 border-l-4 border-red-500">
+<div class="size-2 rounded-full bg-red-500 mt-2 flex-shrink-0"></div>
+<div>
+<p class="text-sm font-bold">Falha de Conexão: HUB-04</p>
+<p class="text-xs text-slate-500 mt-1">Setor Norte • 2 min atrás</p>
+</div>
+</div>
+<!-- Alert Item -->
+<div class="p-3 bg-slate-50 dark:bg-background-dark/50 rounded-lg flex items-start gap-3 border-l-4 border-amber-500">
+<div class="size-2 rounded-full bg-amber-500 mt-2 flex-shrink-0"></div>
+<div>
+<p class="text-sm font-bold">Bateria Baixa: Sensor TMP-21</p>
+<p class="text-xs text-slate-500 mt-1">Armazém A • 15 min atrás</p>
+</div>
+</div>
+<!-- Alert Item -->
+<div class="p-3 bg-slate-50 dark:bg-background-dark/50 rounded-lg flex items-start gap-3 border-l-4 border-emerald-500">
+<div class="size-2 rounded-full bg-emerald-500 mt-2 flex-shrink-0"></div>
+<div>
+<p class="text-sm font-bold">Manutenção Concluída</p>
+<p class="text-xs text-slate-500 mt-1">Gerador Aux • 1h atrás</p>
+</div>
+</div>
+<!-- Alert Item -->
+<div class="p-3 bg-slate-50 dark:bg-background-dark/50 rounded-lg flex items-start gap-3 border-l-4 border-red-500">
+<div class="size-2 rounded-full bg-red-500 mt-2 flex-shrink-0"></div>
+<div>
+<p class="text-sm font-bold">Sobrecarga Detectada</p>
+<p class="text-xs text-slate-500 mt-1">Painel C-12 • 3h atrás</p>
+</div>
+</div>
+</div>
+<button class="p-4 text-center text-sm font-bold text-primary hover:bg-primary/5 transition-colors">Ver Todos os Alertas</button>
+</div>
+</div>
+<!-- Bottom Section: Monitored Locations -->
+<div>
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-lg font-bold">Locais Monitorados</h3>
+<a class="text-primary text-sm font-bold flex items-center gap-1" href="#">
+                            Gerenciar Locais <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</a>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Location Card -->
+<div class="group relative overflow-hidden rounded-xl bg-slate-card border border-slate-border aspect-video cursor-pointer">
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark to-transparent z-10 opacity-80"></div>
+<img class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Industrial server room interior" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJ8GZlZkANaW6o8vV164YR47gHxBpVwTMc9s7vkLmOCErS6AmsIM6h_65FXzDdVTuB3TEhSj4xRIFd9ZFtuFxaNz9Lsh5ybCylTbrFlAJhpZwhdtoqveQlI5RUz2Wwh-T3XBJ_XbWxKk8CTReDotNtK5qW0qJ2kIEJAC3scwLlwsN-QJ8VaVk0cP7DmpL5LHjQmwTpPhKXyYgu__Ygw_jwWdzEU2_GArS5A1WA1N4mgcMRNPFD5FXdAFmt_U3h7rKm6Eed0Qp8dtlM"/>
+<div class="absolute bottom-4 left-4 z-20">
+<p class="text-xs font-bold text-primary mb-1">DATA CENTER A</p>
+<p class="text-white text-sm font-medium">São Paulo, BR</p>
+</div>
+<div class="absolute top-4 right-4 z-20 flex gap-1">
+<span class="px-2 py-1 bg-emerald-500/20 text-emerald-500 text-[10px] font-bold rounded-md backdrop-blur-md">ONLINE</span>
+</div>
+</div>
+<!-- Location Card -->
+<div class="group relative overflow-hidden rounded-xl bg-slate-card border border-slate-border aspect-video cursor-pointer">
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark to-transparent z-10 opacity-80"></div>
+<img class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Modern high-tech factory facility" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOETWD9pef4QKMpO0GF-o84IclBDGkw2Wy7_GwXb2staqYN7T3c5cLkBQ9q3A8nDjQcqo7wSRYIl3c2t63mebfsLxrLcdURBqOXgM4a0ZESnFAXdswNaLINqWSiJU_bqhP37aAOoPHKwMnXQtZLvP1by0nC7BKm_rkwiSyvRBmzdv845sBLul0Ov_vV6E86bhThrW0qb5riiNjiIH8SgDeGvZk1vxppDqwCPNyhyKDZN5gOrfulzTb62EPdtpdNM8g0Fl3SdWJDb77"/>
+<div class="absolute bottom-4 left-4 z-20">
+<p class="text-xs font-bold text-primary mb-1">FÁBRICA TEXTIL</p>
+<p class="text-white text-sm font-medium">Curitiba, BR</p>
+</div>
+<div class="absolute top-4 right-4 z-20 flex gap-1">
+<span class="px-2 py-1 bg-emerald-500/20 text-emerald-500 text-[10px] font-bold rounded-md backdrop-blur-md">ONLINE</span>
+</div>
+</div>
+<!-- Location Card -->
+<div class="group relative overflow-hidden rounded-xl bg-slate-card border border-slate-border aspect-video cursor-pointer">
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark to-transparent z-10 opacity-80"></div>
+<img class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Logistics warehouse with automated racks" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLid0Cn50-8UJokTQSGGpoVJ-pndBmEzkOq5JH43ki9tT0wD5cYPvuSy_lLAKeaRjkww1jfr9sIsTZFhGHFwDXb500gvj609DpivgTj4zeiDjK8xPrnATnWOx7IG80vCobfp98Offj5xtvxLRLLf_lM2rhYfLg0JLFQO3WW2FhcLDYcLPRrDWQJ3SN_oM-beKlZ50q1XuxgUuoUp2lwSXWiFhplB8-x3jxf9uLqv2GB4lxUWubsvq9zed9zgcBXFZfw828MvtwSWDS"/>
+<div class="absolute bottom-4 left-4 z-20">
+<p class="text-xs font-bold text-primary mb-1">CENTRO LOGÍSTICO</p>
+<p class="text-white text-sm font-medium">Osasco, BR</p>
+</div>
+<div class="absolute top-4 right-4 z-20 flex gap-1">
+<span class="px-2 py-1 bg-amber-500/20 text-amber-500 text-[10px] font-bold rounded-md backdrop-blur-md">MANT.</span>
+</div>
+</div>
+<!-- Location Card -->
+<div class="group relative overflow-hidden rounded-xl bg-slate-card border border-slate-border aspect-video cursor-pointer">
+<div class="absolute inset-0 bg-gradient-to-t from-background-dark to-transparent z-10 opacity-80"></div>
+<img class="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="High voltage electrical substation" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDxuKhcN7dEMA5UptMi7d-H9-Rqj0k3EM-bKd5p7rN0j9FTuTHnITvjK9vhUFOufdha1uf4gfU48WSKV2pGcb8nEKAZcFu4VmkDkHc_4eSVJnn1XjuEzGPRF8aedmXgfu68_mSXu12g4B2od_DKAoa0NGx7IngLH9QNamDzpL7xM1onD4YwHfyh7mRKbFjbhma-0zBDfHAEA7-Z0M4ty5I17e3Qq9m1GFxUDT3tbQgwL-d0CAat16y9hcUQ9dCRipb-XskCURsnFDo"/>
+<div class="absolute bottom-4 left-4 z-20">
+<p class="text-xs font-bold text-primary mb-1">SUBESTAÇÃO 08</p>
+<p class="text-white text-sm font-medium">Uberlândia, BR</p>
+</div>
+<div class="absolute top-4 right-4 z-20 flex gap-1">
+<span class="px-2 py-1 bg-red-500/20 text-red-500 text-[10px] font-bold rounded-md backdrop-blur-md">ALERTA</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

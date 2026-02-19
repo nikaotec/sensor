@@ -17,6 +17,8 @@ void StorageManager::load() {
   EEPROM.get(ADDR_BAT_CAL, data.batCalFactor);
   EEPROM.get(ADDR_BAT_MIN, data.batMinLimit);
   EEPROM.get(ADDR_DOOR_TIME, data.doorMaxTime);
+  EEPROM.get(ADDR_CHK_VOLT, data.chkVolt);
+  EEPROM.get(ADDR_CHK_BAT, data.chkBat);
 
   // Validação e Valores Padrão
   if (isnan(data.voltCalFactor) || data.voltCalFactor < 10.0 ||
@@ -76,6 +78,8 @@ void StorageManager::save() {
   EEPROM.put(ADDR_BAT_CAL, data.batCalFactor);
   EEPROM.put(ADDR_BAT_MIN, data.batMinLimit);
   EEPROM.put(ADDR_DOOR_TIME, data.doorMaxTime);
+  EEPROM.put(ADDR_CHK_VOLT, data.chkVolt);
+  EEPROM.put(ADDR_CHK_BAT, data.chkBat);
 
   // Não salvamos Max/Min aqui para não desgastar à toa, eles são salvos em
   // updateRecords

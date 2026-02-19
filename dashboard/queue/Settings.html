@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Configurações Midnight V1</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f48c25",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                        "slate-900": "#0f172a",
+                        "slate-800": "#1e293b",
+                        "slate-700": "#334155",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #334155;
+            border-radius: 5px;
+            outline: none;
+        }
+        .custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #f48c25;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #0f172a;
+        }
+        .custom-slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #f48c25;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #0f172a;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen flex flex-col font-display">
+<div class="flex flex-1 h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-72 bg-background-dark border-r border-white/5 flex flex-col shrink-0">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 rounded-lg bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined text-2xl">settings_input_component</span>
+</div>
+<div>
+<h1 class="text-white text-base font-bold leading-tight">Midnight V1</h1>
+<p class="text-slate-400 text-xs">Plataforma IoT</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-2 mt-4">
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">sensors</span>
+<span class="text-sm font-medium">Dispositivos</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-white/5 transition-colors" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span class="text-sm font-medium">Relatórios</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 text-primary border border-primary/20" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Configurações</span>
+</a>
+</nav>
+<div class="p-6 mt-auto">
+<div class="bg-slate-900/50 rounded-xl p-4 border border-white/5">
+<div class="flex items-center gap-3 mb-3">
+<div class="size-8 rounded-full bg-slate-700" data-alt="Avatar do usuário administrador" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBFMxZBDChQX23pplhjCzgbJwU8ow2NYrbrSo7pIquQegDGbmtRBa1JmNBy4J9hueQNx8EVOfJuMoKl_9OXGkU80hBxV7ixZHJxRW3sj9zxgNoxjmKEvL1fPqzLwcyHE7fO8IHJUd9ZW4R02aUi6eAIYUH7njKvR_TWi5p27dwykIGsYnFnqqi-YcW5vjqr-sCOsWksLnjadMMnKQ_pxschfgrUrK46W4GfcHP186Iw7RKWTLTNdyPemNrMMNpNXeJVL-eY12dnKFKa')"></div>
+<div class="overflow-hidden">
+<p class="text-xs font-bold text-white truncate">Admin Midnight</p>
+<p class="text-[10px] text-slate-500 truncate">Sessão: 02h 14m</p>
+</div>
+</div>
+<button class="w-full py-2 text-xs font-bold text-slate-400 hover:text-white transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">logout</span> Sair do Sistema
+                    </button>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col overflow-y-auto bg-slate-50 dark:bg-background-dark/50">
+<!-- Top Bar -->
+<header class="sticky top-0 z-10 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-slate-200 dark:border-white/5 px-8 py-4 flex items-center justify-between">
+<div>
+<h2 class="text-slate-900 dark:text-white text-lg font-bold tracking-tight">Configurações do Sistema</h2>
+<p class="text-slate-500 dark:text-slate-400 text-xs">Gerencie integrações e limites globais do ecossistema Midnight.</p>
+</div>
+<div class="flex gap-3">
+<button class="size-10 flex items-center justify-center rounded-xl bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="size-10 flex items-center justify-center rounded-xl bg-slate-200 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+</header>
+<!-- Scrollable Settings Sections -->
+<div class="p-8 max-w-5xl mx-auto w-full space-y-8 pb-32">
+<!-- Section 1: MQTT Configuration -->
+<section>
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">router</span>
+<h3 class="text-white text-xl font-bold">Configuração MQTT</h3>
+</div>
+<div class="bg-slate-900 border border-white/5 rounded-xl p-6 shadow-xl">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Broker URL</label>
+<input class="w-full bg-slate-800 border-slate-700 rounded-lg text-white focus:ring-primary focus:border-primary px-4 py-2.5 transition-all outline-none" type="text" value="mqtt.midnight-platform.io"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Porta</label>
+<input class="w-full bg-slate-800 border-slate-700 rounded-lg text-white focus:ring-primary focus:border-primary px-4 py-2.5 transition-all outline-none" type="text" value="8883"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Client ID</label>
+<input class="w-full bg-slate-800 border-slate-700 rounded-lg text-white focus:ring-primary focus:border-primary px-4 py-2.5 transition-all outline-none" type="text" value="MDNT_V1_GW_04"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Password / Token</label>
+<div class="relative">
+<input class="w-full bg-slate-800 border-slate-700 rounded-lg text-white focus:ring-primary focus:border-primary px-4 py-2.5 transition-all outline-none" type="password" value="••••••••••••"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+<span class="material-symbols-outlined text-sm">visibility</span>
+</button>
+</div>
+</div>
+</div>
+<div class="mt-6 pt-6 border-t border-white/5 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">verified_user</span>
+<div>
+<p class="text-sm font-bold text-white">Conexão SSL/TLS Habilitada</p>
+<p class="text-xs text-slate-500">Garante a segurança dos dados em trânsito.</p>
+</div>
+</div>
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</section>
+<!-- Section 2: Global Alert Limits -->
+<section>
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">warning</span>
+<h3 class="text-white text-xl font-bold">Limites Globais de Alerta</h3>
+</div>
+<div class="bg-slate-900 border border-white/5 rounded-xl p-6 shadow-xl space-y-8">
+<!-- Slider 1 -->
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-500">thermometer</span>
+<span class="text-sm font-medium text-slate-200">Temperatura Crítica</span>
+</div>
+<span class="text-primary font-bold text-sm bg-primary/10 px-2 py-1 rounded">75°C</span>
+</div>
+<input class="custom-slider" max="100" min="0" type="range" value="75"/>
+<div class="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
+<span>0°C</span>
+<span>Ideal</span>
+<span>Perigoso</span>
+<span>100°C</span>
+</div>
+</div>
+<!-- Slider 2 -->
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-500">battery_alert</span>
+<span class="text-sm font-medium text-slate-200">Baixa Voltagem</span>
+</div>
+<span class="text-primary font-bold text-sm bg-primary/10 px-2 py-1 rounded">3.2V</span>
+</div>
+<input class="custom-slider" max="24" min="0" step="0.1" type="range" value="3.2"/>
+<div class="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
+<span>0V</span>
+<span>Operacional</span>
+<span>24V</span>
+</div>
+</div>
+<!-- Slider 3 -->
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-500">signal_cellular_alt</span>
+<span class="text-sm font-medium text-slate-200">Intensidade de Sinal (RSSI)</span>
+</div>
+<span class="text-primary font-bold text-sm bg-primary/10 px-2 py-1 rounded">-95dBm</span>
+</div>
+<input class="custom-slider" max="0" min="-120" type="range" value="-95"/>
+<div class="flex justify-between text-[10px] text-slate-500 uppercase font-bold">
+<span>-120dBm</span>
+<span>Estável</span>
+<span>0dBm</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Notification Preferences -->
+<section>
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">notifications_active</span>
+<h3 class="text-white text-xl font-bold">Preferências de Notificação</h3>
+</div>
+<div class="bg-slate-900 border border-white/5 rounded-xl p-4 shadow-xl">
+<div class="divide-y divide-white/5">
+<label class="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors rounded-t-xl group">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">mail</span>
+</div>
+<div>
+<p class="text-sm font-bold text-white">E-mail</p>
+<p class="text-xs text-slate-500">Alertas de sistema e logs diários.</p>
+</div>
+</div>
+<input checked="" class="rounded border-slate-700 bg-slate-800 text-primary focus:ring-primary size-5" type="checkbox"/>
+</label>
+<label class="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors group">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">chat_bubble</span>
+</div>
+<div>
+<p class="text-sm font-bold text-white">WhatsApp</p>
+<p class="text-xs text-slate-500">Notificações críticas imediatas.</p>
+</div>
+</div>
+<input checked="" class="rounded border-slate-700 bg-slate-800 text-primary focus:ring-primary size-5" type="checkbox"/>
+</label>
+<label class="flex items-center justify-between p-4 cursor-pointer hover:bg-white/5 transition-colors rounded-b-xl group">
+<div class="flex items-center gap-4">
+<div class="size-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">summarize</span>
+</div>
+<div>
+<p class="text-sm font-bold text-white">Relatórios Semanais</p>
+<p class="text-xs text-slate-500">Resumo de performance consolidado.</p>
+</div>
+</div>
+<input class="rounded border-slate-700 bg-slate-800 text-primary focus:ring-primary size-5" type="checkbox"/>
+</label>
+</div>
+</div>
+</section>
+</div>
+<!-- Persistent Footer Action Bar -->
+<footer class="fixed bottom-0 right-0 left-72 bg-slate-900/90 backdrop-blur-lg border-t border-white/10 px-8 py-6 flex items-center justify-between z-20">
+<div class="flex items-center gap-2 text-slate-400">
+<span class="material-symbols-outlined text-sm">info</span>
+<span class="text-xs">Última alteração salva em 12/10/2023 - 14:45</span>
+</div>
+<div class="flex gap-4">
+<button class="px-6 py-2.5 rounded-xl text-sm font-bold text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+                        Descartar
+                    </button>
+<button class="px-8 py-2.5 rounded-xl text-sm font-bold bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">save</span>
+                        Salvar Alterações
+                    </button>
+</div>
+</footer>
+</main>
+</div>
+</body></html>

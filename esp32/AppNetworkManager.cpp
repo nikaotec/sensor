@@ -53,8 +53,10 @@ void AppNetworkManager::verifyMqtt() {
                      String(MQTT_SERVER) + ":" + String(MQTT_PORT) + "...");
       if (client.connect("ESP32_Monitor", MQTT_USER, MQTT_PASS)) {
         client.subscribe(MSG_TOPIC_STATUS);
-        Serial.println("[MQTT] CONECTADO! Subscrito em: " +
-                       String(MSG_TOPIC_STATUS));
+        client.subscribe(MSG_TOPIC_WEB);
+        Serial.println(
+            "[MQTT] CONECTADO! Subscrito em: " + String(MSG_TOPIC_STATUS) +
+            " e " + String(MSG_TOPIC_WEB));
       } else {
         Serial.println("[MQTT] FALHA - codigo: " + String(client.state()));
       }

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>IoT Design System Blueprint</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f48c25",
+                        "background-light": "#f8f7f5",
+                        "background-dark": "#221910",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .soft-shadow {
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+<!-- Top Navigation Bar -->
+<header class="sticky top-0 z-50 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md px-6 py-3 lg:px-10">
+<div class="flex items-center gap-8">
+<div class="flex items-center gap-3">
+<div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-white">
+<span class="material-symbols-outlined text-2xl">hub</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-lg font-bold leading-tight tracking-tight">IoT Design System</h1>
+<span class="text-[10px] font-semibold uppercase tracking-widest text-primary">Blueprint v1.0.0</span>
+</div>
+</div>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-sm font-semibold text-primary" href="#">Guidelines</a>
+<a class="text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="#">Components</a>
+<a class="text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="#">Assets</a>
+<a class="text-sm font-medium text-slate-500 hover:text-primary transition-colors" href="#">Changelog</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg">search</span>
+<input class="h-10 w-64 rounded-lg border-slate-200 bg-slate-50 pl-10 text-sm focus:border-primary focus:ring-primary dark:border-slate-700 dark:bg-slate-800" placeholder="Search documentation..." type="text"/>
+</div>
+<button class="flex h-10 items-center gap-2 rounded-lg bg-slate-100 px-4 text-sm font-bold text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100">
+<span class="material-symbols-outlined text-lg">download</span>
+<span>Assets</span>
+</button>
+<div class="h-10 w-10 overflow-hidden rounded-full border-2 border-primary/20 bg-slate-200">
+<img class="h-full w-full object-cover" data-alt="User profile avatar for documentation portal" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCSjsTeG8llhlXfgncEgsBsUtoJTcLYNnPKGDY264QsBVpbDTX2Isrs0WTSTG46MPBIGnjWr1OpHbnET8Mwt9uVzxOdqgwu0RshOtjaQUqZNm_e8hYo3aiQwK3CPt-Jg4KY7QE98utXc0IGBgd2YblVEKThyOhJ6-bv84PgShzv7I26XHvdLX8Nuc0LAHrVtNuXqbRFRzXilleY6Um3_Ce6P2-xIZ9hev_1ejoE7la5QzhaamLh3ir2gULZi71VYompISIk2-chY9cz"/>
+</div>
+</div>
+</header>
+<div class="flex flex-1">
+<!-- Sticky Sidebar Navigation -->
+<aside class="sticky top-[65px] hidden h-[calc(100vh-65px)] w-64 border-r border-slate-200 dark:border-slate-800 p-6 lg:block overflow-y-auto custom-scrollbar">
+<div class="space-y-8">
+<div>
+<h3 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">Foundation</h3>
+<ul class="space-y-2">
+<li><a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors" href="#introduction">
+<span class="material-symbols-outlined text-lg">info</span> Introduction</a></li>
+<li><a class="flex items-center gap-3 rounded-lg bg-primary/10 px-3 py-2 text-sm font-semibold text-primary" href="#colors">
+<span class="material-symbols-outlined text-lg">palette</span> Color Palette</a></li>
+<li><a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors" href="#typography">
+<span class="material-symbols-outlined text-lg">text_fields</span> Typography</a></li>
+</ul>
+</div>
+<div>
+<h3 class="mb-4 text-xs font-bold uppercase tracking-wider text-slate-400">UI Elements</h3>
+<ul class="space-y-2">
+<li><a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors" href="#components">
+<span class="material-symbols-outlined text-lg">widgets</span> Components</a></li>
+<li><a class="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors" href="#icons">
+<span class="material-symbols-outlined text-lg">category</span> Icons &amp; Effects</a></li>
+</ul>
+</div>
+<div class="rounded-xl bg-primary/5 p-4 border border-primary/10">
+<p class="text-xs font-semibold text-primary mb-1">Status Update</p>
+<p class="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">New sensor dashboard components added to the library today.</p>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 px-6 py-10 lg:px-16">
+<div class="mx-auto max-w-5xl">
+<!-- Hero Section -->
+<section class="mb-16" id="introduction">
+<h1 class="mb-4 text-5xl font-black tracking-tight text-slate-900 dark:text-slate-100">Design System Blueprint</h1>
+<p class="max-w-2xl text-lg text-slate-500 dark:text-slate-400 leading-relaxed">
+                        A comprehensive guide to the visual language of the IoT Sensor Health platform. This documentation serves as the single source of truth for design patterns and UI components.
+                    </p>
+</section>
+<!-- Section 1: Color Palette -->
+<section class="mb-20 scroll-mt-24" id="colors">
+<div class="mb-8 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+<div>
+<h2 class="text-2xl font-bold tracking-tight">Section 1: Color Palette</h2>
+<p class="text-slate-500">Core colors used for branding and interaction feedback.</p>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+<!-- Primary Orange -->
+<div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 soft-shadow">
+<div class="h-24 w-full rounded-lg bg-primary" data-alt="Primary orange color swatch"></div>
+<div>
+<p class="text-sm font-bold">Primary Orange</p>
+<p class="font-mono text-xs text-slate-400">#F48C25</p>
+<p class="mt-2 text-xs text-slate-500">Main action items, branding, and active sensor states.</p>
+</div>
+</div>
+<!-- Background -->
+<div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 soft-shadow">
+<div class="h-24 w-full rounded-lg bg-[#F8F7F5] border border-slate-100" data-alt="Light gray background color swatch"></div>
+<div>
+<p class="text-sm font-bold">Background</p>
+<p class="font-mono text-xs text-slate-400">#F8F7F5</p>
+<p class="mt-2 text-xs text-slate-500">Default application background for neutral layout areas.</p>
+</div>
+</div>
+<!-- Surface -->
+<div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 soft-shadow">
+<div class="h-24 w-full rounded-lg bg-white border border-slate-100" data-alt="White surface color swatch"></div>
+<div>
+<p class="text-sm font-bold">Surfaces</p>
+<p class="font-mono text-xs text-slate-400">#FFFFFF</p>
+<p class="mt-2 text-xs text-slate-500">Used for elevated cards, modals, and container elements.</p>
+</div>
+</div>
+<!-- Dark -->
+<div class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 soft-shadow">
+<div class="h-24 w-full rounded-lg bg-[#221910]" data-alt="Dark background color swatch"></div>
+<div>
+<p class="text-sm font-bold">Midnight</p>
+<p class="font-mono text-xs text-slate-400">#221910</p>
+<p class="mt-2 text-xs text-slate-500">Main dark mode background derived from primary hue.</p>
+</div>
+</div>
+</div>
+<h3 class="mb-4 mt-10 text-sm font-bold uppercase tracking-widest text-slate-400">Status Colors</h3>
+<div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+<div class="flex items-center gap-4 rounded-xl bg-white p-4 dark:bg-slate-900 soft-shadow">
+<div class="h-12 w-12 shrink-0 rounded-lg bg-emerald-500" data-alt="Success green swatch"></div>
+<div>
+<p class="text-xs font-bold">Success Green</p>
+<p class="font-mono text-[10px] text-slate-400">#10B981</p>
+</div>
+</div>
+<div class="flex items-center gap-4 rounded-xl bg-white p-4 dark:bg-slate-900 soft-shadow">
+<div class="h-12 w-12 shrink-0 rounded-lg bg-amber-500" data-alt="Warning amber swatch"></div>
+<div>
+<p class="text-xs font-bold">Warning Amber</p>
+<p class="font-mono text-[10px] text-slate-400">#F59E0B</p>
+</div>
+</div>
+<div class="flex items-center gap-4 rounded-xl bg-white p-4 dark:bg-slate-900 soft-shadow">
+<div class="h-12 w-12 shrink-0 rounded-lg bg-rose-500" data-alt="Danger red swatch"></div>
+<div>
+<p class="text-xs font-bold">Danger Red</p>
+<p class="font-mono text-[10px] text-slate-400">#F43F5E</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Typography -->
+<section class="mb-20 scroll-mt-24" id="typography">
+<div class="mb-8 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+<div>
+<h2 class="text-2xl font-bold tracking-tight">Section 2: Typography</h2>
+<p class="text-slate-500">Scale and weight system for the Inter typeface.</p>
+</div>
+</div>
+<div class="space-y-8 rounded-2xl bg-white p-8 dark:bg-slate-900 soft-shadow">
+<div class="grid grid-cols-1 items-baseline gap-4 md:grid-cols-4">
+<span class="text-xs font-bold uppercase text-slate-400">Display</span>
+<span class="col-span-3 text-5xl font-black tracking-tight">Inter Black 48px</span>
+</div>
+<div class="grid grid-cols-1 items-baseline gap-4 md:grid-cols-4">
+<span class="text-xs font-bold uppercase text-slate-400">Heading</span>
+<span class="col-span-3 text-2xl font-bold">Inter Bold 24px</span>
+</div>
+<div class="grid grid-cols-1 items-baseline gap-4 md:grid-cols-4">
+<span class="text-xs font-bold uppercase text-slate-400">Body</span>
+<span class="col-span-3 text-base text-slate-600 dark:text-slate-400">Inter Regular 16px - Standard reading text for descriptions and data reports.</span>
+</div>
+<div class="grid grid-cols-1 items-baseline gap-4 md:grid-cols-4">
+<span class="text-xs font-bold uppercase text-slate-400">Monospace</span>
+<span class="col-span-3 font-mono text-sm bg-slate-100 dark:bg-slate-800 p-3 rounded-lg text-primary">
+                                iot/sensors/node_01/telemetry/payload
+                            </span>
+</div>
+</div>
+</section>
+<!-- Section 3: Components -->
+<section class="mb-20 scroll-mt-24" id="components">
+<div class="mb-8 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+<div>
+<h2 class="text-2xl font-bold tracking-tight">Section 3: Components</h2>
+<p class="text-slate-500">Standardized interactive UI elements.</p>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-10 md:grid-cols-2">
+<!-- Card Component -->
+<div class="space-y-4">
+<h3 class="text-sm font-bold text-slate-400">24px Rounded Card</h3>
+<div class="rounded-[24px] bg-white p-6 dark:bg-slate-900 soft-shadow border border-slate-100 dark:border-slate-800">
+<div class="flex items-center gap-4 mb-4">
+<div class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+<span class="material-symbols-outlined">thermostat</span>
+</div>
+<div>
+<h4 class="font-bold">Sensor Node A</h4>
+<p class="text-xs text-slate-500">Active - Last seen 2m ago</p>
+</div>
+</div>
+<div class="h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+<div class="h-full w-2/3 bg-primary"></div>
+</div>
+</div>
+</div>
+<!-- Buttons & Inputs -->
+<div class="space-y-8">
+<div class="space-y-4">
+<h3 class="text-sm font-bold text-slate-400">Interactive Elements</h3>
+<div class="flex flex-wrap gap-4">
+<button class="rounded-lg bg-primary px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all">
+                                        Primary Button
+                                    </button>
+<button class="rounded-lg border-2 border-primary bg-transparent px-6 py-2.5 text-sm font-bold text-primary hover:bg-primary/5 transition-all">
+                                        Outline
+                                    </button>
+</div>
+</div>
+<div class="space-y-4">
+<h3 class="text-sm font-bold text-slate-400">Form Input</h3>
+<div class="relative group">
+<input class="w-full rounded-lg border-slate-200 bg-white py-3 pl-4 pr-10 text-sm focus:border-primary focus:ring-1 focus:ring-primary dark:border-slate-700 dark:bg-slate-900 transition-all" placeholder="Input with focus border" type="text"/>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-primary">edit</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 4: Icons & Effects -->
+<section class="mb-20 scroll-mt-24" id="icons">
+<div class="mb-8 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+<div>
+<h2 class="text-2xl font-bold tracking-tight">Section 4: Icons &amp; Effects</h2>
+<p class="text-slate-500">Visual style for symbols and elevation.</p>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-10 lg:grid-cols-2">
+<!-- Icon Set -->
+<div class="space-y-6">
+<h3 class="text-sm font-bold text-slate-400">Lucide-style Line Icons</h3>
+<div class="grid grid-cols-5 gap-4">
+<div class="flex aspect-square items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">sensors</span>
+</div>
+<div class="flex aspect-square items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">wifi</span>
+</div>
+<div class="flex aspect-square items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">battery_5_bar</span>
+</div>
+<div class="flex aspect-square items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">settings_input_component</span>
+</div>
+<div class="flex aspect-square items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">analytics</span>
+</div>
+<div class="flex aspect-square items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">warning</span>
+</div>
+<div class="flex aspect-square items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">history</span>
+</div>
+<div class="flex aspect-square items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">notifications</span>
+</div>
+<div class="flex aspect-square items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">cloud_sync</span>
+</div>
+<div class="flex aspect-square items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+<span class="material-symbols-outlined">router</span>
+</div>
+</div>
+</div>
+<!-- Effects / Shadow -->
+<div class="space-y-6">
+<h3 class="text-sm font-bold text-slate-400">Shadow Specifications</h3>
+<div class="grid grid-cols-1 gap-4">
+<div class="flex items-center gap-6 rounded-xl bg-white p-6 soft-shadow dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+<div class="h-16 w-16 rounded-xl bg-slate-50 dark:bg-slate-800"></div>
+<div>
+<p class="font-bold">Soft Shadow</p>
+<code class="text-xs text-primary">shadow: 0 4px 20px -2px rgba(0,0,0,0.05)</code>
+<p class="mt-1 text-xs text-slate-500">Used for primary cards and content surfaces.</p>
+</div>
+</div>
+<div class="flex items-center gap-6 rounded-xl bg-white p-6 shadow-xl dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+<div class="h-16 w-16 rounded-xl bg-slate-50 dark:bg-slate-800"></div>
+<div>
+<p class="font-bold">Deep Elevation</p>
+<code class="text-xs text-primary">shadow-xl (standard Tailwind)</code>
+<p class="mt-1 text-xs text-slate-500">Reserved for modals, popovers, and floating elements.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="mt-20 border-t border-slate-200 dark:border-slate-800 py-10 text-center">
+<p class="text-sm text-slate-500">© 2024 IoT Design System Blueprint. Built for the IoT Sensor Health Platform.</p>
+<div class="mt-4 flex justify-center gap-6">
+<a class="text-slate-400 hover:text-primary" href="#"><span class="material-symbols-outlined">hub</span></a>
+<a class="text-slate-400 hover:text-primary" href="#"><span class="material-symbols-outlined">description</span></a>
+<a class="text-slate-400 hover:text-primary" href="#"><span class="material-symbols-outlined">help</span></a>
+</div>
+</footer>
+</div>
+</main>
+</div>
+</div>
+</body></html>

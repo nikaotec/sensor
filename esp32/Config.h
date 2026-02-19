@@ -18,6 +18,8 @@
 // ---------- TÓPICOS MQTT ----------
 #define MSG_TOPIC_DATA "esp32c3/data"
 #define MSG_TOPIC_STATUS "esp32c3/status/action"
+#define MSG_TOPIC_WEB "esp32c3/web/action"
+#define MSG_TOPIC_WEB_STATUS "esp32c3/web_status/action"
 
 // ---------- PINOS ----------
 #define DS18B20_PIN 5
@@ -31,7 +33,7 @@
 #define SCL_PIN 22
 
 // ---------- ENDEREÇOS EEPROM ----------
-#define EEPROM_SIZE 40
+#define EEPROM_SIZE 64
 #define ADDR_MAX_REC 0
 #define ADDR_MIN_REC 4
 #define ADDR_ALM_MAX 8
@@ -42,6 +44,8 @@
 #define ADDR_BAT_CAL 28
 #define ADDR_BAT_MIN 32
 #define ADDR_DOOR_TIME 36
+#define ADDR_CHK_VOLT 40
+#define ADDR_CHK_BAT 41
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0
@@ -54,7 +58,7 @@
 #define DOOR_TIME_DEFAULT 30
 #define VOLT_OUTAGE_THR 20.0
 #define ALERT_DEBOUNCE 5000
-#define ALERT_REPEAT 600000
+#define ALERT_REPEAT 300000 // 5 minutos em milissegundos
 
 // ---------- ESTRUTURA DE DADOS ----------
 struct SystemSettings {
@@ -68,6 +72,8 @@ struct SystemSettings {
   float batCalFactor;
   float batMinLimit;
   int doorMaxTime;
+  bool chkVolt;
+  bool chkBat;
 };
 
 #endif

@@ -1,0 +1,97 @@
+{
+    "nodes": [
+        {
+            "parameters": {
+                "topic": "esp32c3/web_status/action",
+                "options": {}
+            },
+            "id": "e7c2d9a6-bf8e-4a7b-8c9d-0e1f2a3b4c5d",
+            "name": "MQTT Trigger (Telemetria)",
+            "type": "n8n-nodes-base.mqttTrigger",
+            "typeVersion": 1,
+            "position": [
+                250,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "iot-command",
+                "options": {}
+            },
+            "id": "f8d3e0b7-c19f-4b8c-9d0e-1f2a3b4c5d6e",
+            "name": "Webhook (Comando Dashboard)",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                250,
+                500
+            ],
+            "webhookId": "iot-command-webhook"
+        },
+        {
+            "parameters": {
+                "topic": "esp32c3/web/action",
+                "message": "={{ $json.body }}",
+                "options": {}
+            },
+            "id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+            "name": "MQTT Publish (Comando ESP32)",
+            "type": "n8n-nodes-base.mqtt",
+            "typeVersion": 1,
+            "position": [
+                500,
+                500
+            ]
+        },
+        {
+            "parameters": {
+                "url": "http://your-dashboard-api.com/api/telemetry",
+                "method": "POST",
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": [
+                        {
+                            "name": "data",
+                            "value": "={{ $json }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+            "name": "Update Dashboard",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 3,
+            "position": [
+                500,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "MQTT Trigger (Telemetria)": {
+            "main": [
+                [
+                    {
+                        "node": "Update Dashboard",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook (Comando Dashboard)": {
+            "main": [
+                [
+                    {
+                        "node": "MQTT Publish (Comando ESP32)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}
