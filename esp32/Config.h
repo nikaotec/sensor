@@ -31,7 +31,7 @@
 #define SCL_PIN 22
 
 // ---------- ENDEREÇOS EEPROM ----------
-#define EEPROM_SIZE 40
+#define EEPROM_SIZE 56
 #define ADDR_MAX_REC 0
 #define ADDR_MIN_REC 4
 #define ADDR_ALM_MAX 8
@@ -42,6 +42,10 @@
 #define ADDR_BAT_CAL 28
 #define ADDR_BAT_MIN 32
 #define ADDR_DOOR_TIME 36
+#define ADDR_MON_VOLTAGE 40
+#define ADDR_MON_BATTERY 44
+#define ADDR_MON_DOOR 48
+#define ADDR_MON_AMBIENT 52
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0
@@ -68,6 +72,11 @@ struct SystemSettings {
   float batCalFactor;
   float batMinLimit;
   int doorMaxTime;
+  // Monitoring toggles (0=OFF, 1=ON)
+  int monVoltage;
+  int monBattery;
+  int monDoor;
+  int monAmbient;
 };
 
 #endif

@@ -94,11 +94,12 @@ void DisplayManager::update(float temp, float max, float min, float voltage,
     }
     display.drawStr(0, 10, hS);
 
-    // Tensão
-    char vStr[10];
-    sprintf(vStr, "%.0fV", voltage);
-    display.drawStr(70, 10,
-                    vStr); // Movido para X=70 para evitar conflito com WiFi
+    // Tensão (só se monitoramento ativo, voltage >= 0)
+    if (voltage >= 0) {
+      char vStr[10];
+      sprintf(vStr, "%.0fV", voltage);
+      display.drawStr(70, 10, vStr);
+    }
 
     // WiFi
     drawWifiSignal(wifiConnected);

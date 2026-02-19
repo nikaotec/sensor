@@ -122,28 +122,34 @@ void loop() {
     // --- VERIFICAÇÃO DE ALERTAS (AlertManager) ---
     // Se modoManual (Manutenção) estiver ativo, silencia alertas sonoros/MQTT
     if (!modoManual) {
-      // 1. Falta de Energia (Prioridade)
-      if (alertPower.check(tVoltagem < VOLT_OUTAGE_THR) == ALERT_STARTED)
-        enviarDadosMqtt("ALERTA_FALTA_ENERGIA");
-      if (alertPower.check(tVoltagem < VOLT_OUTAGE_THR) == ALERT_NORMALIZED)
-        enviarDadosMqtt("ENERGIA_RESTABELECIDA");
+      // 1. Falta de Energia (Prioridade) - só se monitoramento de tensão ativo
+      if (storage.data.monVoltage) {
+        if (alertPower.check(tVoltagem < VOLT_OUTAGE_THR) == ALERT_STARTED)
+          enviarDadosMqtt("ALERTA_FALTA_ENERGIA");
+        if (alertPower.check(tVoltagem < VOLT_OUTAGE_THR) == ALERT_NORMALIZED)
+          enviarDadosMqtt("ENERGIA_RESTABELECIDA");
+      }
 
-      // 2. Bateria Baixa (Usa Limite Configurável)
-      if (alertBatLow.check(tBateria < storage.data.batMinLimit) ==
-          ALERT_STARTED)
-        enviarDadosMqtt("ALERTA_BATERIA_BAIXA");
-      if (alertBatLow.check(tBateria < storage.data.batMinLimit) ==
-          ALERT_NORMALIZED)
-        enviarDadosMqtt("BATERIA_OK");
+      // 2. Bateria Baixa - só se monitoramento de bateria ativo
+      if (storage.data.monBattery) {
+        if (alertBatLow.check(tBateria < storage.data.batMinLimit) ==
+            ALERT_STARTED)
+          enviarDadosMqtt("ALERTA_BATERIA_BAIXA");
+        if (alertBatLow.check(tBateria < storage.data.batMinLimit) ==
+            ALERT_NORMALIZED)
+          enviarDadosMqtt("BATERIA_OK");
+      }
 
-      // 3. Porta Aberta
-      if (alertDoor.check(isDoorOpen) == ALERT_STARTED)
-        enviarDadosMqtt("ALERTA_PORTA_ABERTA");
-      if (alertDoor.check(isDoorOpen) == ALERT_NORMALIZED)
-        enviarDadosMqtt("PORTA_FECHADA");
+      // 3. Porta Aberta - só se monitoramento de porta ativo
+      if (storage.data.monDoor) {
+        if (alertDoor.check(isDoorOpen) == ALERT_STARTED)
+          enviarDadosMqtt("ALERTA_PORTA_ABERTA");
+        if (alertDoor.check(isDoorOpen) == ALERT_NORMALIZED)
+          enviarDadosMqtt("PORTA_FECHADA");
+      }
 
-      // 4. Tensão da Rede (Só checa se tiver energia, > 20V)
-      if (tVoltagem > VOLT_OUTAGE_THR) {
+      // 4. Tensão da Rede - só se monitoramento de tensão ativo
+      if (storage.data.monVoltage && tVoltagem > VOLT_OUTAGE_THR) {
         if (alertVoltMax.check(tVoltagem > storage.data.voltMax) ==
             ALERT_STARTED)
           enviarDadosMqtt("ALERTA_TENSAO_ALTA");
@@ -222,13 +228,19 @@ void loop() {
   }
 
   // 4. Atualizar Display
+  float dispVolt = storage.data.monVoltage ? voltSensor.getVoltage() : -1.0;
+  bool anyAlert = alertTempMax.isActive() || alertTempMin.isActive();
+  if (storage.data.monVoltage)
+    anyAlert = anyAlert || alertVoltMax.isActive() || alertVoltMin.isActive() ||
+               alertPower.isActive();
+  if (storage.data.monBattery)
+    anyAlert = anyAlert || alertBatLow.isActive();
+  if (storage.data.monDoor)
+    anyAlert = anyAlert || alertDoor.isActive();
+
   display.update(temperaturaAtual, storage.data.tempMaxRec,
-                 storage.data.tempMinRec, voltSensor.getVoltage(),
-                 network.isWifiConnected(), modoManual, releLigado,
-                 (alertTempMax.isActive() || alertTempMin.isActive() ||
-                  alertVoltMax.isActive() || alertVoltMin.isActive() ||
-                  alertBatLow.isActive() || alertPower.isActive() ||
-                  alertDoor.isActive()));
+                 storage.data.tempMinRec, dispVolt, network.isWifiConnected(),
+                 modoManual, releLigado, anyAlert);
 }
 
 // Função Helper para notificar por Display e MQTT ao mesmo tempo
@@ -353,6 +365,10 @@ void processarMensagemMqtt(String topic, String payload) {
     enviarDadosMqtt("STATUS_SOLICITADO");
 
   } else if (intencao == "obter_ambiente") {
+    if (!storage.data.monAmbient) {
+      enviarDadosMqtt("MONITORAMENTO_DESATIVADO");
+      return;
+    }
     // Envia dados do sensor ambiente com mensagem já formatada
     StaticJsonDocument<512> ambDoc;
     ambDoc["DISPOSITIVO"] = "02 CENTRO";
@@ -381,6 +397,29 @@ void processarMensagemMqtt(String topic, String payload) {
     String ambPayload;
     serializeJson(ambDoc, ambPayload);
     network.publish(MSG_TOPIC_DATA, ambPayload.c_str());
+  } else if (intencao == "configurar_monitoramento") {
+    bool alterou = false;
+    if (doc.containsKey("tensao")) {
+      storage.data.monVoltage = doc["tensao"] ? 1 : 0;
+      alterou = true;
+    }
+    if (doc.containsKey("bateria")) {
+      storage.data.monBattery = doc["bateria"] ? 1 : 0;
+      alterou = true;
+    }
+    if (doc.containsKey("porta")) {
+      storage.data.monDoor = doc["porta"] ? 1 : 0;
+      alterou = true;
+    }
+    if (doc.containsKey("ambiente")) {
+      storage.data.monAmbient = doc["ambiente"] ? 1 : 0;
+      alterou = true;
+    }
+    if (alterou) {
+      storage.save();
+      notificarUsuario("Monitor. Atualizado", 4000);
+      enviarDadosMqtt("feedback_monitoramento");
+    }
   } else if (intencao == "calibrar_tensao") {
     float novoFator = 0.0;
     bool calculoAuto = false;
@@ -518,17 +557,31 @@ void enviarDadosMqtt(String evento) {
   doc["ALARM_MAX"] = serialized(String(storage.data.alarmMax, 1));
   doc["ALARM_MIN"] = serialized(String(storage.data.alarmMin, 1));
 
-  doc["VOLTAGEM"] = serialized(String(voltSensor.getVoltage(), 1));
-  doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
+  // Dados condicionais ao monitoramento ativo
+  if (storage.data.monVoltage) {
+    doc["VOLTAGEM"] = serialized(String(voltSensor.getVoltage(), 1));
+  }
+  if (storage.data.monBattery) {
+    doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
+  }
 
-  // Sensor Ambiente (DHT11) - só envia quando o usuário pedir
-  if (evento == "STATUS_SOLICITADO") {
+  // Sensor Ambiente (DHT11) - só se ativo e solicitado
+  if (storage.data.monAmbient && evento == "STATUS_SOLICITADO") {
     doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
     doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
   }
 
-  // Estado da Porta
-  doc["PORTA"] = digitalRead(PIN_DOOR) == HIGH ? "ABERTA" : "FECHADA";
+  // Estado da Porta - só se monitoramento ativo
+  if (storage.data.monDoor) {
+    doc["PORTA"] = digitalRead(PIN_DOOR) == HIGH ? "ABERTA" : "FECHADA";
+  }
+
+  // Status dos monitoramentos ativos
+  JsonObject monStatus = doc.createNestedObject("MONITORES");
+  monStatus["TENSAO"] = storage.data.monVoltage ? "ON" : "OFF";
+  monStatus["BATERIA"] = storage.data.monBattery ? "ON" : "OFF";
+  monStatus["PORTA"] = storage.data.monDoor ? "ON" : "OFF";
+  monStatus["AMBIENTE"] = storage.data.monAmbient ? "ON" : "OFF";
 
   // Sinal WiFi (RSSI em dBm)
   doc["RSSI"] = network.getRSSI();

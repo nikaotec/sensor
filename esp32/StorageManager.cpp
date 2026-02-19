@@ -17,6 +17,10 @@ void StorageManager::load() {
   EEPROM.get(ADDR_BAT_CAL, data.batCalFactor);
   EEPROM.get(ADDR_BAT_MIN, data.batMinLimit);
   EEPROM.get(ADDR_DOOR_TIME, data.doorMaxTime);
+  EEPROM.get(ADDR_MON_VOLTAGE, data.monVoltage);
+  EEPROM.get(ADDR_MON_BATTERY, data.monBattery);
+  EEPROM.get(ADDR_MON_DOOR, data.monDoor);
+  EEPROM.get(ADDR_MON_AMBIENT, data.monAmbient);
 
   // Validação e Valores Padrão
   if (isnan(data.voltCalFactor) || data.voltCalFactor < 10.0 ||
@@ -44,6 +48,28 @@ void StorageManager::load() {
       data.doorMaxTime > 300) {
     data.doorMaxTime = DOOR_TIME_DEFAULT;
     EEPROM.put(ADDR_DOOR_TIME, data.doorMaxTime);
+    EEPROM.commit();
+  }
+
+  // Monitoring flags: default OFF (0) if uninitialized
+  if (data.monVoltage != 0 && data.monVoltage != 1) {
+    data.monVoltage = 0;
+    EEPROM.put(ADDR_MON_VOLTAGE, data.monVoltage);
+    EEPROM.commit();
+  }
+  if (data.monBattery != 0 && data.monBattery != 1) {
+    data.monBattery = 0;
+    EEPROM.put(ADDR_MON_BATTERY, data.monBattery);
+    EEPROM.commit();
+  }
+  if (data.monDoor != 0 && data.monDoor != 1) {
+    data.monDoor = 0;
+    EEPROM.put(ADDR_MON_DOOR, data.monDoor);
+    EEPROM.commit();
+  }
+  if (data.monAmbient != 0 && data.monAmbient != 1) {
+    data.monAmbient = 0;
+    EEPROM.put(ADDR_MON_AMBIENT, data.monAmbient);
     EEPROM.commit();
   }
 
@@ -76,6 +102,10 @@ void StorageManager::save() {
   EEPROM.put(ADDR_BAT_CAL, data.batCalFactor);
   EEPROM.put(ADDR_BAT_MIN, data.batMinLimit);
   EEPROM.put(ADDR_DOOR_TIME, data.doorMaxTime);
+  EEPROM.put(ADDR_MON_VOLTAGE, data.monVoltage);
+  EEPROM.put(ADDR_MON_BATTERY, data.monBattery);
+  EEPROM.put(ADDR_MON_DOOR, data.monDoor);
+  EEPROM.put(ADDR_MON_AMBIENT, data.monAmbient);
 
   // Não salvamos Max/Min aqui para não desgastar à toa, eles são salvos em
   // updateRecords
