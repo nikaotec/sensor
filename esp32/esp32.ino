@@ -185,27 +185,35 @@ void loop() {
       }
 
       // 4. Porta
-      if (alertDoor.check(isDoorOpen) == ALERT_STARTED)
-        enviarDadosMqtt("ALERTA_PORTA_ABERTA");
-      if (alertDoor.check(isDoorOpen) == ALERT_NORMALIZED)
-        enviarDadosMqtt("PORTA_FECHADA");
+      if (storage.data.chkDoor) {
+        if (alertDoor.check(isDoorOpen) == ALERT_STARTED)
+          enviarDadosMqtt("ALERTA_PORTA_ABERTA");
+        if (alertDoor.check(isDoorOpen) == ALERT_NORMALIZED)
+          enviarDadosMqtt("PORTA_FECHADA");
+      }
 
-      // 5. Tensão da Rede
       // 5. Tensão da Rede
       if (storage.data.chkVolt && tVoltagem > VOLT_OUTAGE_THR) {
-        if (alertVoltMax.check(tVoltagem > storage.data.voltMax) ==
-            ALERT_STARTED)
-          enviarDadosMqtt("ALERTA_TENSAO_ALTA");
-        if (alertVoltMax.check(tVoltagem > storage.data.voltMax) ==
-            ALERT_NORMALIZED)
-          enviarDadosMqtt("TENSAO_NORMALIZADA");
+        AlertStatus stVoltMax =
+            alertVoltMax.check(tVoltagem > storage.data.voltMax);
+        AlertStatus stVoltMin =
+            alertVoltMin.check(tVoltagem < storage.data.voltMin);
 
-        if (alertVoltMin.check(tVoltagem < storage.data.voltMin) ==
-            ALERT_STARTED)
-          enviarDadosMqtt("ALERTA_TENSAO_BAIXA");
-        if (alertVoltMin.check(tVoltagem < storage.data.voltMin) ==
-            ALERT_NORMALIZED)
+        if (stVoltMax == ALERT_STARTED ||
+            (stVoltMax == ALERT_REPEATED && !alertasSilenciados)) {
+          enviarDadosMqtt("ALERTA_TENSAO_ALTA");
+        }
+        if (stVoltMax == ALERT_NORMALIZED) {
           enviarDadosMqtt("TENSAO_NORMALIZADA");
+        }
+
+        if (stVoltMin == ALERT_STARTED ||
+            (stVoltMin == ALERT_REPEATED && !alertasSilenciados)) {
+          enviarDadosMqtt("ALERTA_TENSAO_BAIXA");
+        }
+        if (stVoltMin == ALERT_NORMALIZED) {
+          enviarDadosMqtt("TENSAO_NORMALIZADA");
+        }
       }
 
       // 6. Temperatura Alerts
@@ -499,15 +507,18 @@ void processarMensagemMqtt(String topic, String payload) {
     manualTimeout = millis();
     digitalWrite(RELAY_PIN, HIGH);
     notificarUsuario("Rele LIGADO Manual", 5000);
+    enviarDadosMqtt("feedback_comando");
   } else if (intencao == "desligar_rele") {
     modoManual = true;
     releLigado = false;
     manualTimeout = millis();
     digitalWrite(RELAY_PIN, LOW);
     notificarUsuario("Rele DESLIGADO Man.", 5000);
+    enviarDadosMqtt("feedback_comando");
   } else if (intencao == "ativar_automatico") {
     modoManual = false;
     notificarUsuario("Modo AUTOMATICO", 5000);
+    enviarDadosMqtt("feedback_comando");
   } else if (intencao == "habilitar_tensao") {
     storage.data.chkVolt = true;
     storage.save();
@@ -528,18 +539,32 @@ void processarMensagemMqtt(String topic, String payload) {
     storage.save();
     notificarUsuario("Mon. Bateria DESLIGADO", 4000);
     enviarDadosMqtt("feedback_configuracao");
+  } else if (intencao == "habilitar_porta") {
+    storage.data.chkDoor = true;
+    storage.save();
+    notificarUsuario("Mon. Porta LIGADO", 4000);
+    enviarDadosMqtt("feedback_configuracao");
+  } else if (intencao == "desabilitar_porta") {
+    storage.data.chkDoor = false;
+    storage.save();
+    notificarUsuario("Mon. Porta DESLIGADO", 4000);
+    enviarDadosMqtt("feedback_configuracao");
   } else if (intencao == "reset_manual") {
     storage.resetMinMax(temperaturaAtual);
     notificarUsuario("Reset Max/Min", 5000);
+    enviarDadosMqtt("feedback_comando");
   } else {
     // Feedback Genérico para Debug Visual
     if (intencao.length() > 0) {
       String msgRef = "CMD: " + intencao;
       notificarUsuario(msgRef, 4000);
     }
+    enviarDadosMqtt("feedback_comando");
   }
 
-  enviarDadosMqtt("feedback_comando");
+  // Os outros comandos (habilitar/desabilitar/calibrar) já enviam seu próprio
+  // feedback via MQTT. enviarDadosMqtt("feedback_comando"); // REMOVIDO PARA
+  // EVITAR MENSAGENS DUPLICADAS NO WHATSAPP
 }
 
 // ---------- ENVIA DADOS PARA O DASHBOARD WEB (REAL-TIME) ----------
@@ -551,6 +576,10 @@ void enviarDadosWeb() {
   doc["DISPOSITIVO"] = DEVICE_NAME;
   doc["TIPO"] = "REALTIME";
   doc["TEMP_ATUAL"] = serialized(String(temperaturaAtual, 1));
+  doc["MAX"] =
+      serialized(String(storage.data.tempMaxRec, 1)); // ADICIONADO PICO MAX
+  doc["MIN"] =
+      serialized(String(storage.data.tempMinRec, 1)); // ADICIONADO PICO MIN
   doc["VOLTAGEM"] = serialized(String(voltSensor.getVoltage(), 1));
   doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
   doc["RELE"] = releLigado;
@@ -589,10 +618,10 @@ void enviarDadosMqtt(String evento) {
   doc["MAX"] = serialized(String(storage.data.tempMaxRec, 1));
   doc["MIN"] = serialized(String(storage.data.tempMinRec, 1));
 
-  // Limites Configurados (Envia em status, configuração e ALERTAS para o n8n/IA
-  // saber o contexto)
+  // Limites Configurados (Envia em status, configuração, relatórios periódicos
+  // e ALERTAS para o n8n/IA saber o contexto)
   if (evento == "STATUS_SOLICITADO" || evento == "feedback_configuracao" ||
-      evento.startsWith("ALERTA_")) {
+      evento == "periodico" || evento.startsWith("ALERTA_")) {
     doc["ALARM_MAX"] = serialized(String(storage.data.alarmMax, 1));
     doc["ALARM_MIN"] = serialized(String(storage.data.alarmMin, 1));
     doc["VOLT_MAX_LIMIT"] = serialized(String(storage.data.voltMax, 1));
@@ -604,6 +633,7 @@ void enviarDadosMqtt(String evento) {
   doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
   doc["CHK_VOLT"] = storage.data.chkVolt;
   doc["CHK_BAT"] = storage.data.chkBat;
+  doc["CHK_DOOR"] = storage.data.chkDoor;
 
   // Sensor Ambiente (DHT11) - só envia quando o usuário pedir
   if (evento == "STATUS_SOLICITADO") {

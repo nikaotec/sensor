@@ -46,6 +46,7 @@
 #define ADDR_DOOR_TIME 36
 #define ADDR_CHK_VOLT 40
 #define ADDR_CHK_BAT 41
+#define ADDR_CHK_DOOR 42
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0
@@ -74,6 +75,7 @@ struct SystemSettings {
   int doorMaxTime;
   bool chkVolt;
   bool chkBat;
+  bool chkDoor;
 };
 
 #endif

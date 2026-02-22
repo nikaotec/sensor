@@ -70,79 +70,120 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
                 <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                     <div className="max-w-7xl mx-auto">
                         <div className="bg-white dark:bg-slate-card rounded-xl border border-slate-200 dark:border-slate-border shadow-sm overflow-hidden">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                                    <tr>
-                                        <th className="px-6 py-4 font-medium">Status</th>
-                                        <th className="px-6 py-4 font-medium">Nome / Tipo</th>
-                                        <th className="px-6 py-4 font-medium">Localização</th>
-                                        <th className="px-6 py-4 font-medium">Visto em</th>
-                                        <th className="px-6 py-4 font-medium">Telemetria</th>
-                                        <th className="px-6 py-4 font-medium text-right">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                                    {filteredDevices.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
-                                                Nenhum dispositivo encontrado para os filtros aplicados.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        filteredDevices.map((device) => (
-                                            <tr key={device.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${getStatusStyle(device.status)}`}>
-                                                        {device.status}
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                {filteredDevices.length === 0 ? (
+                                    <div className="col-span-1 md:col-span-2 xl:col-span-3 py-12 text-center text-slate-500">
+                                        Nenhum dispositivo encontrado para os filtros aplicados.
+                                    </div>
+                                ) : (
+                                    filteredDevices.map((device) => {
+                                        const getStatusLabel = (status: string) => {
+                                            switch (status) {
+                                                case 'online': return 'ESTÁVEL';
+                                                case 'warning': return 'ALERTA';
+                                                case 'error': return 'ERRO';
+                                                case 'offline': return 'OFFLINE';
+                                                default: return status.toUpperCase();
+                                            }
+                                        };
+
+                                        const getSignalQuality = (rssi?: number) => {
+                                            if (!rssi) return 'Desconhecido';
+                                            if (rssi > -65) return 'Excelente';
+                                            if (rssi > -75) return 'Bom';
+                                            if (rssi > -85) return 'Regular';
+                                            return 'Fraco';
+                                        };
+
+                                        return (
+                                            <div
+                                                key={device.id}
+                                                onClick={() => onDeviceClick(device.id)}
+                                                className="bg-white dark:bg-slate-card rounded-2xl border border-slate-200 dark:border-slate-border shadow-sm p-6 relative flex flex-col cursor-pointer hover:shadow-md transition-shadow group"
+                                            >
+                                                <div className="mb-4 flex flex-col">
+                                                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-loose">Monitoramento em Tempo Real</h3>
+                                                    <div className="flex justify-between items-center mt-2">
+                                                        <h4 className="font-bold text-slate-800 dark:text-slate-200 text-lg group-hover:text-primary transition-colors">{device.name}</h4>
+                                                    </div>
+                                                </div>
+
+                                                {device.status === 'offline' && (
+                                                    <div className="mb-4 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs px-3 py-3 rounded-lg border border-slate-200 dark:border-slate-700 flex items-start gap-3">
+                                                        <span className="material-symbols-outlined text-[18px] text-amber-500">warning</span>
+                                                        <span className="leading-snug">
+                                                            <strong>Dispositivo offline.</strong><br />
+                                                            Esse card exibe o último momento conhecido. Os dados voltarão ao tempo real quando o dispositivo reconectar.
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 mb-4 flex items-center justify-between border border-slate-100 dark:border-slate-800">
+                                                    <div>
+                                                        <div className="text-xs text-slate-500 font-medium mb-1">Temperatura Atual</div>
+                                                        <div className="text-4xl font-light text-primary tracking-tight">
+                                                            {device.telemetry.temp !== undefined ? `${device.telemetry.temp.toFixed(1)}°C` : '--'}
+                                                        </div>
+                                                    </div>
+                                                    <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase border ${getStatusStyle('online')} ${device.status === 'offline' ? 'opacity-50' : ''}`}>
+                                                        {getStatusLabel(device.status)}
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Máxima</div>
+                                                        <div className="text-lg font-bold text-rose-500">
+                                                            {device.telemetry.tempMax !== undefined ? `${device.telemetry.tempMax.toFixed(1)}°C` : '--'}
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center text-center">
+                                                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Mínima</div>
+                                                        <div className="text-lg font-bold text-indigo-500">
+                                                            {device.telemetry.tempMin !== undefined ? `${device.telemetry.tempMin.toFixed(1)}°C` : '--'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-4 mb-6">
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-amber-100/50 dark:bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                                                            <span className="material-symbols-outlined text-[16px]">battery_charging_full</span>
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Bateria</div>
+                                                            <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                                {device.telemetry.batteryVoltage !== undefined ? `${device.telemetry.batteryVoltage.toFixed(2)}V` : '--'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-full bg-emerald-100/50 dark:bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                                                            <span className="material-symbols-outlined text-[16px]">bolt</span>
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Tensão</div>
+                                                            <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                                                                {device.telemetry.inputVoltage !== undefined ? `${device.telemetry.inputVoltage}V` : '--'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                                                    <div className="flex items-center gap-2 text-slate-500">
+                                                        <span className="material-symbols-outlined text-[16px]">signal_cellular_alt</span>
+                                                        <span className="text-xs">Sinal RSSI: {device.telemetry.signal !== undefined ? `${device.telemetry.signal} dBm` : '--'}</span>
+                                                    </div>
+                                                    <span className={`text-xs font-bold ${device.telemetry.signal && device.telemetry.signal > -75 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                        {getSignalQuality(device.telemetry.signal)}
                                                     </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-slate-200">{device.name}</span>
-                                                        <span className="text-xs text-slate-500">{device.type}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-slate-400">
-                                                    {device.location}
-                                                </td>
-                                                <td className="px-6 py-4 text-slate-500 text-xs">
-                                                    {device.lastSeen}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-wrap gap-3">
-                                                        {device.telemetry.temp !== undefined && (
-                                                            <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded-md">
-                                                                <span className="material-symbols-outlined text-[14px] text-primary">thermostat</span>
-                                                                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{device.telemetry.temp}°C</span>
-                                                            </div>
-                                                        )}
-                                                        {device.telemetry.inputVoltage !== undefined && device.telemetry.inputVoltage > 0 && (
-                                                            <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded-md">
-                                                                <span className="material-symbols-outlined text-[14px] text-emerald-500">bolt</span>
-                                                                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{device.telemetry.inputVoltage}V</span>
-                                                            </div>
-                                                        )}
-                                                        {device.telemetry.batteryVoltage !== undefined && (
-                                                            <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/5 px-2 py-1 rounded-md">
-                                                                <span className="material-symbols-outlined text-[14px] text-amber-500">battery_charging_full</span>
-                                                                <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">{device.telemetry.batteryVoltage}V</span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <button
-                                                        onClick={() => onDeviceClick(device.id)}
-                                                        className="p-1.5 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                                                    >
-                                                        <span className="material-symbols-outlined text-[20px]">visibility</span>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

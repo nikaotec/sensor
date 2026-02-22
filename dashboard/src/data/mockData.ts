@@ -35,7 +35,18 @@ export interface Device {
         inputVoltage?: number;
         humidity?: number;
         signal?: number;
-    }
+        doorOpen?: boolean;
+    };
+    config?: {
+        minTempInfo?: number;
+        maxTempInfo?: number;
+        monitoring?: {
+            voltage?: boolean;
+            battery?: boolean;
+            door?: boolean;
+            ambient?: boolean;
+        };
+    };
 }
 
 export interface Alert {

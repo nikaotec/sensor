@@ -11,7 +11,8 @@ import {
     Tooltip,
     ResponsiveContainer,
     Area,
-    AreaChart
+    AreaChart,
+    ReferenceLine
 } from 'recharts';
 
 interface DeviceDetailsProps {
@@ -23,11 +24,31 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const { currentTenant } = useTenant();
     const [remoteSync, setRemoteSync] = useState(true);
 
-    const { devices: tenantDevices } = useMqtt(currentTenant.id);
+    const { devices: tenantDevices, history } = useMqtt(currentTenant.id);
 
     // Filter by tenant and deviceId
     const device = tenantDevices.find(d => d.id === deviceId) || tenantDevices[0];
     const tenantMetrics = metrics[currentTenant.id] || metrics['t1'];
+
+    const getStatusStyle = (status: string) => {
+        switch (status) {
+            case 'online': return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20';
+            case 'warning': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
+            case 'offline': return 'bg-slate-500/10 text-slate-500 border-slate-500/20';
+            case 'error': return 'bg-red-500/10 text-red-500 border-red-500/20';
+            default: return 'bg-slate-700 text-slate-400';
+        }
+    };
+
+    const getStatusLabel = (status: string) => {
+        switch (status) {
+            case 'online': return 'ESTÁVEL';
+            case 'warning': return 'ALERTA';
+            case 'error': return 'ERRO';
+            case 'offline': return 'OFFLINE';
+            default: return status.toUpperCase();
+        }
+    };
 
     return (
         <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
@@ -45,8 +66,8 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${device.status === 'online' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-500 border border-slate-500/20'}`}>
-                            {device.status}
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase border ${getStatusStyle(device.status)}`}>
+                            {getStatusLabel(device.status)}
                         </span>
                         <div className="h-8 w-px bg-slate-200 dark:bg-slate-border mx-2"></div>
                         <button className="p-2 text-slate-400 hover:text-primary transition-colors">
@@ -61,15 +82,26 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                         <div className="lg:col-span-1 space-y-6">
                             <div className="bg-white dark:bg-slate-card p-6 rounded-xl border border-slate-200 dark:border-slate-border shadow-sm">
                                 <h3 className="text-sm font-bold text-slate-500 uppercase mb-4 tracking-wider">Monitoramento em Tempo Real</h3>
+
+                                {device.status === 'offline' && (
+                                    <div className="mb-4 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs px-3 py-3 rounded-lg border border-slate-200 dark:border-slate-700 flex items-start gap-3">
+                                        <span className="material-symbols-outlined text-[18px] text-amber-500">warning</span>
+                                        <span className="leading-snug">
+                                            <strong>Dispositivo offline.</strong><br />
+                                            Os dados exibidos são do último registro conhecido. O tempo real será retomado quando o dispositivo voltar a ficar online.
+                                        </span>
+                                    </div>
+                                )}
+
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="col-span-2 flex items-end justify-between bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/5">
                                             <div>
                                                 <p className="text-xs text-slate-500 mb-1 font-medium">Temperatura Atual</p>
-                                                <h4 className="text-4xl font-black text-primary">{device.telemetry.temp?.toFixed(1)}°C</h4>
+                                                <h4 className="text-4xl font-black text-primary">{device.telemetry.temp?.toFixed(1) ?? '--'}°C</h4>
                                             </div>
                                             <div className="text-right">
-                                                <span className="text-[10px] bg-emerald-500/10 text-emerald-500 font-bold px-2 py-1 rounded uppercase">Estável</span>
+                                                <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase border ${getStatusStyle(device.status)}`}>{getStatusLabel(device.status)}</span>
                                             </div>
                                         </div>
                                         <div className="bg-slate-50 dark:bg-white/5 p-3 rounded-lg border border-slate-100 dark:border-white/5 text-center">
@@ -108,7 +140,13 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                             <span className="material-symbols-outlined text-sm">signal_cellular_alt</span>
                                             <span>Sinal RSSI: {device.telemetry.signal} dBm</span>
                                         </div>
-                                        <span className="text-emerald-500 font-bold">Excelente</span>
+                                        {(() => {
+                                            const rssi = device.telemetry.signal;
+                                            if (!rssi) return <span className="text-slate-500 font-bold">Desconhecido</span>;
+                                            if (rssi > -60) return <span className="text-emerald-500 font-bold">Excelente</span>;
+                                            if (rssi > -80) return <span className="text-amber-500 font-bold">Bom</span>;
+                                            return <span className="text-red-500 font-bold">Fraco</span>;
+                                        })()}
                                     </div>
                                 </div>
                             </div>
@@ -147,12 +185,16 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                 <div className="flex items-center justify-between mb-8">
                                     <h3 className="text-lg font-bold">Histórico de Temperatura (24h)</h3>
                                     <div className="flex gap-2">
-                                        <button className="text-[10px] font-bold px-2 py-1 bg-primary text-background-dark rounded uppercase">Ao Vivo</button>
+                                        {device.status === 'online' ? (
+                                            <button className="text-[10px] font-bold px-2 py-1 bg-primary text-background-dark rounded uppercase">Ao Vivo</button>
+                                        ) : (
+                                            <span className="text-[10px] font-bold px-2 py-1 bg-slate-500/10 text-slate-500 rounded uppercase">Último Conhecido</span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="h-[400px]">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={tenantMetrics.historicalData}>
+                                        <AreaChart data={history && history.length > 0 ? history : tenantMetrics.historicalData}>
                                             <defs>
                                                 <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
                                                     <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
@@ -161,11 +203,35 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                             </defs>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
                                             <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} dy={10} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} domain={['dataMin - 5', 'dataMax + 5']} />
+                                            <YAxis
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#64748b', fontSize: 10 }}
+                                                domain={[
+                                                    (dataMin: number) => Math.floor(Math.min(dataMin, device.config?.minTempInfo ?? dataMin) - 2),
+                                                    (dataMax: number) => Math.ceil(Math.max(dataMax, device.config?.maxTempInfo ?? dataMax) + 2)
+                                                ]}
+                                            />
                                             <Tooltip
                                                 contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }}
                                                 itemStyle={{ color: '#fff', fontSize: '12px' }}
                                             />
+                                            {device.config?.minTempInfo !== undefined && (
+                                                <ReferenceLine
+                                                    y={device.config.minTempInfo}
+                                                    stroke="#ef4444"
+                                                    strokeDasharray="4 4"
+                                                    label={{ position: 'insideBottomRight', value: 'Min', fill: '#ef4444', fontSize: 10 }}
+                                                />
+                                            )}
+                                            {device.config?.maxTempInfo !== undefined && (
+                                                <ReferenceLine
+                                                    y={device.config.maxTempInfo}
+                                                    stroke="#ef4444"
+                                                    strokeDasharray="4 4"
+                                                    label={{ position: 'insideTopRight', value: 'Max', fill: '#ef4444', fontSize: 10 }}
+                                                />
+                                            )}
                                             <Area
                                                 type="monotone"
                                                 dataKey="value"

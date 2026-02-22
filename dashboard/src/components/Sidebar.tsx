@@ -1,66 +1,79 @@
-
 import React from 'react';
+import { useTenant } from '../contexts/TenantContext';
+import {
+    Bell,
+    FileBarChart,
+    Settings,
+    Moon,
+    Cpu,
+    LayoutDashboard
+} from 'lucide-react';
 
 interface SidebarProps {
     activeItem: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details';
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details') => void;
 }
 
+// Map screen to Lucide icon components
+const iconMap = {
+    dashboard: LayoutDashboard,
+    'device-list': Cpu,
+    alerts: Bell,
+    reports: FileBarChart,
+    settings: Settings,
+    'device-details': Cpu
+};
+
 const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate }) => {
+    const { currentTenant } = useTenant();
     const getLinkClass = (item: string) => {
-        const baseClass = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer w-full text-left";
+        const baseClass = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer w-full text-left group";
         if (activeItem === item) {
             return `${baseClass} bg-primary/10 text-primary border border-primary/20 font-semibold`;
         }
-        return `${baseClass} text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-slate-100`;
+        return `${baseClass} text-slate-500 hover:bg-slate-100 dark:hover:bg-primary/5 hover:text-primary transition-all duration-300`;
     };
 
-    const getIconClass = (item: string) => {
-        if (activeItem === item) return "material-symbols-outlined fill-1";
-        return "material-symbols-outlined";
+    const renderIcon = (item: keyof typeof iconMap) => {
+        const IconComponent = iconMap[item];
+        return <IconComponent size={20} className={activeItem === item ? "text-primary" : "text-slate-400 group-hover:text-primary transition-colors"} />;
     };
 
     return (
-        <aside className="w-64 flex-shrink-0 bg-background-light dark:bg-background-dark border-r border-slate-200 dark:border-white/5 flex flex-col hidden lg:flex">
-            <div className="p-6 flex items-center gap-3">
-                <div className="bg-primary size-10 rounded-lg flex items-center justify-center text-background-dark">
-                    <span className="material-symbols-outlined font-bold">nights_stay</span>
+        <aside className="w-64 flex-shrink-0 bg-background-light dark:bg-background-dark border-r border-slate-200 dark:border-slate-border flex flex-col hidden lg:flex">
+            <div className="p-8 flex items-center gap-3">
+                <div className="bg-primary shadow-lg shadow-primary/20 size-10 rounded-xl flex items-center justify-center text-white">
+                    <Moon size={22} strokeWidth={2.5} />
                 </div>
                 <div className="flex flex-col">
-                    <h1 className="text-slate-900 dark:text-white text-base font-bold leading-tight">Midnight IoT</h1>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Dashboard V1.0</p>
+                    <h1 className="text-slate-900 dark:text-white text-base font-bold tracking-tight">{currentTenant.name}</h1>
+                    <p className="text-primary text-[10px] uppercase font-bold tracking-widest mt-0.5">Nikaotec Sensor</p>
                 </div>
             </div>
+
             <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
-                <button onClick={() => onNavigate('dashboard')} className={getLinkClass('dashboard')}>
-                    <span className={getIconClass('dashboard')}>dashboard</span>
-                    <span className="text-sm font-medium">Dashboard</span>
-                </button>
-                <button onClick={() => onNavigate('device-list')} className={getLinkClass('device-list')}>
-                    <span className={getIconClass('device-list')}>sensors</span>
-                    <span className="text-sm font-medium">Dispositivos</span>
-                </button>
-                <button onClick={() => onNavigate('alerts')} className={getLinkClass('alerts')}>
-                    <span className={getIconClass('alerts')}>notifications</span>
-                    <span className="text-sm font-medium">Alertas</span>
-                </button>
-                <button onClick={() => onNavigate('reports')} className={getLinkClass('reports')}>
-                    <span className={getIconClass('reports')}>assessment</span>
-                    <span className="text-sm font-medium">Relatórios</span>
-                </button>
-                <button onClick={() => onNavigate('settings')} className={getLinkClass('settings')}>
-                    <span className={getIconClass('settings')}>settings</span>
-                    <span className="text-sm font-medium">Configurações</span>
-                </button>
+                {(['dashboard', 'device-list', 'alerts', 'reports', 'settings'] as const).map((item) => (
+                    <button key={item} onClick={() => onNavigate(item)} className={getLinkClass(item)}>
+                        {renderIcon(item)}
+                        <span className="text-sm font-medium capitalize">
+                            {item === 'device-list' ? 'Dispositivos' :
+                                item === 'reports' ? 'Relatórios' :
+                                    item === 'alerts' ? 'Alertas' :
+                                        item === 'settings' ? 'Configurações' : item}
+                        </span>
+                    </button>
+                ))}
             </nav>
 
-            <div className="p-4 border-t border-slate-200 dark:border-white/5">
-                <div className="flex items-center gap-3 p-2">
-                    <div className="size-8 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse"></div>
-                    <div className="flex flex-col">
-                        <div className="h-3 w-20 bg-slate-200 dark:bg-slate-800 rounded animate-pulse mb-1"></div>
-                        <div className="h-2 w-12 bg-slate-200 dark:bg-slate-800 rounded animate-pulse"></div>
+            <div className="p-6 mt-auto">
+                <div className="p-4 rounded-2xl bg-slate-900/50 border border-slate-border/50">
+                    <div className="flex items-center gap-3 mb-3">
+                        <div className="size-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sistema Ativo</span>
                     </div>
+                    <p className="text-[10px] text-slate-500 leading-relaxed">
+                        Sincronizado com n8n Cloud via ngrok tunnel.
+                    </p>
                 </div>
             </div>
         </aside>
