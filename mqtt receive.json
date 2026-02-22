@@ -483,7 +483,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const dados =  JSON.parse($('AI Agent1').first().json.output);\nconst periodo = dados.periodo;\nconst valor = dados.valor;\n\n//const now = new Date();\nconst now = new Date(\n  new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })\n);\n\n// ===== Helpers =====\nconst pad = (n) => String(n).padStart(2, \"0\");\nconst formatDate = (d) => {\n  if (d instanceof Date && !isNaN(d)) {\n    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;\n  }\n  return null; // Retorna null se a data for inv\u00e1lida\n};\nconst formatTime = (d) =>\n  `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;\nconst cloneDate = (d) => new Date(d.getTime());\n\n// ===== Resultado =====\nlet result = {\n  dispositivo: null,\n  hora_inicio: null,\n  hora_fim: null,\n  data_inicio: null,\n  data_fim: null,\n};\n\n// ===== Switch determin\u00edstico =====\nswitch (periodo) {\n  case \"hoje\": {\n    const d = formatDate(now);\n    result.data_inicio = d;\n    result.data_fim = d;\n    break;\n  }\n  case \"ontem\": {\n    const d = cloneDate(now);\n    d.setDate(d.getDate() - 1);\n    const fd = formatDate(d);\n    result.data_inicio = fd;\n    result.data_fim = fd;\n    break;\n  }\n  case \"ultimas_24_horas\": {\n    const start = cloneDate(now);\n    start.setHours(start.getHours() - 24);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    result.hora_inicio = formatTime(start);\n    result.hora_fim = formatTime(now);\n    break;\n  }\n  case \"ultima_semana\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 7);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimo_mes\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 30);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimos_X_dias\": {\n    if (typeof valor === \"number\" && valor > 0) {\n      const start = cloneDate(now);\n      start.setDate(start.getDate() - valor);\n      result.data_inicio = formatDate(start);\n      result.data_fim = formatDate(now);\n    }\n    break;\n  }\n  case \"intervalo_datas\": {\n    // As datas j\u00e1 v\u00eam formatadas como DD/MM/YYYY do classificador\n    if (dados.data_inicio) {\n      result.data_inicio = dados.data_inicio;\n    }\n    if (dados.data_fim) {\n      result.data_fim = dados.data_fim;\n    }\n    break;\n  }\n  case \"nenhum\":\n  default: {\n    // Se o usu\u00e1rio n\u00e3o informou m\u00eas/ano, assume o m\u00eas/ano corrente\n    const start = new Date(now.getFullYear(), now.getMonth(), 1);\n    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(end);\n    break;\n  }\n}\n\nreturn result;\n"
+        "jsCode": "let rawOutput = $('AI Agent1').first().json.output;\n// Limpa bloco de markdown (```json ... ```) se houver\nconst codeBlockMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) {\n    rawOutput = codeBlockMatch[1];\n} else {\n    const jsonMatch = rawOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) rawOutput = jsonMatch[0];\n}\n\nlet dados;\ntry {\n  dados = JSON.parse(rawOutput);\n} catch (e) {\n  return [{ json: { error: \"Erro ao interpretar JSON da IA\", detalhe: e.message } }];\n}\n\nconst periodo = dados.periodo;\nconst valor = dados.valor;\n\n//const now = new Date();\nconst now = new Date(\n  new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })\n);\n\n// ===== Helpers =====\nconst pad = (n) => String(n).padStart(2, \"0\");\nconst formatDate = (d) => {\n  if (d instanceof Date && !isNaN(d)) {\n    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;\n  }\n  return null; // Retorna null se a data for inv\u00e1lida\n};\nconst formatTime = (d) =>\n  `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;\nconst cloneDate = (d) => new Date(d.getTime());\n\n// ===== Resultado =====\nlet result = {\n  dispositivo: null,\n  hora_inicio: null,\n  hora_fim: null,\n  data_inicio: null,\n  data_fim: null,\n};\n\n// ===== Switch determin\u00edstico =====\nswitch (periodo) {\n  case \"hoje\": {\n    const d = formatDate(now);\n    result.data_inicio = d;\n    result.data_fim = d;\n    break;\n  }\n  case \"ontem\": {\n    const d = cloneDate(now);\n    d.setDate(d.getDate() - 1);\n    const fd = formatDate(d);\n    result.data_inicio = fd;\n    result.data_fim = fd;\n    break;\n  }\n  case \"ultimas_24_horas\": {\n    const start = cloneDate(now);\n    start.setHours(start.getHours() - 24);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    result.hora_inicio = formatTime(start);\n    result.hora_fim = formatTime(now);\n    break;\n  }\n  case \"ultima_semana\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 7);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimo_mes\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 30);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimos_X_dias\": {\n    if (typeof valor === \"number\" && valor > 0) {\n      const start = cloneDate(now);\n      start.setDate(start.getDate() - valor);\n      result.data_inicio = formatDate(start);\n      result.data_fim = formatDate(now);\n    }\n    break;\n  }\n  case \"intervalo_datas\": {\n    // As datas j\u00e1 v\u00eam formatadas como DD/MM/YYYY do classificador\n    if (dados.data_inicio) {\n      result.data_inicio = dados.data_inicio;\n    }\n    if (dados.data_fim) {\n      result.data_fim = dados.data_fim;\n    }\n    break;\n  }\n  case \"nenhum\":\n  default: {\n    // Se o usu\u00e1rio n\u00e3o informou m\u00eas/ano, assume o m\u00eas/ano corrente\n    const start = new Date(now.getFullYear(), now.getMonth(), 1);\n    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(end);\n    break;\n  }\n}\n\nreturn result;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -599,7 +599,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://83da-2804-78b4-801b-fa00-82c3-6f87-269f-977d.ngrok-free.app/forms/chromium/convert/html",
+        "url": "=http://173.249.10.19:3000/forms/chromium/convert/html",
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -611,7 +611,23 @@
             }
           ]
         },
-        "options": {}
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
