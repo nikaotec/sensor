@@ -37,7 +37,7 @@
         {
             "parameters": {
                 "method": "POST",
-                "url": "https://83da-2804-78b4-801b-fa00-82c3-6f87-269f-977d.ngrok-free.app/api/sensors",
+                "url": "http://www.nikaotech.com:4000/api/sensors",
                 "sendBody": true,
                 "bodyParameters": {
                     "parameters": [
@@ -76,7 +76,7 @@
         },
         {
             "parameters": {
-                "content": "⚠️ IMPORTANTE:\nComo seu n8n está na nuvem (VPS) e o Dashboard está local:\n\n1. Você precisa de um TUNNEL (ex: ngrok) para que o n8n veja seu PC.\n   Comando: `ngrok http 3000`\n2. Copie a URL gerada pelo ngrok.\n3. Cole no nó \"Update Dashboard\" substituindo \"http://SEU_IP...\"\n\nTopico MQTT Configurado: esp32c3/data",
+                "content": "⚠️ IMPORTANTE:\nEste workflow envia os dados para a VPS de produção.\n\nA URL já está configurada para: http://www.nikaotech.com:4000/api/sensors\n\nTopico MQTT Configurado: esp32c3/data",
                 "height": 218,
                 "width": 381
             },

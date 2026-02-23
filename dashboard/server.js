@@ -8,8 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-// Default to 80 for production so it works nicely via IP/Domain, fallback to 3000 locally
-const PORT = process.env.PORT || 80;
+// Default to 4000 for VPS to avoid conflict with Gotenberg on 3000
+const PORT = process.env.PORT || 4000;
 
 app.use(cors());
 app.use(express.json());

@@ -20,45 +20,35 @@ npm run build
 ## 3. Rodar o Servidor
 O projeto agora possui o arquivo `server.js`, que serve os arquivos estáticos compilados (da pasta `dist`) e **recria a API `/api/sensors`** que o Vite fazia localmente para salvar o sensor log em `telemetry.json`.
 
-**Opção 1: Direto na Porta 80**
-Se a sua VPS não tiver outro servidor web instalado (Nginx/Apache), você pode rodar o server.js diretamente na porta 80, que é a padrão para internet (permitindo acessar via `www.nikaotech.com` sem informar porta).
-No Linux, portas menores que 1024 podem requerer permissão root (`sudo`):
+**Opção 1: Sem Proxy (Para testes)**
+Você pode rodar o server.js diretamente na porta 4000:
 ```bash
-sudo npm start
+npm start
 ```
+E acessar via `http://www.nikaotech.com:4000`.
 
 **Opção 2: Recomendada - Usar o PM2**
-O PM2 mantém o servidor ligado em background e reinicia caso dê erro.
+O PM2 mantém o servidor ligado (na porta 4000) e reinicia caso o servidor reinicie. 
+
 ```bash
-# Instalar PM2 globalmente
+# 1. Instalar PM2 globalmente
 npm install -g pm2
 
-# Iniciar o projeto
-sudo pm2 start server.js --name "nikaotech-dashboard"
+# 2. Iniciar o projeto
+pm2 start server.js --name "nikaotech-dashboard"
 
-# Salvar o script de inicialização do PM2 (para iniciar com o OS)
+# 3. Salvar o script
 pm2 save
 pm2 startup
 ```
 
-## 4. (Avançado) Usando Nginx como Reverse Proxy
-Se a VPS já possui sites ativos na porta 80 via Nginx, inicie o dashboard em outra porta e aponte o Nginx para lá:
-```bash
-PORT=3000 pm2 start server.js --name "nikaotech-dashboard"
-```
-E na configuração do seu domínio no Nginx (`/etc/nginx/sites-available/nikaotech.com`):
-```nginx
-server {
-    listen 80;
-    server_name www.nikaotech.com nikaotech.com;
+## 4. Liberação no Firewall (Importante sem Nginx)
 
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
+Como o painel está rodando na porta 4000 e sem um proxy Nginx na frente, você precisará garantir que esta porta esteja **aberta** no firewall da sua hospedagem e no seu Ubuntu:
+
+```bash
+sudo ufw allow 4000/tcp
 ```
 
 ## Pronto!
-O seu projeto agora roda como uma API e Frontend estático num ambiente unificado Express. O ESP32 continuará mandando o POST para `/api/sensors` mas agora em `www.nikaotech.com/api/sensors`.
+O seu projeto agora servirá diretamente a aplicação para a web em `http://www.nikaotech.com:4000` e a nossa API Node em `http://www.nikaotech.com:4000/api/sensors` receberá a telemetria do ESP32/n8n perfeitamente!
