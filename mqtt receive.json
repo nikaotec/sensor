@@ -3,70 +3,300 @@
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "esp32",
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Edit Fields').item.json.body.data.key.remoteJid }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        90128,
+        48208
+      ],
+      "id": "58605b44-9f34-47fd-b02b-547743f9ee5e",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $('Code in JavaScript1').first().json.remoteJid }}",
+        "messageText": "=\u2705 Cadastrado com sucesso!\n\nO n\u00famero {{ $json.NUMERO }} agora tem acesso de {{ $json.RULE === 'ADMIN' ? 'Administrador' : 'Usu\u00e1rio comum' }} ao sistema.",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        91808,
+        48208
+      ],
+      "id": "bafb8519-d641-4134-9745-613c4735d0b6",
+      "name": "Responder Sucesso Add User",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4",
+          "mode": "list",
+          "cachedResultName": "users_casinhas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "P\u00e1gina1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "NUMERO": "={{ $json.novo_numero }}",
+            "RULE": "={{ $json.nova_role }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "NUMERO",
+              "displayName": "NUMERO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "RULE",
+              "displayName": "RULE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
         "options": {}
       },
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
       "position": [
-        53920,
-        26864
+        91584,
+        48208
       ],
-      "id": "b6ae43f8-0b1c-4c91-9af3-769d1146b4a9",
-      "name": "Webhook",
-      "webhookId": "779ca9f1-da45-4b93-a744-876dc834aafb"
+      "id": "a8bef05f-343f-49fa-8cd8-60995905f2a2",
+      "name": "Add Admin to Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4",
+          "mode": "list",
+          "cachedResultName": "users_casinhas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "P\u00e1gina1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "NUMERO",
+              "lookupValue": "={{ $json.body.data.key.remoteJid.split('@')[0] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        89392,
+        48016
+      ],
+      "id": "d4010b41-babc-4007-ab78-084f5914bdd4",
+      "name": "Get row(s) in sheet1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        90032,
+        48192
+      ],
+      "id": "11f5af39-1c9d-43db-82a2-9806071d7a1d",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "XMVmk3hYpFTHTSyt",
+          "name": "open router 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Edit Fields').item.json.body.data.key.remoteJid }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        90912,
+        47856
+      ],
+      "id": "3b202530-45bc-47a1-aac7-e1572932932c",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const remoteJid = $('Webhook').first().json.body.data.key.remoteJid\nconst numero = remoteJid.split('@')[0];\n\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    numeroDestinatario: numero\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        92624,
+        47648
+      ],
+      "id": "9f3a3d87-6262-4f5d-bf65-9889b19d4990",
+      "name": "Code in JavaScript5"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-document",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.numeroDestinatario }}",
+        "media": "={{ $json.base64Data }}",
+        "caption": "Relat\u00f3rio",
+        "fileName": "relatorio.pdf",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        92832,
+        47648
+      ],
+      "id": "6e8869fc-9f53-4981-b6ad-be39d7873e46",
+      "name": "Enviar documento1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fun\u00e7\u00e3o correta para acessar bin\u00e1rio no n8n\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\n\n// Converter para base64\nconst base64String = binaryData.toString('base64');\n\nreturn [{\n  json: {\n    base64Data: base64String,\n    fileName: '659d1edd-aa6a-467f-ae51-3bca1aae595c.pdf',\n    mimeType: 'application/pdf'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        92416,
+        47648
+      ],
+      "id": "7aa7468c-df2f-4735-85d8-e385700dabcc",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://173.249.10.19:3000/forms/chromium/convert/html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        92224,
+        47648
+      ],
+      "id": "378e1412-95f8-4e0d-b713-19b25ba01770",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "html_base64",
+        "options": {
+          "fileName": "index.html",
+          "mimeType": "text/html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        92032,
+        47648
+      ],
+      "id": "cdfbe020-55e3-4fc0-a1a3-c37d566f04eb",
+      "name": "Convert to File"
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "f6ef7d79-1613-4138-8942-0880afd426df",
-              "name": "body.data.key.fromMe",
-              "value": "={{ $('Webhook').item.json.body.data.key.fromMe }}",
-              "type": "boolean"
-            },
-            {
-              "id": "7b9ae23a-9797-42d3-87b7-2fbbd3637f43",
-              "name": "body.data.key.id",
-              "value": "={{  $('Webhook').item.json.body.data.key.id }}",
-              "type": "string"
-            },
-            {
-              "id": "30cdbaa7-e6f7-456e-8c06-9c9cd84f681f",
-              "name": "body.data.key.participant",
-              "value": "={{  $('Webhook').item.json.body.data.key.participant }}",
-              "type": "string"
-            },
-            {
-              "id": "35c0bf37-ff94-4b00-89cf-6b185f0201d9",
-              "name": "body.data.pushName",
-              "value": "={{  $('Webhook').item.json.body.data.pushName }}",
-              "type": "string"
-            },
-            {
-              "id": "e54dd26c-7e15-4d32-ade3-7ac1664cf900",
-              "name": "body.data.message.conversation",
-              "value": "={{  $('Webhook').item.json.body.data.message.conversation }}",
-              "type": "string"
-            },
-            {
-              "id": "3ec08920-4d6a-4058-b779-43eb3c8690af",
-              "name": "body.data.source",
-              "value": "={{  $('Webhook').item.json.body.data.source }}",
-              "type": "string"
-            },
-            {
-              "id": "7cd64fa4-81b3-463f-90a2-c3d4a90a2744",
-              "name": "body.data.key.remoteJid",
-              "value": "={{  $('Webhook').item.json.body.data.key.remoteJid }}",
-              "type": "string"
-            },
-            {
-              "id": "5f598eed-8777-442e-ac11-c853bc998294",
-              "name": "RULE",
-              "value": "={{ $json.RULE }}",
+              "id": "387af87a-327a-4cca-823f-b9c6a41d2d32",
+              "name": "html_base64",
+              "value": "={{ $json.html.base64Encode() }}",
               "type": "string"
             }
           ]
@@ -76,11 +306,277 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        54304,
-        26864
+        91856,
+        47648
       ],
-      "id": "3b047f3e-102e-4e48-b3bd-734286407693",
-      "name": "Edit Fields"
+      "id": "b695f155-d6d5-4dcc-8ac0-33bc08fcf1e0",
+      "name": "htmToBase64"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Ata para Controle Di\u00e1rio de Temperatura</title>\n  <style>\n    :root {\n      --border: #000;\n      --thin: 1px;\n    }\n\n    * {\n      box-sizing: border-box;\n    }\n\n    body {\n      font-family: \"Times New Roman\", Times, serif;\n      font-size: 11px;\n      color: #000;\n      margin: 18px;\n    }\n\n    .line {\n      border-top: var(--thin) solid var(--border);\n      margin: 8px 0;\n    }\n\n    .header {\n      display: grid;\n      grid-template-columns: 1fr auto 1fr;\n      align-items: center;\n      gap: 8px;\n      margin: 6px 0 8px;\n    }\n\n    .header .left,\n    .header .right {\n      font-size: 10px;\n      text-transform: uppercase;\n    }\n\n    .header .center {\n      text-align: center;\n      font-style: italic;\n      font-size: 16px;\n      font-weight: bold;\n    }\n\n    .title {\n      font-weight: bold;\n      text-transform: uppercase;\n      margin: 6px 0 6px;\n    }\n\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      page-break-inside: auto;\n    }\n\n    th, td {\n      border: var(--thin) solid var(--border);\n      padding: 3px 4px;\n      vertical-align: middle;\n    }\n\n    th {\n      font-weight: bold;\n      text-transform: uppercase;\n      font-size: 9px;\n      text-align: center;\n    }\n\n    .meta th,\n    .meta td {\n      font-size: 10px;\n    }\n\n    .meta .label {\n      width: 90px;\n      text-transform: uppercase;\n      font-weight: bold;\n      text-align: left;\n    }\n\n    .meta .value {\n      height: 18px;\n      font-weight: normal;\n      text-transform: none;\n    }\n\n    .subhead th {\n      background: #f7f7f7;\n    }\n\n    .group {\n      text-align: center;\n      font-weight: bold;\n    }\n\n    .obs {\n      width: 16%;\n    }\n\n    .footer-box {\n      margin-top: 10px;\n      width: 55%;\n    }\n\n    .footer-box td {\n      height: 16px;\n      font-size: 10px;\n    }\n\n    @page {\n      size: A4;\n      margin: 15mm;\n    }\n\n    @media print {\n      body {\n        margin: 0;\n      }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"line\"></div>\n\n  <div class=\"header\">\n    <div class=\"left\">Secretaria de Sa\u00fade</div>\n    <div class=\"center\">Pernambuco</div>\n    <div class=\"right\">Governo do Estado</div>\n  </div>\n\n  <div class=\"line\"></div>\n\n  <div class=\"title\">Ata para controle di\u00e1rio de temperatura</div>\n\n  <table class=\"meta\">\n    <tr>\n      <td class=\"label\">Estado</td>\n      <td class=\"value\">Pernambuco</td>\n      <td class=\"label\">Munic\u00edpio</td>\n      <td class=\"value\">__________________________</td>\n      <td class=\"label\">Unidade Sanit\u00e1ria III GIRES</td>\n      <td class=\"value\">__________________________</td>\n    </tr>\n    <tr>\n      <td class=\"label\">Ano</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { return parts[2]; } } return (new Date()).getFullYear(); })() }}</td>\n      <td class=\"label\">M\u00eas</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { const dt = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])); return dt.toLocaleString('pt-BR', { month: 'long' }); } } return (new Date()).toLocaleString('pt-BR', { month: 'long' }); })() }}</td>\n      <td class=\"label\">Marca da geladeira ou freezer</td>\n      <td class=\"value\">{{ $json.relatorio?.[0]?.DISPOSITIVO ?? '__________________________' }}</td>\n    </tr>\n  </table>\n\n  <table>\n    <thead>\n      <tr>\n        <th rowspan=\"2\">Dia</th>\n        <th class=\"group\" colspan=\"5\">Manh\u00e3</th>\n        <th class=\"group\" colspan=\"5\">Tarde</th>\n        <th class=\"obs\" rowspan=\"2\">Observa\u00e7\u00e3o</th>\n      </tr>\n      <tr class=\"subhead\">\n        <th>Hora</th>\n        <th>M\u00e1x</th>\n        <th>M\u00edn</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n        <th>Hora</th>\n        <th>M\u00e1x</th>\n        <th>M\u00edn</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n      </tr>\n    </thead>\n    <tbody>\n      {{\n        (() => {\n          const toHour = (h) => {\n            if (!h) return null;\n            const m = String(h).match(/(\\d{1,2})(?::(\\d{2}))?/);\n            if (!m) return null;\n            return Number(m[1]);\n          };\n\n          const dados = $json.relatorio || [];\n          const diasAgrupados = {};\n\n          // Agrupa todas as leituras de manh\u00e3 e tarde por dia, sem agrupar/esconder registros\n          dados.forEach(linha => {\n            const dia = (linha.DATA || '').split('/')[0] || '';\n            if (!dia) return;\n            \n            if (!diasAgrupados[dia]) {\n              diasAgrupados[dia] = { \n                dia: dia, \n                manhas: [], \n                tardes: [] \n              };\n            }\n            \n            const hora = toHour(linha.HORA);\n            if (hora !== null && hora >= 12) {\n              diasAgrupados[dia].tardes.push(linha);\n            } else {\n              diasAgrupados[dia].manhas.push(linha);\n            }\n          });\n\n          let htmlOutput = '';\n\n          Object.values(diasAgrupados)\n            .sort((a, b) => Number(a.dia) - Number(b.dia)) // Ordena por diazinho\n            .forEach(grupo => {\n              const extrair = (linha) => {\n                if (!linha) return { hora: '', max: '', min: '', atual: '', rubrica: '', obs: '' };\n                return {\n                  hora: linha.HORA ?? '',\n                  atual: linha[\"TEMP.\"] ?? linha.TEMP ?? '',\n                  max: linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? linha.TEMPMAX ?? linha['TEMP MAX'] ?? linha['TEMP_MAX'] ?? '',\n                  min: linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '',\n                  rubrica: linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '',\n                  obs: linha.OBS ?? linha.OBSERVACAO ?? ''\n                };\n              };\n\n              // Pode haver 3 registros de manh\u00e3 e 1 de tarde no mesmo dia. Precisamos percorrer at\u00e9 o maior n\u00famero.\n              const maxLinhas = Math.max(grupo.manhas.length, grupo.tardes.length, 1);\n\n              for (let i = 0; i < maxLinhas; i++) {\n                const manha = extrair(grupo.manhas[i]);\n                const tarde = extrair(grupo.tardes[i]);\n                const obs = manha.obs || tarde.obs || '';\n                // Somente mostra o n\u00famero do dia na primeira linha desse dia (ou em todas)\n                const labelDia = i === 0 ? grupo.dia : ''; \n\n                htmlOutput += `\n                  <tr>\n                    <td style=\"text-align:center;\">${labelDia}</td>\n                    <td>${manha.hora}</td>\n                    <td>${manha.max}</td>\n                    <td>${manha.min}</td>\n                    <td>${manha.atual}</td>\n                    <td>${manha.rubrica}</td>\n                    <td>${tarde.hora}</td>\n                    <td>${tarde.max}</td>\n                    <td>${tarde.min}</td>\n                    <td>${tarde.atual}</td>\n                    <td>${tarde.rubrica}</td>\n                    <td>${obs}</td>\n                  </tr>\n                `;\n              }\n            });\n\n          return htmlOutput;\n        })()\n      }}\n    </tbody>\n  </table>\n\n  <table class=\"footer-box\">\n    <tr>\n      <td style=\"width: 30%;\">Hora da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Temp. no momento da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Dias parados por falha</td>\n      <td></td>\n    </tr>\n  </table>\n</body>\n</html>\n"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        91680,
+        47648
+      ],
+      "id": "56458407-7b09-4e3c-ac83-b698f21dc9ab",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ==============================\n// Helpers\n// ==============================\nfunction parseDateBR(dateStr) {\n  if (!dateStr) return null;\n\n  const [day, month, year] = dateStr.split('/').map(Number);\n  return new Date(year, month - 1, day, 0, 0, 0);\n}\n\n// ==============================\n// Datas do filtro (vindas do agente)\n// ==============================\nconst filtro = $items('Code in JavaScript2')[0]?.json || {};\n\nconst dataInicio = parseDateBR(filtro.data_inicio);\nconst dataFim = parseDateBR(filtro.data_fim);\n\n// Prote\u00e7\u00e3o forte\nif (!dataInicio || !dataFim) {\n  return [];\n}\n\n// Ajuste para pegar at\u00e9 o final do dia (23:59:59)\nif (filtro.periodo !== 'ultimas_24_horas') {\n    dataFim.setHours(23, 59, 59, 999);\n}\n\nconst tsInicio = dataInicio.getTime();\nconst tsFim = dataFim.getTime();\n\n// ==============================\n// Filtro + normaliza\u00e7\u00e3o\n// ==============================\nconst resultado = [];\n\nfor (const item of items) {\n  const linha = item.json;\n  const dataLinha = parseDateBR(linha.DATA);\n\n  if (!dataLinha) continue;\n  const hora = linha.HORA || \"00:00\";\n  const [hr, min] = hora.split(':').map(Number);\n  dataLinha.setHours(hr || 0, min || 0, 0, 0);\n\n  const t = dataLinha.getTime();\n\n  if (t >= tsInicio && t <= tsFim) {\n    // \ud83d\udd39 Aqui voc\u00ea entrega o JSON LIMPO\n    resultado.push(linha);\n  }\n}\n\n// ==============================\n// Sa\u00edda FINAL para o HTML\n// ==============================\nreturn [\n  {\n    json: {\n      relatorio: resultado,\n      total: resultado.length,\n      periodo: {\n        inicio: filtro.data_inicio,\n        fim: filtro.data_fim\n      }\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        91520,
+        47648
+      ],
+      "id": "7396cc42-fba1-4f53-b892-6e64bbee1832",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        90816,
+        47856
+      ],
+      "id": "ca21c012-499f-4cc8-a240-97f1c83d0c01",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "XMVmk3hYpFTHTSyt",
+          "name": "open router 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Voc\u00ea \u00e9 um classificador de inten\u00e7\u00e3o e per\u00edodo temporal.\nEntrada do usu\u00e1rio: {{ $json.parametros.solicitacao_original }}\nData atual: {{ $now.setZone('America/Sao_Paulo').format('dd/MM/yyyy HH:mm:ss') }}\nAnalise a mensagem do usu\u00e1rio e retorne:\n1) Inten\u00e7\u00e3o principal\n2) Per\u00edodo temporal NORMALIZADO\n\nN\u00e3o calcule datas, n\u00e3o execute a\u00e7\u00f5es, n\u00e3o explique a resposta.\nRetorne APENAS JSON v\u00e1lido, sem texto extra e apenas um objeto.\n\nINTEN\u00c7\u00d5ES SUPORTADAS:\n- consultar_relatorio\n- nenhuma_intencao\n\nPER\u00cdODOS SUPORTADOS:\n- hoje\n- ontem\n- ultimas_24_horas\n- ultima_semana\n- ultimo_mes\n- ultimos_X_dias\n- intervalo_datas\n- nenhum\n\nREGRAS:\n- O usu\u00e1rio pode escrever de qualquer forma (ex: \"24hs\", \"24 horas\", \"dia inteiro\", \"relat\u00f3rio do dia\").\n- Interprete semanticamente a inten\u00e7\u00e3o.\n- Normalize o per\u00edodo para UM dos valores suportados.\n- Se houver n\u00famero expl\u00edcito de dias, use \"ultimos_X_dias\" e informe o valor.\n- Se o usu\u00e1rio citar um m\u00eas (ex: janeiro, fev, mar\u00e7o) com ou sem ano, use \"intervalo_datas\" e preencha data_inicio e data_fim com o primeiro e o \u00faltimo dia do m\u00eas.\n- Se o usu\u00e1rio pedir \"relat\u00f3rio do m\u00eas\" sem especificar qual, use o m\u00eas atual com \"intervalo_datas\".\n- Se n\u00e3o houver refer\u00eancia temporal clara, use \"nenhum\".\n- Para 'intervalo_datas', se o m\u00eas ou ano n\u00e3o for especificado, considere o m\u00eas e/ou ano atual.\n\nFORMATO DE SA\u00cdDA:\n{\n  \"intencao\": \"consultar_relatorio | nenhuma_intencao\",\n  \"periodo\": \"hoje | ontem | ultimas_24_horas | ultima_semana | ultimo_mes | ultimos_X_dias | intervalo_datas | nenhum\",\n  \"valor\": null,\n  \"data_inicio\": \"dd/MM/yyyy | null\",\n  \"data_fim\": \"dd/MM/yyyy | null\"\n}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        90816,
+        47648
+      ],
+      "id": "c781540b-b1b7-45a0-afe5-1bbebaa9948e",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "jsCode": "let rawOutput = $('AI Agent1').first().json.output;\n// Limpa bloco de markdown (```json ... ```) se houver\nconst codeBlockMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) {\n    rawOutput = codeBlockMatch[1];\n} else {\n    const jsonMatch = rawOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) rawOutput = jsonMatch[0];\n}\n\nlet dados;\ntry {\n  dados = JSON.parse(rawOutput);\n} catch (e) {\n  return [{ json: { error: \"Erro ao interpretar JSON da IA\", detalhe: e.message } }];\n}\n\nconst periodo = dados.periodo;\nconst valor = dados.valor;\n\n//const now = new Date();\nconst now = new Date(\n  new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })\n);\n\n// ===== Helpers =====\nconst pad = (n) => String(n).padStart(2, \"0\");\nconst formatDate = (d) => {\n  if (d instanceof Date && !isNaN(d)) {\n    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;\n  }\n  return null; // Retorna null se a data for inv\u00e1lida\n};\nconst formatTime = (d) =>\n  `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;\nconst cloneDate = (d) => new Date(d.getTime());\n\n// ===== Resultado =====\nlet result = {\n  dispositivo: null,\n  hora_inicio: null,\n  hora_fim: null,\n  data_inicio: null,\n  data_fim: null,\n};\n\n// ===== Switch determin\u00edstico =====\nswitch (periodo) {\n  case \"hoje\": {\n    const d = formatDate(now);\n    result.data_inicio = d;\n    result.data_fim = d;\n    break;\n  }\n  case \"ontem\": {\n    const d = cloneDate(now);\n    d.setDate(d.getDate() - 1);\n    const fd = formatDate(d);\n    result.data_inicio = fd;\n    result.data_fim = fd;\n    break;\n  }\n  case \"ultimas_24_horas\": {\n    const start = cloneDate(now);\n    start.setHours(start.getHours() - 24);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    result.hora_inicio = formatTime(start);\n    result.hora_fim = formatTime(now);\n    break;\n  }\n  case \"ultima_semana\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 7);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimo_mes\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 30);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimos_X_dias\": {\n    if (typeof valor === \"number\" && valor > 0) {\n      const start = cloneDate(now);\n      start.setDate(start.getDate() - valor);\n      result.data_inicio = formatDate(start);\n      result.data_fim = formatDate(now);\n    }\n    break;\n  }\n  case \"intervalo_datas\": {\n    // As datas j\u00e1 v\u00eam formatadas como DD/MM/YYYY do classificador\n    if (dados.data_inicio) {\n      result.data_inicio = dados.data_inicio;\n    }\n    if (dados.data_fim) {\n      result.data_fim = dados.data_fim;\n    }\n    break;\n  }\n  case \"nenhum\":\n  default: {\n    // Se o usu\u00e1rio n\u00e3o informou m\u00eas/ano, assume o m\u00eas/ano corrente\n    const start = new Date(now.getFullYear(), now.getMonth(), 1);\n    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(end);\n    break;\n  }\n}\n\nreturn result;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        91136,
+        47648
+      ],
+      "id": "11392b4f-e322-4af6-a218-1d2df6b9c310",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "P\u00e1gina1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        91344,
+        47648
+      ],
+      "id": "ebeaffa1-b2d2-432a-8078-25f8d9e0c50a",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.remoteJid }}",
+        "messageText": "={{ $json.message }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        91584,
+        47872
+      ],
+      "id": "e409e0dc-8389-487f-b3fc-a2d14b19f3cb",
+      "name": "Responder Erro",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.destination }}",
+                    "rightValue": "whatsapp",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "05cb3705-c1ef-4e82-922c-2e24466c77cf"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "whatsapp"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "fb8a9f8d-64b1-407a-9cc7-0a24e55f9817",
+                    "leftValue": "={{ $json.destination }}",
+                    "rightValue": "mqtt",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "mqtt"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.destination }}",
+                    "rightValue": "sheets_add_user",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sheets_add_user"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.destination }}",
+                    "rightValue": "sheets_manage_user",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "update-user-rule-001"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sheets_manage_user"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        91360,
+        48080
+      ],
+      "id": "9baab66d-8aa9-4f61-926d-90b781626622",
+      "name": "Switch Validation"
+    },
+    {
+      "parameters": {
+        "jsCode": "\ntry {\n    const item = $input.first().json;\n    const outputRaw = item.intencao;\n    const remoteJid = item.remoteJid;\n\n    if (!outputRaw) {\n        return { error: \"Campo 'intencao' n\u00e3o encontrado ou vazio\" };\n    }\n\n    if (outputRaw === \"BLOQUEADO\") {\n        return {\n            destination: \"whatsapp\",\n            message: item.mensagem_erro || \"\ud83d\udeab Acesso Bloqueado\",\n            remoteJid: remoteJid\n        };\n    }\n\n    let dados = item;\n    const isAdmin = dados.is_admin === true;\n    \n    // === VALIDA\u00c7\u00c3O DE PERMISS\u00c3O (ADMIN) ===\n    const comandosLiberados = [\"obter_status_atual\", \"obter_ambiente\", \"consultar_relatorio\", \"nenhuma_intencao\"];\n    if (!isAdmin && dados.intencao && !comandosLiberados.includes(dados.intencao)) {\n        return {\n            destination: \"whatsapp\",\n            message: \"\u26a0\ufe0f *Acesso Negado*\\nDesculpe, voc\u00ea n\u00e3o tem permiss\u00e3o de administrador para executar este comando.\\n\\nVoc\u00ea pode apenas consultar status e relat\u00f3rios.\",\n            remoteJid: remoteJid\n        };\n    }\n\n    const textoOriginal = dados.parametros?.solicitacao_original?.toLowerCase() || \"\";\n\n    // ============================\n    // FUN\u00c7\u00c3O DE FORMATA\u00c7\u00c3O DE N\u00daMERO\n    // ============================\n    function formatarNumero(numOriginal) {\n        let num = numOriginal.toString().replace(/\\D/g, '');\n        if (num.startsWith('55') && num.length >= 12) {\n            num = num.substring(2);\n        }\n        if (num.length === 11) {\n            num = num.substring(0, 2) + num.substring(3);\n        }\n        return '55' + num;\n    }\n\n    // === ADICIONAR USUARIO ===\n    if (dados.intencao === \"adicionar_admin\" || dados.intencao === \"adicionar_usuario\") {\n    \n        if (!dados.nivel_acesso) {\n            if (textoOriginal.includes(\"comum\") || textoOriginal.includes(\"usuario\") || textoOriginal.includes(\"usu\u00e1rio\")) {\n                dados.nivel_acesso = \"USER\";\n            } else if (textoOriginal.includes(\"admin\")) {\n                dados.nivel_acesso = \"ADMIN\";\n            }\n        }\n    \n        if (!dados.novo_numero || !dados.nivel_acesso) {\n            return {\n                destination: \"whatsapp\",\n                message: \"\u26a0\ufe0f Para cadastrar, envie o n\u00edvel de acesso e o n\u00famero juntos na mesma mensagem.\\n\\nExemplo: *Cadastrar o n\u00famero 81999999999 como usu\u00e1rio comum*\",\n                remoteJid: remoteJid\n            };\n        }\n        \n        let num_limpo = formatarNumero(dados.novo_numero);\n        let role = dados.nivel_acesso.toUpperCase().includes(\"ADMIN\") ? \"ADMIN\" : \"USER\";\n        let roleLabel = role === \"ADMIN\" ? \"Administrador\" : \"Usu\u00e1rio comum\";\n        \n        return {\n            destination: \"sheets_add_user\",\n            message: \"\u23f3 *Cadastrando \" + roleLabel + \"...*\\nAdicionando o n\u00famero \" + num_limpo + \" ao sistema.\",\n            remoteJid: remoteJid,\n            novo_numero: num_limpo,\n            nova_role: role\n        };\n    }\n\n    // === ALTERAR REGRA DO USUARIO ===\n    if (dados.intencao === \"alterar_regra_usuario\") {\n        // Toler\u00e2ncia se a IA extrair nos campos errados (novo_numero em vez de numero_alvo)\n        const tgtNum = dados.numero_alvo || dados.novo_numero;\n        let tgtLevel = dados.novo_nivel || dados.nivel_acesso;\n        \n        if (!tgtLevel) {\n            if (textoOriginal.includes(\"comum\") || textoOriginal.includes(\"usuario\") || textoOriginal.includes(\"usu\u00e1rio\")) {\n                tgtLevel = \"USER\";\n            } else if (textoOriginal.includes(\"admin\")) {\n                tgtLevel = \"ADMIN\";\n            }\n        }\n\n        if (!tgtNum || !tgtLevel) {\n            return {\n                destination: \"whatsapp\",\n                message: \"\u26a0\ufe0f Para alterar a regra, envie o n\u00famero e o novo n\u00edvel juntos na mesma mensagem.\\n\\nExemplo: *Alterar o n\u00famero 81999999999 para admin*\",\n                remoteJid: remoteJid\n            };\n        }\n        \n        let num_limpo = formatarNumero(tgtNum);\n        let novoNivel = tgtLevel.toUpperCase().includes(\"ADMIN\") ? \"ADMIN\" : \"USER\";\n        let nivelLabel = novoNivel === \"ADMIN\" ? \"Administrador\" : \"Usu\u00e1rio comum\";\n        \n        return {\n            destination: \"sheets_manage_user\",\n            message: \"\u23f3 *Alterando permiss\u00e3o...*\\nAtualizando o n\u00famero \" + num_limpo + \" para \" + nivelLabel + \".\",\n            remoteJid: remoteJid,\n            numero_alvo: num_limpo,\n            novo_nivel: novoNivel,\n            operacao: \"update\"\n        };\n    }\n\n    // === EXCLUIR USUARIO ===\n    if (dados.intencao === \"excluir_usuario\") {\n        const tgtNum = dados.numero_alvo || dados.novo_numero;\n        if (!tgtNum) {\n            return {\n                destination: \"whatsapp\",\n                message: \"\u26a0\ufe0f Para excluir, informe o n\u00famero que deseja remover.\\n\\nExemplo: *Excluir o n\u00famero 81999999999*\",\n                remoteJid: remoteJid\n            };\n        }\n        \n        let num_limpo = formatarNumero(tgtNum);\n        \n        return {\n            destination: \"sheets_manage_user\",\n            message: \"\u23f3 *Excluindo usu\u00e1rio...*\\nRemovendo o n\u00famero \" + num_limpo + \" do sistema.\",\n            remoteJid: remoteJid,\n            numero_alvo: num_limpo,\n            operacao: \"delete\"\n        };\n    }\n    \n    // === RESPOSTA NORMALIZADA (MQTT e outros) ===\n    let resposta = {\n        intencao: dados.intencao || \"nenhuma_intencao\",\n        destination: \"mqtt\",\n        remoteJid: remoteJid,\n        is_admin: isAdmin\n    };\n\n    if (dados.requer_dados) {\n        return {\n            destination: \"whatsapp\",\n            message: \"Entendi seu pedido de \" + dados.intencao.replace('_', ' ') + \", mas preciso de mais detalhes. Qual o valor desejado?\",\n            remoteJid: remoteJid\n        };\n    }\n\n    const campos = [\"temp_max\", \"temp_min\", \"volt_max\", \"volt_min\", \"bat_min\", \"tempo_porta\", \"nova_tensao\", \"novo_fator\"];\n    campos.forEach(c => {\n        if (dados[c] !== undefined && dados[c] !== null) resposta[c] = parseFloat(dados[c]);\n    });\n    \n    return resposta;\n\n} catch (e) {\n    return {\n        error: \"Erro no processamento\",\n        detalhe: e.message\n    };\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        91184,
+        48080
+      ],
+      "id": "05cabef8-4a96-49b2-beee-4cc23be832df",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst outputRaw = $input.item.json.output;\nconst remoteJid = $('Webhook').item.json.body.data.key.remoteJid;\n\nlet jsonString = outputRaw;\nconst codeBlockMatch = outputRaw.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) {\n    jsonString = codeBlockMatch[1];\n} else {\n    const jsonMatch = outputRaw.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) jsonString = jsonMatch[0];\n}\n\njsonString = jsonString.replace(/[\\u0000-\\u001F]+/g, \"\");\n\nlet dados;\ntry {\n  dados = JSON.parse(jsonString);\n} catch (e) {\n  try {\n      const clean = jsonString\n          .replace(/(['\"])?([a-zA-Z0-9_]+)(['\"])?:/g, '\"$2\":') \n          .replace(/'/g, '\"'); \n      dados = JSON.parse(clean);\n  } catch (e2) {\n      return [{\n          json: { error: \"Falha cr\u00edtica no parse JSON\", intencao: \"erro_parse_ia\", requer_dados: false }\n      }];\n  }\n}\n\n// === VALIDA\u00c7\u00c3O NA BORDA (GLOBAL) ===\nlet userRule = \"\";\nlet userFound = false;\n\ntry {\n    const editFieldsNode = $('Edit Fields').first();\n    if (editFieldsNode && editFieldsNode.json) {\n        if (editFieldsNode.json.RULE !== undefined && editFieldsNode.json.RULE !== null && editFieldsNode.json.RULE !== \"\") {\n            userFound = true;\n            userRule = editFieldsNode.json.RULE;\n        } else {\n            const sheetItems = $('Get row(s) in sheet1').all();\n            if (sheetItems && sheetItems.length > 0 && Object.keys(sheetItems[0].json).length > 0 && sheetItems[0].json.NUMERO !== undefined && sheetItems[0].json.NUMERO !== null && sheetItems[0].json.NUMERO !== \"\") {\n               userFound = true;\n               userRule = sheetItems[0].json.RULE ? sheetItems[0].json.RULE.toString().trim() : \"USER\";\n            }\n        }\n    }\n} catch(err) {\n    userFound = false;\n}\n\nif (!userFound) {\n    return [{\n      json: {\n        intencao: \"BLOQUEADO\",\n        mensagem_erro: \"\ud83d\udeab *Acesso Bloqueado*\\nDesculpe, seu n\u00famero n\u00e3o est\u00e1 cadastrado no sistema para acessar este servi\u00e7o nem para consultar relat\u00f3rios.\",\n        is_admin: false\n      }\n    }];\n}\n\n// CORRE\u00c7\u00c3O: Garante que userRule n\u00e3o \u00e9 null e \u00e9 uma string antes de chamar toUpperCase()\nconst isAdmin = (userRule && typeof userRule === 'string' && userRule.trim().toUpperCase() === 'ADMIN');\n\nreturn [\n  {\n    json: {\n      intencao: dados.intencao ? dados.intencao.trim() : null,\n      temp_max: dados.temp_max, \n      temp_min: dados.temp_min,\n      volt_max: dados.volt_max,\n      volt_min: dados.volt_min,\n      nova_tensao: dados.nova_tensao,\n      novo_fator: dados.novo_fator, \n      bat_min: dados.bat_min,\n      tempo_porta: dados.tempo_porta,\n      novo_numero: dados.novo_numero,\n      nivel_acesso: dados.nivel_acesso,\n      numero_alvo: dados.numero_alvo,\n      novo_nivel: dados.novo_nivel,\n      requer_dados: dados.requer_dados,\n      fonte_dados: dados.fonte_dados,\n      is_admin: isAdmin,\n      parametros: {\n        solicitacao_original: dados.parametros ? dados.parametros.solicitacao_original : null,\n        detalhe: dados.parametros ? dados.parametros.detalhe : null\n      }\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        90352,
+        48000
+      ],
+      "id": "9d0ed6c3-0990-4a0c-b657-67d62ce34ff9",
+      "name": "Code in JavaScript"
     },
     {
       "parameters": {
@@ -93,28 +589,61 @@
           },
           "conditions": [
             {
-              "id": "b47f232e-2326-4506-8257-2ce21454260d",
-              "leftValue": "={{ $json.body.data.key.fromMe }}",
-              "rightValue": false,
-              "operator": {
-                "type": "boolean",
-                "operation": "false",
-                "singleValue": true
-              }
-            },
-            {
-              "id": "8e110a5d-16c4-4394-bdc5-665c3b70fc85",
-              "leftValue": "={{ $json.body.data.key.participant }}",
-              "rightValue": "",
+              "id": "eebcb8d0-26b2-4b99-9380-20fb9fe9dab5",
+              "leftValue": "={{ $json.intencao }}",
+              "rightValue": "consultar_relatorio",
               "operator": {
                 "type": "string",
-                "operation": "empty",
-                "singleValue": true
+                "operation": "contains"
               }
-            },
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        90576,
+        48000
+      ],
+      "id": "01a4c10d-a6df-42b0-9b1e-cf3fc6b303b2",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "topic": "esp32c3/status/action",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        91584,
+        48048
+      ],
+      "id": "85b3a21c-677d-48c3-9a76-b8b68554af91",
+      "name": "MQTT",
+      "credentials": {
+        "mqtt": {
+          "id": "BHuPlzoyNhQIduWz",
+          "name": "MQTT account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
             {
-              "id": "f2e3937e-8fc4-4a8b-9934-33b8ad4b3d77",
-              "leftValue": "={{ $json.body.data.message.conversation }}",
+              "id": "c4036611-a886-455a-a82d-fcb1d5937801",
+              "leftValue": "={{ $json.intencao }}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -130,39 +659,11 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        54480,
-        26864
+        90960,
+        48096
       ],
-      "id": "a5651ee3-1ce4-4399-9008-a341bfead00b",
-      "name": "If"
-    },
-    {
-      "parameters": {},
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        54912,
-        27488
-      ],
-      "id": "50f35896-d4ff-4d04-b955-5c6d62abd83d",
-      "name": "No Operation, do nothing"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Voc\u00ea \u00e9 um CLASSIFICADOR DE INTEN\u00c7\u00c3O puro. Sua \u00fanica fun\u00e7\u00e3o \u00e9 extrair dados de uma mensagem e retornar um JSON.\n\nN\u00c3O GERE C\u00d3DIGO. N\u00c3O GERE EXPLICA\u00c7\u00d5ES. N\u00c3O GERE TEMPLATES .\nAPENAS JSON V\u00c1LIDO.\n\n---\nMENSAGEM: {{ $json.body.data.message.conversation }}\n---\n\nINTEN\u00c7\u00d5ES POSS\u00cdVEIS:\n- adicionar_admin (par\u00e2metros: novo_numero)\n- configurar_limites (par\u00e2metros: temp_max, temp_min, volt_max, volt_min, bat_min, tempo_porta)\n- ligar_rele / desligar_rele\n- modo_manutencao \u2014 ATIVAR manuten\u00e7\u00e3o (suspender alertas e comandos)\n- modo_operacional \u2014 DESATIVAR manuten\u00e7\u00e3o (retomar monitoramento normal)\n- silenciar_alarme\n- calibrar_tensao (par\u00e2metro: nova_tensao) \u2014 para calibrar sensor de TENS\u00c3O DA REDE EL\u00c9TRICA (110V/220V)\n- calibrar_bateria (par\u00e2metro: nova_tensao) \u2014 para calibrar sensor de BATERIA (12V)\n- obter_status_atual\n- consultar_relatorio\n- habilitar_porta / desabilitar_porta \u2014 LIGAR ou DESLIGAR alertas de porta\n- habilitar_tensao / desabilitar_tensao \u2014 LIGAR ou DESLIGAR alertas de tens\u00e3o\n- habilitar_bateria / desabilitar_bateria \u2014 LIGAR ou DESLIGAR alertas de bateria\n\nREGRAS DE DISAMBIGUA\u00c7\u00c3O:\n\nMANUTEN\u00c7\u00c3O vs OPERACIONAL:\n- \"manuten\u00e7\u00e3o\", \"manuten\u00e7\u00e3o\", \"parar\", \"suspender\", \"pausar monitoramento\" \u2192 modo_manutencao\n- \"operacional\", \"voltar\", \"retomar\", \"reativar\", \"ativar monitoramento\", \"sair da manuten\u00e7\u00e3o\" \u2192 modo_operacional\n\nTENS\u00c3O vs BATERIA:\n- Se a mensagem mencionar \"bateria\", \"bat\", \"12V\", \"nobreak\", \"backup\" \u2192 calibrar_bateria\n- Se a mensagem mencionar \"tens\u00e3o\", \"rede\", \"220V\", \"110V\", \"energia\" \u2192 calibrar_tensao\n- Se ambiguo, pergunte ao usu\u00e1rio (requer_dados: true)\n\nREGRAS DE EXTRA\u00c7\u00c3O:\n1. Se a mensagem for \"Calibrar tens\u00e3o para 220V\", retorne:\n   { \"intencao\": \"calibrar_tensao\", \"nova_tensao\": 220, \"requer_dados\": false }\n\n2. Se a mensagem for \"Calibrar bateria para 12.4V\", retorne:\n   { \"intencao\": \"calibrar_bateria\", \"nova_tensao\": 12.4, \"requer_dados\": false }\n\n3. Se a mensagem for \"Calibrar tens\u00e3o\" (sem valor), retorne:\n   { \"intencao\": \"calibrar_tensao\", \"nova_tensao\": null, \"requer_dados\": true }\n\n4. Se a mensagem for \"Calibrar bateria\" (sem valor), retorne:\n   { \"intencao\": \"calibrar_bateria\", \"nova_tensao\": null, \"requer_dados\": true }\n\n5. Se a mensagem for \"Silenciar alarme\", retorne:\n   { \"intencao\": \"silenciar_alarme\" }\n\n6. Se a mensagem for \"Status\", retorne:\n   { \"intencao\": \"obter_status_atual\" }\n\n7. Se a mensagem for \"Manuten\u00e7\u00e3o\", retorne:\n   { \"intencao\": \"modo_manutencao\" }\n\n8. Se a mensagem for \"Operacional\", retorne:\n   { \"intencao\": \"modo_operacional\" }\n\n9. Para \"Limites\":\n   - \"Bateria minima 11.5\" -> { \"intencao\": \"configurar_limites\", \"bat_min\": 11.5 }\n   - \"Porta 30s\" -> { \"intencao\": \"configurar_limites\", \"tempo_porta\": 30 }\n\n10. Para Habilitar/Desabilitar:\n   - \"n\u00e3o quero mais alerta de porta\" ou \"desativar porta\" -> { \"intencao\": \"desabilitar_porta\" }\n   - \"voltar a monitorar porta\" -> { \"intencao\": \"habilitar_porta\" }\n   - \"n\u00e3o alerte para tens\u00e3o\" -> { \"intencao\": \"desabilitar_tensao\" }\n\n\n11. Se a mensagem for \"Adicionar o numero 81999999999 como admin\", retorne:\n   { \"intencao\": \"adicionar_admin\", \"novo_numero\": \"81999999999\" }\n\n\n12. Se o usu\u00e1rio pedir para adicionar um admin mas n\u00e3o informar o n\u00famero, retorne:\n   { \"intencao\": \"adicionar_admin\", \"novo_numero\": null, \"requer_dados\": true }\n\nFORMATO DE SA\u00cdDA OBRIGAT\u00d3RIO:\n{\n  \"intencao\": \"string\",\n  \"temp_max\": number | null,\n  \"temp_min\": number | null,\n  \"volt_max\": number | null,\n  \"volt_min\": number | null,\n  \"bat_min\": number | null,\n  \"tempo_porta\": number | null,\n  \"novo_numero\": \"string | null\",\n  \"nova_tensao\": number | null,\n  \"requer_dados\": boolean,\n  \"fonte_dados\": \"mqtt\" | null,\n  \"parametros\": {\n    \"solicitacao_original\": \"{{ $json.body.data.message.conversation }}\",\n    \"detalhe\": null\n  }\n}\n",
-        "options": {
-          "systemMessage": "You are a helpful assistant"
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
-      "position": [
-        54768,
-        26848
-      ],
-      "id": "06ad2dc0-352e-4b3a-8190-0f6eaa370978",
-      "name": "AI Agent"
+      "id": "bedb5f93-287a-4545-a478-b77140b7d29d",
+      "name": "If1"
     },
     {
       "parameters": {
@@ -239,6 +740,34 @@
               "name": "nova_tensao",
               "value": "={{ $json.nova_tensao }}",
               "type": "number"
+            },
+            {
+              "name": "is_admin",
+              "value": "={{ $json.is_admin }}",
+              "type": "boolean"
+            },
+            {
+              "name": "novo_numero",
+              "value": "={{ $json.novo_numero }}",
+              "type": "string"
+            },
+            {
+              "id": "numero-alvo-uid",
+              "name": "numero_alvo",
+              "value": "={{ $json.numero_alvo }}",
+              "type": "string"
+            },
+            {
+              "id": "novo-nivel-uid",
+              "name": "novo_nivel",
+              "value": "={{ $json.novo_nivel }}",
+              "type": "string"
+            },
+            {
+              "id": "nivel-acesso-uid",
+              "name": "nivel_acesso",
+              "value": "={{ $json.nivel_acesso }}",
+              "type": "string"
             }
           ]
         },
@@ -247,11 +776,39 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        55536,
-        26944
+        90800,
+        48096
       ],
-      "id": "7d9fc365-825d-4ce5-a851-f2823e9987c0",
+      "id": "9be4f6ee-c2d7-48d7-afb5-36a6e9ef3c76",
       "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Voc\u00ea \u00e9 um CLASSIFICADOR DE INTEN\u00c7\u00c3O puro. Sua \u00fanica fun\u00e7\u00e3o \u00e9 extrair dados de uma mensagem e retornar um JSON.\n\nN\u00c3O GERE C\u00d3DIGO. N\u00c3O GERE EXPLICA\u00c7\u00d5ES. N\u00c3O GERE TEMPLATES .\nAPENAS JSON V\u00c1LIDO.\n\n---\nMENSAGEM: {{ $json.body.data.message.conversation }}\n---\n\nINTEN\u00c7\u00d5ES POSS\u00cdVEIS:\n- adicionar_usuario (par\u00e2metros: novo_numero, nivel_acesso -> \"ADMIN\" ou \"USER\")\n- alterar_regra_usuario (par\u00e2metros: numero_alvo, novo_nivel -> \"ADMIN\" ou \"USER\")\n- excluir_usuario (par\u00e2metro: numero_alvo)\n- configurar_limites (par\u00e2metros: temp_max, temp_min, volt_max, volt_min, bat_min, tempo_porta)\n- ligar_rele / desligar_rele\n- modo_manutencao \u2014 ATIVAR manuten\u00e7\u00e3o (suspender alertas e comandos)\n- modo_operacional \u2014 DESATIVAR manuten\u00e7\u00e3o (retomar monitoramento normal)\n- silenciar_alarme\n- calibrar_tensao (par\u00e2metro: nova_tensao)\n- calibrar_bateria (par\u00e2metro: nova_tensao)\n- obter_status_atual\n- consultar_relatorio\n- habilitar_porta / desabilitar_porta\n- habilitar_tensao / desabilitar_tensao\n- habilitar_bateria / desabilitar_bateria\n\nREGRAS DE DISAMBIGUA\u00c7\u00c3O:\n\nMANUTEN\u00c7\u00c3O vs OPERACIONAL:\n- \"manuten\u00e7\u00e3o\", \"parar\", \"suspender\", \"pausar monitoramento\" \u2192 modo_manutencao\n- \"operacional\", \"voltar\", \"retomar\", \"reativar\", \"ativar monitoramento\", \"sair da manuten\u00e7\u00e3o\" \u2192 modo_operacional\n\nTENS\u00c3O vs BATERIA:\n- \"bateria\", \"bat\", \"12V\", \"nobreak\", \"backup\" \u2192 calibrar_bateria\n- \"tens\u00e3o\", \"rede\", \"220V\", \"110V\", \"energia\" \u2192 calibrar_tensao\n\nREGRAS DE CADASTRO DE USU\u00c1RIO:\n1. \"Adicionar o numero 81999999999 como admin\" -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": \"81999999999\", \"nivel_acesso\": \"ADMIN\", \"requer_dados\": false }\n2. \"Adicionar o numero 81999999999 como usu\u00e1rio\" -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": \"81999999999\", \"nivel_acesso\": \"USER\", \"requer_dados\": false }\n3. Se pedir para adicionar usu\u00e1rio MAS N\u00c3O falar o n\u00famero nem o n\u00edvel: { \"intencao\": \"adicionar_usuario\", \"novo_numero\": null, \"nivel_acesso\": null, \"requer_dados\": true }\n4. Se o usu\u00e1rio estiver RESPONDENDO a uma pergunta dizendo apenas \"Usu\u00e1rio comum\", \"Comum\", \"Usu\u00e1rio\": -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": null, \"nivel_acesso\": \"USER\", \"requer_dados\": false }\n5. Se o usu\u00e1rio estiver RESPONDENDO a uma pergunta dizendo apenas \"Administrador\", \"Admin\": -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": null, \"nivel_acesso\": \"ADMIN\", \"requer_dados\": false }\n\n\n\nREGRAS DE ALTERA\u00c7\u00c3O DE REGRA:\n1. \"Alterar o n\u00famero 81999999999 para admin\" -> { \"intencao\": \"alterar_regra_usuario\", \"numero_alvo\": \"81999999999\", \"novo_nivel\": \"ADMIN\", \"requer_dados\": false }\n2. \"Mudar permiss\u00e3o do 81999999999 para usu\u00e1rio\" -> { \"intencao\": \"alterar_regra_usuario\", \"numero_alvo\": \"81999999999\", \"novo_nivel\": \"USER\", \"requer_dados\": false }\n3. Se pedir para alterar MAS N\u00c3O falar o n\u00famero ou o n\u00edvel: { \"intencao\": \"alterar_regra_usuario\", \"numero_alvo\": null, \"novo_nivel\": null, \"requer_dados\": true }\n\nREGRAS DE EXCLUS\u00c3O DE USU\u00c1RIO:\n1. \"Excluir o n\u00famero 81999999999\" -> { \"intencao\": \"excluir_usuario\", \"numero_alvo\": \"81999999999\", \"requer_dados\": false }\n2. \"Remover usu\u00e1rio 81999999999\" -> { \"intencao\": \"excluir_usuario\", \"numero_alvo\": \"81999999999\", \"requer_dados\": false }\n3. Se pedir para excluir MAS N\u00c3O falar o n\u00famero: { \"intencao\": \"excluir_usuario\", \"numero_alvo\": null, \"requer_dados\": true }\n\nOBSERVA\u00c7\u00c3O CR\u00cdTICA: Se a inten\u00e7\u00e3o for adicionar_usuario e o usu\u00e1rio informar apenas o n\u00edvel (\"comum\", \"admin\"), RETORNE EXATAMENTE \"USER\" ou \"ADMIN\" em \"nivel_acesso\". NUNCA retorne null nesses casos.\n\nFORMATO DE SA\u00cdDA OBRIGAT\u00d3RIO:\n{\n  \"intencao\": \"string\",\n  \"temp_max\": number | null,\n  \"temp_min\": number | null,\n  \"volt_max\": number | null,\n  \"volt_min\": number | null,\n  \"bat_min\": number | null,\n  \"tempo_porta\": number | null,\n  \"novo_numero\": \"string | null\",\n  \"nivel_acesso\": \"string | null\",\n  \"nova_tensao\": number | null,\n  \"numero_alvo\": \"string | null\",\n  \"novo_nivel\": \"string | null\",\n  \"requer_dados\": boolean,\n  \"fonte_dados\": \"mqtt\" | null,\n  \"parametros\": {\n    \"solicitacao_original\": \"{{ $json.body.data.message.conversation }}\",\n    \"detalhe\": null\n  }\n}\n",
+        "options": {
+          "systemMessage": "You are a helpful assistant"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        90032,
+        48000
+      ],
+      "id": "7aa69ff8-2f8e-4a3e-a58b-506e95ebd386",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        90208,
+        48800
+      ],
+      "id": "36d36806-f1e8-4d23-99c9-a916718bcc86",
+      "name": "No Operation, do nothing"
     },
     {
       "parameters": {
@@ -264,8 +821,28 @@
           },
           "conditions": [
             {
-              "id": "c4036611-a886-455a-a82d-fcb1d5937801",
-              "leftValue": "={{ $json.intencao }}",
+              "id": "b47f232e-2326-4506-8257-2ce21454260d",
+              "leftValue": "={{ $json.body.data.key.fromMe }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "8e110a5d-16c4-4394-bdc5-665c3b70fc85",
+              "leftValue": "={{ $json.body.data.key.participant }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "f2e3937e-8fc4-4a8b-9934-33b8ad4b3d77",
+              "leftValue": "={{ $json.body.data.message.conversation }}",
               "rightValue": "",
               "operator": {
                 "type": "string",
@@ -281,315 +858,62 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        55696,
-        26944
+        89744,
+        48016
       ],
-      "id": "4311befa-38ad-4e7d-a410-e6ec61ad101b",
-      "name": "If1"
-    },
-    {
-      "parameters": {
-        "topic": "esp32c3/status/action",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.mqtt",
-      "typeVersion": 1,
-      "position": [
-        56288,
-        27056
-      ],
-      "id": "833ed7b9-09c3-490c-b48f-68679a8cb16c",
-      "name": "MQTT",
-      "credentials": {
-        "mqtt": {
-          "id": "BHuPlzoyNhQIduWz",
-          "name": "MQTT account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 3
-          },
-          "conditions": [
-            {
-              "id": "eebcb8d0-26b2-4b99-9380-20fb9fe9dab5",
-              "leftValue": "={{ $json.intencao }}",
-              "rightValue": "consultar_relatorio",
-              "operator": {
-                "type": "string",
-                "operation": "contains"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        55312,
-        26848
-      ],
-      "id": "34d1750e-4ed2-4a53-a5d4-0ca8503046ee",
-      "name": "If2"
-    },
-    {
-      "parameters": {
-        "jsCode": "\nconst outputRaw = $input.item.json.output;\nconst remoteJid = $('Webhook').item.json.body.data.key.remoteJid;\n\nlet jsonString = outputRaw;\nconst codeBlockMatch = outputRaw.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) {\n    jsonString = codeBlockMatch[1];\n} else {\n    const jsonMatch = outputRaw.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) jsonString = jsonMatch[0];\n}\n\njsonString = jsonString.replace(/[\\u0000-\\u001F]+/g, \"\");\n\nlet dados;\ntry {\n  dados = JSON.parse(jsonString);\n} catch (e) {\n  try {\n      const clean = jsonString\n          .replace(/(['\"])?([a-zA-Z0-9_]+)(['\"])?:/g, '\"$2\":') \n          .replace(/'/g, '\"'); \n      dados = JSON.parse(clean);\n  } catch (e2) {\n      return [{\n          json: { error: \"Falha cr\u00edtica no parse JSON\", intencao: \"erro_parse_ia\", requer_dados: false }\n      }];\n  }\n}\n\n// === VALIDA\u00c7\u00c3O NA BORDA (GLOBAL) ===\nlet userRule = \"\";\nlet userFound = false;\n\ntry {\n    const editFieldsNode = $('Edit Fields').first();\n    if (editFieldsNode && editFieldsNode.json) {\n        if (editFieldsNode.json.RULE !== undefined && editFieldsNode.json.RULE !== null && editFieldsNode.json.RULE !== \"\") {\n            userFound = true;\n            userRule = editFieldsNode.json.RULE;\n        } else {\n            const sheetItems = $('Get row(s) in sheet1').all();\n            if (sheetItems && sheetItems.length > 0 && Object.keys(sheetItems[0].json).length > 0 && sheetItems[0].json.NUMERO !== undefined && sheetItems[0].json.NUMERO !== null && sheetItems[0].json.NUMERO !== \"\") {\n               userFound = true;\n               userRule = \"USER\";\n            }\n        }\n    }\n} catch(err) {\n    userFound = false;\n}\n\nif (!userFound) {\n    return [{\n      json: {\n        intencao: \"BLOQUEADO\",\n        mensagem_erro: \"\ud83d\udeab *Acesso Bloqueado*\\nDesculpe, seu n\u00famero n\u00e3o est\u00e1 cadastrado no sistema para acessar este servi\u00e7o nem para consultar relat\u00f3rios.\",\n        is_admin: false\n      }\n    }];\n}\n\n// CORRE\u00c7\u00c3O: Garante que userRule n\u00e3o \u00e9 null e \u00e9 uma string antes de chamar toUpperCase()\nconst isAdmin = (userRule && typeof userRule === 'string' && userRule.toUpperCase() === 'ADMIN');\n\nreturn [\n  {\n    json: {\n      intencao: dados.intencao ? dados.intencao.trim() : null,\n      temp_max: dados.temp_max, \n      temp_min: dados.temp_min,\n      volt_max: dados.volt_max,\n      volt_min: dados.volt_min,\n      nova_tensao: dados.nova_tensao,\n      novo_fator: dados.novo_fator, \n      bat_min: dados.bat_min,\n      tempo_porta: dados.tempo_porta,\n      novo_numero: dados.novo_numero,\n      requer_dados: dados.requer_dados,\n      fonte_dados: dados.fonte_dados,\n      is_admin: isAdmin,\n      parametros: {\n        solicitacao_original: dados.parametros ? dados.parametros.solicitacao_original : null,\n        detalhe: dados.parametros ? dados.parametros.detalhe : null\n      }\n    }\n  }\n];\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        55088,
-        26848
-      ],
-      "id": "5ea79f38-b80a-48d6-b22c-8fed805ad17a",
-      "name": "Code in JavaScript"
-    },
-    {
-      "parameters": {
-        "jsCode": "\ntry {\n    const item = $input.first().json;\n    const outputRaw = item.intencao;\n    const remoteJid = item.remoteJid;\n\n    if (!outputRaw) {\n        return { error: \"Campo 'intencao' n\u00e3o encontrado ou vazio\" };\n    }\n\n    if (outputRaw === \"BLOQUEADO\") {\n        return {\n            destination: \"whatsapp\",\n            message: item.mensagem_erro || \"\ud83d\udeab Acesso Bloqueado\",\n            remoteJid: remoteJid\n        };\n    }\n\n    let dados = item;\n    const isAdmin = dados.is_admin === true;\n    \n    // === VALIDA\u00c7\u00c3O DE PERMISS\u00c3O (ADMIN) ===\n    const comandosLiberados = [\"obter_status_atual\", \"obter_ambiente\", \"consultar_relatorio\", \"nenhuma_intencao\"];\n    if (!isAdmin && dados.intencao && !comandosLiberados.includes(dados.intencao)) {\n        return {\n            destination: \"whatsapp\",\n            message: \"\u26a0\ufe0f *Acesso Negado*\\nDesculpe, voc\u00ea n\u00e3o tem permiss\u00e3o de administrador para executar este comando.\\n\\nVoc\u00ea pode apenas consultar status e relat\u00f3rios.\",\n            remoteJid: remoteJid\n        };\n    }\n\n    // === GERENCIAMENTO DE USUARIOS ===\n    if (dados.intencao === \"adicionar_admin\") {\n        if (!dados.novo_numero || dados.requer_dados) {\n            return {\n                destination: \"whatsapp\",\n                message: \"Por favor, me informe o n\u00famero com DDD que deseja adicionar como Administrador (Ex: 81999999999).\",\n                remoteJid: remoteJid\n            };\n        }\n        \n        let num_limpo = dados.novo_numero.toString().replace(/\\D/g, '');\n        \n        return {\n            destination: \"sheets_add_user\",\n            message: \"\u23f3 *Cadastrando Administrador...*\\nAdicionando o n\u00famero \" + num_limpo + \" ao sistema.\",\n            remoteJid: remoteJid,\n            novo_numero: num_limpo,\n            nova_role: \"ADMIN\"\n        };\n    }\n    \n    // Resposta normalizada\n    let resposta = {\n        intencao: dados.intencao || \"nenhuma_intencao\",\n        destination: \"mqtt\", // Default\n        remoteJid: remoteJid,\n        is_admin: isAdmin\n    };\n\n    if (dados.requer_dados) {\n        return {\n            destination: \"whatsapp\",\n            message: \"Entendi seu pedido de \" + dados.intencao.replace('_', ' ') + \", mas preciso de mais detalhes. Qual o valor desejado?\",\n            remoteJid: remoteJid\n        };\n    }\n\n    // Mapeamento de Campos\n    const campos = [\"temp_max\", \"temp_min\", \"volt_max\", \"volt_min\", \"bat_min\", \"tempo_porta\", \"nova_tensao\", \"novo_fator\"];\n    campos.forEach(c => {\n        if (dados[c] !== undefined && dados[c] !== null) resposta[c] = parseFloat(dados[c]);\n    });\n    \n    return resposta;\n\n} catch (e) {\n    return {\n        error: \"Erro no processamento\",\n        detalhe: e.message\n    };\n}\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        55904,
-        26944
-      ],
-      "id": "688f02b4-9ab5-4489-b424-29750d36d92e",
-      "name": "Code in JavaScript1"
-    },
-    {
-      "parameters": {
-        "rules": {
-          "values": [
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
-                },
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.destination }}",
-                    "rightValue": "whatsapp",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    },
-                    "id": "05cb3705-c1ef-4e82-922c-2e24466c77cf"
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "whatsapp"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
-                },
-                "conditions": [
-                  {
-                    "id": "fb8a9f8d-64b1-407a-9cc7-0a24e55f9817",
-                    "leftValue": "={{ $json.destination }}",
-                    "rightValue": "mqtt",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "mqtt"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "caseSensitive": true,
-                  "leftValue": "",
-                  "typeValidation": "strict",
-                  "version": 1
-                },
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.destination }}",
-                    "rightValue": "sheets_add_user",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "sheets_add_user"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
-      "position": [
-        56080,
-        26944
-      ],
-      "id": "e58c7213-3b66-4eee-8061-b4e5c1c238f7",
-      "name": "Switch Validation"
-    },
-    {
-      "parameters": {
-        "resource": "messages-api",
-        "instanceName": "sensor_temperatura",
-        "remoteJid": "={{ $json.remoteJid }}",
-        "messageText": "={{ $json.message }}",
-        "options_message": {}
-      },
-      "type": "n8n-nodes-evolution-api.evolutionApi",
-      "typeVersion": 1,
-      "position": [
-        56288,
-        26864
-      ],
-      "id": "b2d67333-a340-4fd5-b47c-81c7a09f1dee",
-      "name": "Responder Erro",
-      "credentials": {
-        "evolutionApi": {
-          "id": "QqcSRveOqQAdkYAB",
-          "name": "Evolution account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "documentId": {
-          "__rl": true,
-          "value": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?gid=0#gid=0",
-          "mode": "url"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        56080,
-        26496
-      ],
-      "id": "56aaaccb-9cc5-451e-a810-fceb1d4f13cb",
-      "name": "Get row(s) in sheet",
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "YFl1SEKGi4NmAyDc",
-          "name": "Google Sheets account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "let rawOutput = $('AI Agent1').first().json.output;\n// Limpa bloco de markdown (```json ... ```) se houver\nconst codeBlockMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) {\n    rawOutput = codeBlockMatch[1];\n} else {\n    const jsonMatch = rawOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) rawOutput = jsonMatch[0];\n}\n\nlet dados;\ntry {\n  dados = JSON.parse(rawOutput);\n} catch (e) {\n  return [{ json: { error: \"Erro ao interpretar JSON da IA\", detalhe: e.message } }];\n}\n\nconst periodo = dados.periodo;\nconst valor = dados.valor;\n\n//const now = new Date();\nconst now = new Date(\n  new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })\n);\n\n// ===== Helpers =====\nconst pad = (n) => String(n).padStart(2, \"0\");\nconst formatDate = (d) => {\n  if (d instanceof Date && !isNaN(d)) {\n    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;\n  }\n  return null; // Retorna null se a data for inv\u00e1lida\n};\nconst formatTime = (d) =>\n  `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;\nconst cloneDate = (d) => new Date(d.getTime());\n\n// ===== Resultado =====\nlet result = {\n  dispositivo: null,\n  hora_inicio: null,\n  hora_fim: null,\n  data_inicio: null,\n  data_fim: null,\n};\n\n// ===== Switch determin\u00edstico =====\nswitch (periodo) {\n  case \"hoje\": {\n    const d = formatDate(now);\n    result.data_inicio = d;\n    result.data_fim = d;\n    break;\n  }\n  case \"ontem\": {\n    const d = cloneDate(now);\n    d.setDate(d.getDate() - 1);\n    const fd = formatDate(d);\n    result.data_inicio = fd;\n    result.data_fim = fd;\n    break;\n  }\n  case \"ultimas_24_horas\": {\n    const start = cloneDate(now);\n    start.setHours(start.getHours() - 24);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    result.hora_inicio = formatTime(start);\n    result.hora_fim = formatTime(now);\n    break;\n  }\n  case \"ultima_semana\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 7);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimo_mes\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 30);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimos_X_dias\": {\n    if (typeof valor === \"number\" && valor > 0) {\n      const start = cloneDate(now);\n      start.setDate(start.getDate() - valor);\n      result.data_inicio = formatDate(start);\n      result.data_fim = formatDate(now);\n    }\n    break;\n  }\n  case \"intervalo_datas\": {\n    // As datas j\u00e1 v\u00eam formatadas como DD/MM/YYYY do classificador\n    if (dados.data_inicio) {\n      result.data_inicio = dados.data_inicio;\n    }\n    if (dados.data_fim) {\n      result.data_fim = dados.data_fim;\n    }\n    break;\n  }\n  case \"nenhum\":\n  default: {\n    // Se o usu\u00e1rio n\u00e3o informou m\u00eas/ano, assume o m\u00eas/ano corrente\n    const start = new Date(now.getFullYear(), now.getMonth(), 1);\n    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(end);\n    break;\n  }\n}\n\nreturn result;\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        55872,
-        26496
-      ],
-      "id": "05d443aa-f8fe-4e2b-b382-9f4a541d37e1",
-      "name": "Code in JavaScript2"
-    },
-    {
-      "parameters": {
-        "promptType": "define",
-        "text": "=Voc\u00ea \u00e9 um classificador de inten\u00e7\u00e3o e per\u00edodo temporal.\nEntrada do usu\u00e1rio: {{ $json.parametros.solicitacao_original }}\nData atual: {{ $now.setZone('America/Sao_Paulo').format('dd/MM/yyyy HH:mm:ss') }}\nAnalise a mensagem do usu\u00e1rio e retorne:\n1) Inten\u00e7\u00e3o principal\n2) Per\u00edodo temporal NORMALIZADO\n\nN\u00e3o calcule datas, n\u00e3o execute a\u00e7\u00f5es, n\u00e3o explique a resposta.\nRetorne APENAS JSON v\u00e1lido, sem texto extra e apenas um objeto.\n\nINTEN\u00c7\u00d5ES SUPORTADAS:\n- consultar_relatorio\n- nenhuma_intencao\n\nPER\u00cdODOS SUPORTADOS:\n- hoje\n- ontem\n- ultimas_24_horas\n- ultima_semana\n- ultimo_mes\n- ultimos_X_dias\n- intervalo_datas\n- nenhum\n\nREGRAS:\n- O usu\u00e1rio pode escrever de qualquer forma (ex: \"24hs\", \"24 horas\", \"dia inteiro\", \"relat\u00f3rio do dia\").\n- Interprete semanticamente a inten\u00e7\u00e3o.\n- Normalize o per\u00edodo para UM dos valores suportados.\n- Se houver n\u00famero expl\u00edcito de dias, use \"ultimos_X_dias\" e informe o valor.\n- Se o usu\u00e1rio citar um m\u00eas (ex: janeiro, fev, mar\u00e7o) com ou sem ano, use \"intervalo_datas\" e preencha data_inicio e data_fim com o primeiro e o \u00faltimo dia do m\u00eas.\n- Se o usu\u00e1rio pedir \"relat\u00f3rio do m\u00eas\" sem especificar qual, use o m\u00eas atual com \"intervalo_datas\".\n- Se n\u00e3o houver refer\u00eancia temporal clara, use \"nenhum\".\n- Para 'intervalo_datas', se o m\u00eas ou ano n\u00e3o for especificado, considere o m\u00eas e/ou ano atual.\n\nFORMATO DE SA\u00cdDA:\n{\n  \"intencao\": \"consultar_relatorio | nenhuma_intencao\",\n  \"periodo\": \"hoje | ontem | ultimas_24_horas | ultima_semana | ultimo_mes | ultimos_X_dias | intervalo_datas | nenhum\",\n  \"valor\": null,\n  \"data_inicio\": \"dd/MM/yyyy | null\",\n  \"data_fim\": \"dd/MM/yyyy | null\"\n}\n",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
-      "position": [
-        55552,
-        26496
-      ],
-      "id": "7751debc-a704-4d99-a6e5-57e9c92c0a9f",
-      "name": "AI Agent1"
-    },
-    {
-      "parameters": {
-        "model": "qwen/qwen3-235b-a22b-2507",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        55552,
-        26704
-      ],
-      "id": "83fd5b77-c8f4-4d1c-8b24-461f3c9a3868",
-      "name": "OpenRouter Chat Model1",
-      "credentials": {
-        "openRouterApi": {
-          "id": "XMVmk3hYpFTHTSyt",
-          "name": "open router 3"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// ==============================\n// Helpers\n// ==============================\nfunction parseDateBR(dateStr) {\n  if (!dateStr) return null;\n\n  const [day, month, year] = dateStr.split('/').map(Number);\n  return new Date(year, month - 1, day, 0, 0, 0);\n}\n\n// ==============================\n// Datas do filtro (vindas do agente)\n// ==============================\nconst filtro = $items('Code in JavaScript2')[0]?.json || {};\n\nconst dataInicio = parseDateBR(filtro.data_inicio);\nconst dataFim = parseDateBR(filtro.data_fim);\n\n// Prote\u00e7\u00e3o forte\nif (!dataInicio || !dataFim) {\n  return [];\n}\n\n// Ajuste para pegar at\u00e9 o final do dia (23:59:59)\nif (filtro.periodo !== 'ultimas_24_horas') {\n    dataFim.setHours(23, 59, 59, 999);\n}\n\nconst tsInicio = dataInicio.getTime();\nconst tsFim = dataFim.getTime();\n\n// ==============================\n// Filtro + normaliza\u00e7\u00e3o\n// ==============================\nconst resultado = [];\n\nfor (const item of items) {\n  const linha = item.json;\n  const dataLinha = parseDateBR(linha.DATA);\n\n  if (!dataLinha) continue;\n  const hora = linha.HORA || \"00:00\";\n  const [hr, min] = hora.split(':').map(Number);\n  dataLinha.setHours(hr || 0, min || 0, 0, 0);\n\n  const t = dataLinha.getTime();\n\n  if (t >= tsInicio && t <= tsFim) {\n    // \ud83d\udd39 Aqui voc\u00ea entrega o JSON LIMPO\n    resultado.push(linha);\n  }\n}\n\n// ==============================\n// Sa\u00edda FINAL para o HTML\n// ==============================\nreturn [\n  {\n    json: {\n      relatorio: resultado,\n      total: resultado.length,\n      periodo: {\n        inicio: filtro.data_inicio,\n        fim: filtro.data_fim\n      }\n    }\n  }\n];\n"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        56256,
-        26496
-      ],
-      "id": "e959721d-4c11-4582-bc88-893621101cbc",
-      "name": "Code in JavaScript3"
-    },
-    {
-      "parameters": {
-        "html": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Ata para Controle Di\u00e1rio de Temperatura</title>\n  <style>\n    :root {\n      --border: #000;\n      --thin: 1px;\n    }\n\n    * {\n      box-sizing: border-box;\n    }\n\n    body {\n      font-family: \"Times New Roman\", Times, serif;\n      font-size: 11px;\n      color: #000;\n      margin: 18px;\n    }\n\n    .line {\n      border-top: var(--thin) solid var(--border);\n      margin: 8px 0;\n    }\n\n    .header {\n      display: grid;\n      grid-template-columns: 1fr auto 1fr;\n      align-items: center;\n      gap: 8px;\n      margin: 6px 0 8px;\n    }\n\n    .header .left,\n    .header .right {\n      font-size: 10px;\n      text-transform: uppercase;\n    }\n\n    .header .center {\n      text-align: center;\n      font-style: italic;\n      font-size: 16px;\n      font-weight: bold;\n    }\n\n    .title {\n      font-weight: bold;\n      text-transform: uppercase;\n      margin: 6px 0 6px;\n    }\n\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      page-break-inside: auto;\n    }\n\n    th, td {\n      border: var(--thin) solid var(--border);\n      padding: 3px 4px;\n      vertical-align: middle;\n    }\n\n    th {\n      font-weight: bold;\n      text-transform: uppercase;\n      font-size: 9px;\n      text-align: center;\n    }\n\n    .meta th,\n    .meta td {\n      font-size: 10px;\n    }\n\n    .meta .label {\n      width: 90px;\n      text-transform: uppercase;\n      font-weight: bold;\n      text-align: left;\n    }\n\n    .meta .value {\n      height: 18px;\n      font-weight: normal;\n      text-transform: none;\n    }\n\n    .subhead th {\n      background: #f7f7f7;\n    }\n\n    .group {\n      text-align: center;\n      font-weight: bold;\n    }\n\n    .obs {\n      width: 16%;\n    }\n\n    .footer-box {\n      margin-top: 10px;\n      width: 55%;\n    }\n\n    .footer-box td {\n      height: 16px;\n      font-size: 10px;\n    }\n\n    @page {\n      size: A4;\n      margin: 15mm;\n    }\n\n    @media print {\n      body {\n        margin: 0;\n      }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"line\"></div>\n\n  <div class=\"header\">\n    <div class=\"left\">Secretaria de Sa\u00fade</div>\n    <div class=\"center\">Pernambuco</div>\n    <div class=\"right\">Governo do Estado</div>\n  </div>\n\n  <div class=\"line\"></div>\n\n  <div class=\"title\">Ata para controle di\u00e1rio de temperatura</div>\n\n  <table class=\"meta\">\n    <tr>\n      <td class=\"label\">Estado</td>\n      <td class=\"value\">Pernambuco</td>\n      <td class=\"label\">Munic\u00edpio</td>\n      <td class=\"value\">__________________________</td>\n      <td class=\"label\">Unidade Sanit\u00e1ria III GIRES</td>\n      <td class=\"value\">__________________________</td>\n    </tr>\n    <tr>\n      <td class=\"label\">Ano</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { return parts[2]; } } return (new Date()).getFullYear(); })() }}</td>\n      <td class=\"label\">M\u00eas</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { const dt = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])); return dt.toLocaleString('pt-BR', { month: 'long' }); } } return (new Date()).toLocaleString('pt-BR', { month: 'long' }); })() }}</td>\n      <td class=\"label\">Marca da geladeira ou freezer</td>\n      <td class=\"value\">{{ $json.relatorio?.[0]?.DISPOSITIVO ?? '__________________________' }}</td>\n    </tr>\n  </table>\n\n  <table>\n    <thead>\n      <tr>\n        <th rowspan=\"2\">Dia</th>\n        <th class=\"group\" colspan=\"5\">Manh\u00e3</th>\n        <th class=\"group\" colspan=\"5\">Tarde</th>\n        <th class=\"obs\" rowspan=\"2\">Observa\u00e7\u00e3o</th>\n      </tr>\n      <tr class=\"subhead\">\n        <th>Hora</th>\n        <th>M\u00e1x</th>\n        <th>M\u00edn</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n        <th>Hora</th>\n        <th>M\u00e1x</th>\n        <th>M\u00edn</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n      </tr>\n    </thead>\n    <tbody>\n      {{\n        (() => {\n          const toHour = (h) => {\n            if (!h) return null;\n            const m = String(h).match(/(\\d{1,2})(?::(\\d{2}))?/);\n            if (!m) return null;\n            return Number(m[1]);\n          };\n\n          const dados = $json.relatorio || [];\n          const diasAgrupados = {};\n\n          // Agrupa todas as leituras de manh\u00e3 e tarde por dia, sem agrupar/esconder registros\n          dados.forEach(linha => {\n            const dia = (linha.DATA || '').split('/')[0] || '';\n            if (!dia) return;\n            \n            if (!diasAgrupados[dia]) {\n              diasAgrupados[dia] = { \n                dia: dia, \n                manhas: [], \n                tardes: [] \n              };\n            }\n            \n            const hora = toHour(linha.HORA);\n            if (hora !== null && hora >= 12) {\n              diasAgrupados[dia].tardes.push(linha);\n            } else {\n              diasAgrupados[dia].manhas.push(linha);\n            }\n          });\n\n          let htmlOutput = '';\n\n          Object.values(diasAgrupados)\n            .sort((a, b) => Number(a.dia) - Number(b.dia)) // Ordena por diazinho\n            .forEach(grupo => {\n              const extrair = (linha) => {\n                if (!linha) return { hora: '', max: '', min: '', atual: '', rubrica: '', obs: '' };\n                return {\n                  hora: linha.HORA ?? '',\n                  atual: linha[\"TEMP.\"] ?? linha.TEMP ?? '',\n                  max: linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? linha.TEMPMAX ?? linha['TEMP MAX'] ?? linha['TEMP_MAX'] ?? '',\n                  min: linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '',\n                  rubrica: linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '',\n                  obs: linha.OBS ?? linha.OBSERVACAO ?? ''\n                };\n              };\n\n              // Pode haver 3 registros de manh\u00e3 e 1 de tarde no mesmo dia. Precisamos percorrer at\u00e9 o maior n\u00famero.\n              const maxLinhas = Math.max(grupo.manhas.length, grupo.tardes.length, 1);\n\n              for (let i = 0; i < maxLinhas; i++) {\n                const manha = extrair(grupo.manhas[i]);\n                const tarde = extrair(grupo.tardes[i]);\n                const obs = manha.obs || tarde.obs || '';\n                // Somente mostra o n\u00famero do dia na primeira linha desse dia (ou em todas)\n                const labelDia = i === 0 ? grupo.dia : ''; \n\n                htmlOutput += `\n                  <tr>\n                    <td style=\"text-align:center;\">${labelDia}</td>\n                    <td>${manha.hora}</td>\n                    <td>${manha.max}</td>\n                    <td>${manha.min}</td>\n                    <td>${manha.atual}</td>\n                    <td>${manha.rubrica}</td>\n                    <td>${tarde.hora}</td>\n                    <td>${tarde.max}</td>\n                    <td>${tarde.min}</td>\n                    <td>${tarde.atual}</td>\n                    <td>${tarde.rubrica}</td>\n                    <td>${obs}</td>\n                  </tr>\n                `;\n              }\n            });\n\n          return htmlOutput;\n        })()\n      }}\n    </tbody>\n  </table>\n\n  <table class=\"footer-box\">\n    <tr>\n      <td style=\"width: 30%;\">Hora da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Temp. no momento da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Dias parados por falha</td>\n      <td></td>\n    </tr>\n  </table>\n</body>\n</html>\n"
-      },
-      "type": "n8n-nodes-base.html",
-      "typeVersion": 1.2,
-      "position": [
-        56416,
-        26496
-      ],
-      "id": "296e1026-2d80-4d97-98db-e30658b51b91",
-      "name": "HTML"
+      "id": "03e7799e-8707-4ee8-b720-cf46f6fb9769",
+      "name": "If"
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "387af87a-327a-4cca-823f-b9c6a41d2d32",
-              "name": "html_base64",
-              "value": "={{ $json.html.base64Encode() }}",
+              "id": "f6ef7d79-1613-4138-8942-0880afd426df",
+              "name": "body.data.key.fromMe",
+              "value": "={{ $('Webhook').item.json.body.data.key.fromMe }}",
+              "type": "boolean"
+            },
+            {
+              "id": "7b9ae23a-9797-42d3-87b7-2fbbd3637f43",
+              "name": "body.data.key.id",
+              "value": "={{  $('Webhook').item.json.body.data.key.id }}",
+              "type": "string"
+            },
+            {
+              "id": "30cdbaa7-e6f7-456e-8c06-9c9cd84f681f",
+              "name": "body.data.key.participant",
+              "value": "={{  $('Webhook').item.json.body.data.key.participant }}",
+              "type": "string"
+            },
+            {
+              "id": "35c0bf37-ff94-4b00-89cf-6b185f0201d9",
+              "name": "body.data.pushName",
+              "value": "={{  $('Webhook').item.json.body.data.pushName }}",
+              "type": "string"
+            },
+            {
+              "id": "e54dd26c-7e15-4d32-ade3-7ac1664cf900",
+              "name": "body.data.message.conversation",
+              "value": "={{  $('Webhook').item.json.body.data.message.conversation }}",
+              "type": "string"
+            },
+            {
+              "id": "3ec08920-4d6a-4058-b779-43eb3c8690af",
+              "name": "body.data.source",
+              "value": "={{  $('Webhook').item.json.body.data.source }}",
+              "type": "string"
+            },
+            {
+              "id": "7cd64fa4-81b3-463f-90a2-c3d4a90a2744",
+              "name": "body.data.key.remoteJid",
+              "value": "={{  $('Webhook').item.json.body.data.key.remoteJid }}",
+              "type": "string"
+            },
+            {
+              "id": "5f598eed-8777-442e-ac11-c853bc998294",
+              "name": "RULE",
+              "value": "={{ $json.RULE }}",
               "type": "string"
             }
           ]
@@ -599,202 +923,31 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        56592,
-        26496
+        89568,
+        48016
       ],
-      "id": "8919f213-5e76-4969-bf61-3f0579e2dd57",
-      "name": "htmToBase64"
+      "id": "916e623c-0ee5-44ea-8f1c-2da88af66aac",
+      "name": "Edit Fields"
     },
     {
       "parameters": {
-        "operation": "toBinary",
-        "sourceProperty": "html_base64",
-        "options": {
-          "fileName": "index.html",
-          "mimeType": "text/html"
-        }
-      },
-      "type": "n8n-nodes-base.convertToFile",
-      "typeVersion": 1.1,
-      "position": [
-        56768,
-        26496
-      ],
-      "id": "fd1a5664-88ba-4442-a05b-42cc014a7e90",
-      "name": "Convert to File"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "=http://173.249.10.19:3000/forms/chromium/convert/html",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "ngrok-skip-browser-warning",
-              "value": "true"
-            }
-          ]
-        },
-        "sendBody": true,
-        "contentType": "multipart-form-data",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "parameterType": "formBinaryData",
-              "name": "files",
-              "inputDataFieldName": "data"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "file"
-            }
-          }
-        }
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.3,
-      "position": [
-        56960,
-        26496
-      ],
-      "id": "2785fd38-b728-41b7-886e-e53a370c4ab5",
-      "name": "HTTP Request"
-    },
-    {
-      "parameters": {
-        "jsCode": "// Fun\u00e7\u00e3o correta para acessar bin\u00e1rio no n8n\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\n\n// Converter para base64\nconst base64String = binaryData.toString('base64');\n\nreturn [{\n  json: {\n    base64Data: base64String,\n    fileName: '659d1edd-aa6a-467f-ae51-3bca1aae595c.pdf',\n    mimeType: 'application/pdf'\n  }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        57152,
-        26496
-      ],
-      "id": "8c8c1d5d-9f76-4e98-9991-c8bfb7c9bb2d",
-      "name": "Code in JavaScript4"
-    },
-    {
-      "parameters": {
-        "resource": "messages-api",
-        "operation": "send-document",
-        "instanceName": "sensor_temperatura",
-        "remoteJid": "={{ $json.numeroDestinatario }}",
-        "media": "={{ $json.base64Data }}",
-        "caption": "Relat\u00f3rio",
-        "fileName": "relatorio.pdf",
-        "options_message": {}
-      },
-      "type": "n8n-nodes-evolution-api.evolutionApi",
-      "typeVersion": 1,
-      "position": [
-        57568,
-        26496
-      ],
-      "id": "0932fb0d-4119-45eb-9df1-b4b6d7c51304",
-      "name": "Enviar documento1",
-      "credentials": {
-        "evolutionApi": {
-          "id": "QqcSRveOqQAdkYAB",
-          "name": "Evolution account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const remoteJid = $('Webhook').first().json.body.data.key.remoteJid\nconst numero = remoteJid.split('@')[0];\n\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    numeroDestinatario: numero\n  }\n}));"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        57360,
-        26496
-      ],
-      "id": "bdf60408-9903-46e0-b0c9-99fbf2906193",
-      "name": "Code in JavaScript5"
-    },
-    {
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Edit Fields').item.json.body.data.key.remoteJid }}"
-      },
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
-      "position": [
-        55648,
-        26704
-      ],
-      "id": "6314dacc-3ff6-4d89-a4ea-22a86b5d767b",
-      "name": "Simple Memory1"
-    },
-    {
-      "parameters": {
-        "model": "qwen/qwen3-235b-a22b-2507",
+        "httpMethod": "POST",
+        "path": "esp32",
         "options": {}
       },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
       "position": [
-        54768,
-        27040
+        89184,
+        48016
       ],
-      "id": "3957d502-cc94-4ccc-a64f-007ca83ab2ba",
-      "name": "OpenRouter Chat Model",
-      "credentials": {
-        "openRouterApi": {
-          "id": "XMVmk3hYpFTHTSyt",
-          "name": "open router 3"
-        }
-      }
+      "id": "e3730bbd-1456-4bad-a9b1-213e0cf9d4cd",
+      "name": "Webhook",
+      "webhookId": "779ca9f1-da45-4b93-a744-876dc834aafb"
     },
     {
       "parameters": {
-        "documentId": {
-          "__rl": true,
-          "value": "1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4",
-          "mode": "list",
-          "cachedResultName": "users_casinhas",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
-        },
-        "filtersUI": {
-          "values": [
-            {
-              "lookupColumn": "NUMERO",
-              "lookupValue": "={{ $json.body.data.key.remoteJid.split('@')[0] }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        54128,
-        26864
-      ],
-      "id": "a652942a-89f1-40af-8911-ecc2ab8896fc",
-      "name": "Get row(s) in sheet1",
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "YFl1SEKGi4NmAyDc",
-          "name": "Google Sheets account"
-        }
-      },
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "operation": "append",
+        "operation": "update",
         "documentId": {
           "__rl": true,
           "value": "1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4",
@@ -812,16 +965,18 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "NUMERO": "={{ $json.novo_numero }}",
-            "RULE": "={{ $json.nova_role }}"
+            "NUMERO": "={{ $json.exact_numero }}",
+            "RULE": "={{ $json.novo_nivel }}"
           },
-          "matchingColumns": [],
+          "matchingColumns": [
+            "NUMERO"
+          ],
           "schema": [
             {
               "id": "NUMERO",
               "displayName": "NUMERO",
               "required": false,
-              "defaultMatch": false,
+              "defaultMatch": true,
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true
@@ -844,11 +999,11 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        56288,
-        27264
+        92240,
+        48448
       ],
-      "id": "b6f21cc0-a01b-4b93-89ce-c29b87e859f7",
-      "name": "Add Admin to Sheet",
+      "id": "e9567cbd-d33c-47bf-86e6-6fbb5b7cca3b",
+      "name": "Update User Rule Sheet",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "YFl1SEKGi4NmAyDc",
@@ -860,18 +1015,233 @@
       "parameters": {
         "resource": "messages-api",
         "instanceName": "sensor_temperatura",
-        "remoteJid": "={{ $json.remoteJid }}",
-        "messageText": "\u2705 *Administrador cadastrado com sucesso!*\\n\\nO n\u00famero {{ $json.novo_numero }} agora tem acesso de administrador ao sistema.",
+        "remoteJid": "={{ $('Code in JavaScript1').first().json.remoteJid }}",
+        "messageText": "=\u2705 Permiss\u00e3o alterada com sucesso!\n\nO n\u00famero {{ $json.NUMERO }} agora tem acesso de {{ $json.RULE === 'ADMIN' ? 'Administrador' : 'Usu\u00e1rio comum' }} ao sistema.",
         "options_message": {}
       },
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        56512,
-        27264
+        92480,
+        48448
       ],
-      "id": "b87d8243-fd3c-460b-9c7f-dd63997bb947",
-      "name": "Responder Sucesso Admin",
+      "id": "7d392f03-1bde-4de8-99f8-f16cfb727f7c",
+      "name": "Responder Sucesso Update User",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "documentId": {
+          "__rl": true,
+          "value": "1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4",
+          "mode": "list",
+          "cachedResultName": "users_casinhas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "P\u00e1gina1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        92240,
+        48672
+      ],
+      "id": "323f86ec-97aa-4158-b89d-950d17c9b38f",
+      "name": "Delete User from Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $('Code in JavaScript1').first().json.remoteJid }}",
+        "messageText": "=\u2705 Usu\u00e1rio exclu\u00eddo com sucesso!\n\nO n\u00famero {{ $('Code in JavaScript1').first().json.numero_alvo }} foi removido do sistema.",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        92480,
+        48672
+      ],
+      "id": "320fb65c-4712-437c-ab5f-da24871a80d4",
+      "name": "Responder Sucesso Delete User",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4",
+          "mode": "list",
+          "cachedResultName": "users_casinhas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "P\u00e1gina1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        91584,
+        48448
+      ],
+      "id": "07bc735c-e775-4bf7-9c68-a2cc9aabb847",
+      "name": "Get All Users Lookup",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst todos = $input.all(); // all rows from the sheet\n\n// Get original request data from Code in JavaScript1\nconst req = $('Code in JavaScript1').first().json;\nconst rawNumero = req.numero_alvo || '';\nconst operacao = req.operacao;\nconst novoNivel = req.novo_nivel;\nconst remoteJid = req.remoteJid;\n\nfunction gerarFormatos(num) {\n    let n = num.toString().replace(/\\D/g, '');\n    const set = new Set();\n    set.add(n);\n    let sem55 = n.startsWith('55') && n.length >= 12 ? n.substring(2) : n;\n    set.add(sem55);\n    set.add('55' + sem55);\n    if (sem55.length === 10) {\n        const com9 = sem55.substring(0, 2) + '9' + sem55.substring(2);\n        set.add(com9);\n        set.add('55' + com9);\n    } else if (sem55.length === 11) {\n        const sem9 = sem55.substring(0, 2) + sem55.substring(3);\n        set.add(sem9);\n        set.add('55' + sem9);\n    }\n    return [...set];\n}\n\nconst formatos = gerarFormatos(rawNumero);\nlet encontrado = null;\nfor (const row of todos) {\n    const numNaPlanilha = (row.json.NUMERO || '').toString().trim();\n    if (formatos.includes(numNaPlanilha)) {\n        encontrado = row.json;\n        break;\n    }\n}\n\nif (!encontrado) {\n    return [{\n        json: {\n            found: false,\n            remoteJid: remoteJid,\n            message: `\u26a0\ufe0f N\u00famero *${rawNumero}* n\u00e3o encontrado no sistema.\\n\\nVerifique o n\u00famero e tente novamente.`\n        }\n    }];\n}\n\nreturn [{\n    json: {\n        found: true,\n        exact_numero: encontrado.NUMERO,\n        operacao: operacao,\n        novo_nivel: novoNivel,\n        remoteJid: remoteJid\n    }\n}];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        91808,
+        48448
+      ],
+      "id": "3b39abfe-d3b2-47c2-ae02-b4f00eaf087c",
+      "name": "Find and Validate User"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.found }}",
+                    "rightValue": false,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false"
+                    },
+                    "id": "op-not-found"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "nao_encontrado"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operacao }}",
+                    "rightValue": "update",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "op-update"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "fazer_update"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operacao }}",
+                    "rightValue": "delete",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "op-delete"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "fazer_delete"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        92032,
+        48432
+      ],
+      "id": "291be352-c556-4cf5-a8aa-44995b1f67ce",
+      "name": "Switch Operacao"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.remoteJid }}",
+        "messageText": "={{ $json.message }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        92240,
+        48240
+      ],
+      "id": "d0751fba-6732-461b-9de2-5d6b0d87a067",
+      "name": "Responder Nao Encontrado",
       "credentials": {
         "evolutionApi": {
           "id": "QqcSRveOqQAdkYAB",
@@ -882,120 +1252,154 @@
   ],
   "pinData": {},
   "connections": {
-    "Webhook": {
+    "Add Admin to Sheet": {
       "main": [
         [
           {
-            "node": "Get row(s) in sheet1",
+            "node": "Responder Sucesso Add User",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Edit Fields": {
+    "Get row(s) in sheet1": {
       "main": [
         [
           {
-            "node": "If",
+            "node": "Edit Fields",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "If": {
+    "Code in JavaScript5": {
       "main": [
         [
           {
-            "node": "AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "No Operation, do nothing",
+            "node": "Enviar documento1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "AI Agent": {
+    "Code in JavaScript4": {
       "main": [
         [
           {
-            "node": "Code in JavaScript",
+            "node": "Code in JavaScript5",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Edit Fields1": {
+    "HTTP Request": {
       "main": [
         [
           {
-            "node": "If1",
+            "node": "Code in JavaScript4",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "If1": {
+    "Convert to File": {
       "main": [
         [
           {
-            "node": "Code in JavaScript1",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "No Operation, do nothing",
+            "node": "HTTP Request",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "If2": {
+    "htmToBase64": {
       "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "htmToBase64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
         [
           {
             "node": "AI Agent1",
-            "type": "main",
+            "type": "ai_languageModel",
             "index": 0
           }
-        ],
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
         [
           {
-            "node": "Edit Fields1",
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code in JavaScript": {
+    "Code in JavaScript2": {
       "main": [
         [
           {
-            "node": "If2",
+            "node": "Get row(s) in sheet",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code in JavaScript1": {
+    "Get row(s) in sheet": {
       "main": [
         [
           {
-            "node": "Switch Validation",
+            "node": "Code in JavaScript3",
             "type": "main",
             "index": 0
           }
@@ -1024,136 +1428,91 @@
             "type": "main",
             "index": 0
           }
-        ]
-      ]
-    },
-    "Get row(s) in sheet": {
-      "main": [
+        ],
         [
           {
-            "node": "Code in JavaScript3",
+            "node": "Get All Users Lookup",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code in JavaScript2": {
+    "Code in JavaScript1": {
       "main": [
         [
           {
-            "node": "Get row(s) in sheet",
+            "node": "Switch Validation",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "AI Agent1": {
+    "Code in JavaScript": {
       "main": [
         [
           {
-            "node": "Code in JavaScript2",
+            "node": "If2",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Code in JavaScript3": {
+    "If2": {
       "main": [
         [
           {
-            "node": "HTML",
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "HTML": {
+    "If1": {
       "main": [
         [
           {
-            "node": "htmToBase64",
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "htmToBase64": {
+    "Edit Fields1": {
       "main": [
         [
           {
-            "node": "Convert to File",
+            "node": "If1",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Convert to File": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Request": {
-      "main": [
-        [
-          {
-            "node": "Code in JavaScript4",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript4": {
-      "main": [
-        [
-          {
-            "node": "Code in JavaScript5",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript5": {
-      "main": [
-        [
-          {
-            "node": "Enviar documento1",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Simple Memory1": {
+    "Simple Memory": {
       "ai_memory": [
         [
           {
-            "node": "AI Agent1",
+            "node": "AI Agent",
             "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "OpenRouter Chat Model1": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent1",
-            "type": "ai_languageModel",
             "index": 0
           }
         ]
@@ -1170,22 +1529,120 @@
         ]
       ]
     },
-    "Get row(s) in sheet1": {
+    "AI Agent": {
       "main": [
         [
           {
-            "node": "Edit Fields",
+            "node": "Code in JavaScript",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Add Admin to Sheet": {
+    "If": {
       "main": [
         [
           {
-            "node": "Responder Sucesso Admin",
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update User Rule Sheet": {
+      "main": [
+        [
+          {
+            "node": "Responder Sucesso Update User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete User from Sheet": {
+      "main": [
+        [
+          {
+            "node": "Responder Sucesso Delete User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Users Lookup": {
+      "main": [
+        [
+          {
+            "node": "Find and Validate User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find and Validate User": {
+      "main": [
+        [
+          {
+            "node": "Switch Operacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Operacao": {
+      "main": [
+        [
+          {
+            "node": "Responder Nao Encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update User Rule Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Delete User from Sheet",
             "type": "main",
             "index": 0
           }
@@ -1198,7 +1655,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "767e7ba1-35bd-4f8d-a108-eb9aeb791aea",
+  "versionId": "e3c81724-fa3b-441d-b609-a69f5ba0cd62",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "be63eec592610c4f78e7b17a812f5d022e962bcad508e6c20e665203393891ed"
