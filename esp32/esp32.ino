@@ -42,6 +42,7 @@ bool alertasSilenciados =
     false; // Novo flag para silenciar alertas persistentes
 unsigned long manualTimeout = 0;
 String statusSeguranca = "OK";
+String ultimoRemoteJid = ""; // remoteJid do ultimo comando recebido
 
 // ---------- TIMERS ----------
 unsigned long lastTempCheck = 0;
@@ -298,8 +299,14 @@ void processarMensagemMqtt(String topic, String payload) {
   String intencao = doc["intencao"] | "";
   bool isAdmin = doc["is_admin"] | false;
 
+  // Salva remoteJid para incluir nas respostas
+  if (doc.containsKey("remoteJid")) {
+    ultimoRemoteJid = doc["remoteJid"].as<String>();
+  }
+
   Serial.println("[MQTT RX] Intencao: " + intencao +
-                 " | Admin: " + String(isAdmin ? "SIM" : "NAO"));
+                 " | Admin: " + String(isAdmin ? "SIM" : "NAO") +
+                 " | RemoteJid: " + ultimoRemoteJid);
 
   // --- VERIFICAÇÃO DE AUTORIZAÇÃO ---
   // Se não for um comando de leitura ("obter_status_atual", "obter_ambiente"),
@@ -677,6 +684,11 @@ void enviarDadosMqtt(String evento) {
     strftime(hStr, sizeof(hStr), "%H:%M:%S", &timeinfo);
     doc["DATA"] = dStr;
     doc["HORA"] = hStr;
+  }
+
+  // Inclui remoteJid se disponivel (para roteamento de resposta de comandos)
+  if (ultimoRemoteJid.length() > 0) {
+    doc["REMOTE_JID"] = ultimoRemoteJid;
   }
 
   // Publica no tópico de DADOS (telemetria tradicional/n8n)

@@ -189,7 +189,7 @@
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "Página1",
+          "cachedResultName": "P\u00e1gina1",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
         },
         "columns": {
@@ -298,7 +298,7 @@
         "promptType": "define",
         "text": "={{ $json.msg }}",
         "options": {
-          "systemMessage": "Você é um assistente técnico inteligente de monitoramento de Câmara Fria. Sua função é analisar dados de sensores IoT e gerar mensagens humanizadas para WhatsApp.\n\nVocê recebe dados no formato:\nDISPOSITIVO: nome\nTIPO: tipo_do_evento\nTEMP: temperatura_atual\nMAX: pico_maximo_hoje\nMIN: pico_minimo_hoje\nVOLTAGEM: tensao_rede (só presente se monitoramento ativo)\nBATERIA: tensao_bateria (só presente se monitoramento ativo)\nPORTA: estado da porta (só presente se monitoramento ativo)\nMONITORES: {TENSAO: ON/OFF, BATERIA: ON/OFF, PORTA: ON/OFF, AMBIENTE: ON/OFF}\nDATA: data\nHORA: hora\n\nIMPORTANTE:\n- O monitoramento de TEMPERATURA (TEMP) é o CORE do sistema e está SEMPRE ATIVO. NUNCA diga que a temperatura está desativada.\n- O monitoramento 'AMBIENTE' refere-se a sensores SECUNDÁRIOS. Se MONITORES.AMBIENTE = OFF, isso NÃO se aplica à Temperatura (TEMP).\n- MAX e MIN são registros históricos diários. Se forem 'N/A', informe que não há histórico para hoje.\n- Use MAX e MIN apenas para curiosidade histórica.\n- Os outros monitoramentos (Tensão, Bateria, Porta, Ambiente) são OPCIONAIS.\n- Se MONITORES.TENSAO = OFF, NÃO mencione tensão/voltagem no relatório.\n- Se MONITORES.BATERIA = OFF, NÃO mencione bateria no relatório.\n- Se MONITORES.PORTA = OFF, NÃO mencione porta no relatório.\n- Se MONITORES.AMBIENTE = OFF, NÃO mencione ambiente/umidade no relatório.\n- Só inclua no relatório os monitoramentos que estão ON.\n\n---\nMONITORAMENTO DESATIVADO:\nSe TIPO = \"MONITORAMENTO_DESATIVADO\":\nResponda: \"Este monitoramento específico (ex: Porta/Tensão) foi desativado com sucesso. A temperatura continua sendo monitorada.\"\n\n---\nCONFIGURAR MONITORAMENTO:\nQuando o usuário pedir para ativar/desativar monitoramentos, informe que a alteração foi recebida e processada.\nSe TIPO = \"feedback_monitoramento\":\nConfirme que o monitoramento foi configurado e mostre o novo status atual.\n\n---\nREGRAS DE RESPOSTA POR TIPO DE EVENTO:\n\n1. TIPO = \"periodico\" ou \"STATUS_SOLICITADO\":\n   Gere um relatório amigável com emojis:\n   🌡️ *Status Atual*\n   📱Dispositivo: [nome]\n   📅Data: [data]\n   🕰️Hora: [hora]\n   🌡️Temp: [temp]°C\n   📉Picos Hoje: Min [min]°C / Max [max]°C\n   (Se MAX/MIN for 'N/A', diga \"Sem dados hoje\")\n   (Só se MONITORES.BATERIA=ON) 🪫Bateria: [bat]V\n   (Só se MONITORES.TENSAO=ON) 🔌Tensão: [volt]V\n   (Só se MONITORES.PORTA=ON) 🚪Porta: [estado]\n\n   Depois, ANALISE os dados:\n   - Se MONITORES.TENSAO=ON e VOLTAGEM > 200V: ✅ Energia estável\n   - Se MONITORES.TENSAO=ON e VOLTAGEM = 0V: ⚠️ ALERTA: Sem energia!\n\n2. TIPO = \"relatorio_diario\":\n   Inicie com uma saudação adequada ao horário.\n   \"Aqui está o resumo diário do seu monitoramento:\"\n   Siga o mesmo formato do item 1 (Status Atual).\n   Adicione uma nota sobre o reset dos picos diários.\n\n3. TIPO começa com \"ALERTA_\":\n   🚨 GERE UM ALERTA URGENTE! Use emojis de perigo.\n   ATENÇÃO: Leia o TIPO exato para não dar a mensagem errada!\n   - Se TIPO for \"ALERTA_TEMP_BAIXA\", informe que a temperatura está MUITO BAIXA (abaixo da faixa ideal).\n   - Se TIPO for \"ALERTA_TEMP_ALTA\", informe que a temperatura está MUITO ALTA (acima da faixa ideal).\n   Informe o problema claramente e indique a temperatura atual.\n\n4. TIPO termina com \"_NORMALIZADA\" ou TIPO = \"PORTA_FECHADA\" ou TIPO = \"ENERGIA_RESTABELECIDA\":\n   ✅ GERE UM AVISO DE NORMALIZAÇÃO. Use emojis de alívio ou sucesso (ex: ✅, 😌, 👍).\n   Informe claramente que a métrica (Temperatura, Energia, Porta, etc) voltou ao normal e informe o valor atual (ex: a temperatura atual).\n\n5. TIPO = \"feedback_monitoramento\" ou comandos de desativar/ativar:\n   Diga que a alteração foi feita com sucesso.\n   Liste brevemente os dados básicos (TEMP, MAX, MIN, energia, etc).\n\n6. Outros tipos mantenha o padrão amigável anterior, sem mencionar limites configuráveis."
+          "systemMessage": "Voc\u00ea \u00e9 um assistente t\u00e9cnico inteligente de monitoramento de C\u00e2mara Fria. Sua fun\u00e7\u00e3o \u00e9 analisar dados de sensores IoT e gerar mensagens humanizadas para WhatsApp.\n\nVoc\u00ea recebe dados no formato:\nDISPOSITIVO: nome\nTIPO: tipo_do_evento\nTEMP: temperatura_atual\nMAX: pico_maximo_hoje\nMIN: pico_minimo_hoje\nVOLTAGEM: tensao_rede (s\u00f3 presente se monitoramento ativo)\nBATERIA: tensao_bateria (s\u00f3 presente se monitoramento ativo)\nPORTA: estado da porta (s\u00f3 presente se monitoramento ativo)\nMONITORES: {TENSAO: ON/OFF, BATERIA: ON/OFF, PORTA: ON/OFF, AMBIENTE: ON/OFF}\nDATA: data\nHORA: hora\n\nIMPORTANTE:\n- O monitoramento de TEMPERATURA (TEMP) \u00e9 o CORE do sistema e est\u00e1 SEMPRE ATIVO. NUNCA diga que a temperatura est\u00e1 desativada.\n- O monitoramento 'AMBIENTE' refere-se a sensores SECUND\u00c1RIOS. Se MONITORES.AMBIENTE = OFF, isso N\u00c3O se aplica \u00e0 Temperatura (TEMP).\n- MAX e MIN s\u00e3o registros hist\u00f3ricos di\u00e1rios. Se forem 'N/A', informe que n\u00e3o h\u00e1 hist\u00f3rico para hoje.\n- Use MAX e MIN apenas para curiosidade hist\u00f3rica.\n- Os outros monitoramentos (Tens\u00e3o, Bateria, Porta, Ambiente) s\u00e3o OPCIONAIS.\n- Se MONITORES.TENSAO = OFF, N\u00c3O mencione tens\u00e3o/voltagem no relat\u00f3rio.\n- Se MONITORES.BATERIA = OFF, N\u00c3O mencione bateria no relat\u00f3rio.\n- Se MONITORES.PORTA = OFF, N\u00c3O mencione porta no relat\u00f3rio.\n- Se MONITORES.AMBIENTE = OFF, N\u00c3O mencione ambiente/umidade no relat\u00f3rio.\n- S\u00f3 inclua no relat\u00f3rio os monitoramentos que est\u00e3o ON.\n\n---\nMONITORAMENTO DESATIVADO:\nSe TIPO = \"MONITORAMENTO_DESATIVADO\":\nResponda: \"Este monitoramento espec\u00edfico (ex: Porta/Tens\u00e3o) foi desativado com sucesso. A temperatura continua sendo monitorada.\"\n\n---\nCONFIGURAR MONITORAMENTO:\nQuando o usu\u00e1rio pedir para ativar/desativar monitoramentos, informe que a altera\u00e7\u00e3o foi recebida e processada.\nSe TIPO = \"feedback_monitoramento\":\nConfirme que o monitoramento foi configurado e mostre o novo status atual.\n\n---\nREGRAS DE RESPOSTA POR TIPO DE EVENTO:\n\n1. TIPO = \"periodico\" ou \"STATUS_SOLICITADO\":\n   Gere um relat\u00f3rio amig\u00e1vel com emojis:\n   \ud83c\udf21\ufe0f *Status Atual*\n   \ud83d\udcf1Dispositivo: [nome]\n   \ud83d\udcc5Data: [data]\n   \ud83d\udd70\ufe0fHora: [hora]\n   \ud83c\udf21\ufe0fTemp: [temp]\u00b0C\n   \ud83d\udcc9Picos Hoje: Min [min]\u00b0C / Max [max]\u00b0C\n   (Se MAX/MIN for 'N/A', diga \"Sem dados hoje\")\n   (S\u00f3 se MONITORES.BATERIA=ON) \ud83e\udeabBateria: [bat]V\n   (S\u00f3 se MONITORES.TENSAO=ON) \ud83d\udd0cTens\u00e3o: [volt]V\n   (S\u00f3 se MONITORES.PORTA=ON) \ud83d\udeaaPorta: [estado]\n\n   Depois, ANALISE os dados:\n   - Se MONITORES.TENSAO=ON e VOLTAGEM > 200V: \u2705 Energia est\u00e1vel\n   - Se MONITORES.TENSAO=ON e VOLTAGEM = 0V: \u26a0\ufe0f ALERTA: Sem energia!\n\n2. TIPO = \"relatorio_diario\":\n   Inicie com uma sauda\u00e7\u00e3o adequada ao hor\u00e1rio.\n   \"Aqui est\u00e1 o resumo di\u00e1rio do seu monitoramento:\"\n   Siga o mesmo formato do item 1 (Status Atual).\n   Adicione uma nota sobre o reset dos picos di\u00e1rios.\n\n3. TIPO come\u00e7a com \"ALERTA_\":\n   \ud83d\udea8 GERE UM ALERTA URGENTE! Use emojis de perigo.\n   ATEN\u00c7\u00c3O: Leia o TIPO exato para n\u00e3o dar a mensagem errada!\n   - Se TIPO for \"ALERTA_TEMP_BAIXA\", informe que a temperatura est\u00e1 MUITO BAIXA (abaixo da faixa ideal).\n   - Se TIPO for \"ALERTA_TEMP_ALTA\", informe que a temperatura est\u00e1 MUITO ALTA (acima da faixa ideal).\n   Informe o problema claramente e indique a temperatura atual.\n\n4. TIPO termina com \"_NORMALIZADA\" ou TIPO = \"PORTA_FECHADA\" ou TIPO = \"ENERGIA_RESTABELECIDA\":\n   \u2705 GERE UM AVISO DE NORMALIZA\u00c7\u00c3O. Use emojis de al\u00edvio ou sucesso (ex: \u2705, \ud83d\ude0c, \ud83d\udc4d).\n   Informe claramente que a m\u00e9trica (Temperatura, Energia, Porta, etc) voltou ao normal e informe o valor atual (ex: a temperatura atual).\n\n5. TIPO = \"feedback_monitoramento\" ou comandos de desativar/ativar:\n   Diga que a altera\u00e7\u00e3o foi feita com sucesso.\n   Liste brevemente os dados b\u00e1sicos (TEMP, MAX, MIN, energia, etc).\n\n6. Outros tipos mantenha o padr\u00e3o amig\u00e1vel anterior, sem mencionar limites configur\u00e1veis."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -329,6 +329,193 @@
           "name": "open router 3"
         }
       }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4",
+          "mode": "list",
+          "cachedResultName": "users_casinhas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "P\u00e1gina1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        16096,
+        5616
+      ],
+      "id": "node-read-users-broadcast",
+      "name": "Read Users for Broadcast",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        16256,
+        5616
+      ],
+      "id": "node-split-users-broadcast",
+      "name": "Split Users Broadcast"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.NUMERO }}",
+        "messageText": "={{ $('AI Agent').first().json.output || $('Edit Fields').first().json.msg }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        16416,
+        5616
+      ],
+      "id": "node-enviar-todos-broadcast",
+      "name": "Enviar para Todos",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": "={{ Math.floor(Math.random() * 271) + 30 }}",
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        16576,
+        5776
+      ],
+      "id": "node-wait-antispam",
+      "name": "Wait Anti-Spam",
+      "webhookId": "b17a93cb-2e5d-4a88-bfe1-cc48fd7c1035"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst item = $input.first().json;\nconst tipo = (item.TIPO || item['0']?.TIPO || '').toString();\nconst remoteJid = item.REMOTE_JID || '';\n\n// Map of ESP32 response types to human-friendly WhatsApp messages\nconst mensagens = {\n  'MANUTENCAO_ATIVADA':     '\ud83d\udd27 *Modo Manuten\u00e7\u00e3o ativado!*\\n\\nTodos alertas e relat\u00f3rios foram suspensos.\\nO dispositivo est\u00e1 em manuten\u00e7\u00e3o.',\n  'MANUTENCAO_DESATIVADA':  '\u2705 *Modo Operacional restaurado!*\\n\\nO sistema voltou ao monitoramento autom\u00e1tico.',\n  'EM_MANUTENCAO':          '\u26a0\ufe0f *Dispositivo em manuten\u00e7\u00e3o.*\\n\\nComandos bloqueados. Envie \"operacional\" para sair do modo manuten\u00e7\u00e3o.',\n  'ALARME_SILENCIADO':      '\ud83d\udd15 *Alarme silenciado.*\\n\\nOs alertas persistentes foram suspensos at\u00e9 normaliza\u00e7\u00e3o.',\n  'ERRO_NAO_AUTORIZADO':    '\ud83d\udeab *Acesso negado.*\\n\\nVoc\u00ea n\u00e3o tem permiss\u00e3o para executar este comando.',\n  'feedback_comando':        '\u2705 *Comando executado com sucesso.*',\n  'feedback_configuracao':  '\u2699\ufe0f *Configura\u00e7\u00e3o atualizada com sucesso!*',\n  'feedback_calibracao_sucesso': '\ud83d\udccf *Calibra\u00e7\u00e3o realizada com sucesso!*',\n  'feedback_calibracao_bateria': '\ud83d\udd0b *Calibra\u00e7\u00e3o de bateria realizada!*',\n  'ALERTA_ERRO_CALIBRACAO_FATOR': '\u274c *Erro na calibra\u00e7\u00e3o:* fator inv\u00e1lido.',\n  'ALERTA_ERRO_CALIBRACAO_TENSAO_BAIXA': '\u274c *Erro na calibra\u00e7\u00e3o:* tens\u00e3o lida muito baixa.',\n};\n\nconst mensagem = mensagens[tipo];\n\n// Is this a command response? (has a known tipo AND has remoteJid)\nif (mensagem && remoteJid) {\n  return [{\n    json: {\n      _tipo_resposta: 'COMANDO',\n      remoteJid: remoteJid,\n      msg: mensagem\n    }\n  }];\n}\n\n// Otherwise: it's telemetry data - pass through to AI Agent as-is\nreturn [{\n  json: {\n    _tipo_resposta: 'TELEMETRIA',\n    ...item\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        15648,
+        5616
+      ],
+      "id": "node-roteador-resposta",
+      "name": "Roteador de Resposta"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._tipo_resposta }}",
+                    "rightValue": "COMANDO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "tipo-cmd"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "comando"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._tipo_resposta }}",
+                    "rightValue": "TELEMETRIA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "tipo-tel"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telemetria"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        15768,
+        5616
+      ],
+      "id": "node-switch-tipo-resposta",
+      "name": "Tipo de Resposta"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.remoteJid }}",
+        "messageText": "={{ $json.msg }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        15888,
+        5776
+      ],
+      "id": "node-enviar-resposta-comando",
+      "name": "Enviar Resposta Comando",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -348,18 +535,7 @@
       "main": [
         [
           {
-            "node": "AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Enviar texto": {
-      "main": [
-        [
-          {
-            "node": "Wait",
+            "node": "Roteador de Resposta",
             "type": "main",
             "index": 0
           }
@@ -381,7 +557,7 @@
       "main": [
         [
           {
-            "node": "Enviar texto",
+            "node": "Read Users for Broadcast",
             "type": "main",
             "index": 0
           }
@@ -402,6 +578,86 @@
     "Google Gemini Chat Model": {
       "ai_languageModel": [
         []
+      ]
+    },
+    "Read Users for Broadcast": {
+      "main": [
+        [
+          {
+            "node": "Split Users Broadcast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Users Broadcast": {
+      "main": [
+        [
+          {
+            "node": "Enviar para Todos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar para Todos": {
+      "main": [
+        [
+          {
+            "node": "Wait Anti-Spam",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Anti-Spam": {
+      "main": [
+        [
+          {
+            "node": "Split Users Broadcast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Roteador de Resposta": {
+      "main": [
+        [
+          {
+            "node": "Tipo de Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tipo de Resposta": {
+      "main": [
+        [
+          {
+            "node": "Enviar Resposta Comando",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
