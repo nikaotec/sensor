@@ -10,10 +10,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        13024,
-        6848
+        53920,
+        26864
       ],
-      "id": "ddf2e426-3595-4a5f-8e06-278bac7e978b",
+      "id": "b6ae43f8-0b1c-4c91-9af3-769d1146b4a9",
       "name": "Webhook",
       "webhookId": "779ca9f1-da45-4b93-a744-876dc834aafb"
     },
@@ -24,43 +24,49 @@
             {
               "id": "f6ef7d79-1613-4138-8942-0880afd426df",
               "name": "body.data.key.fromMe",
-              "value": "={{ $json.body.data.key.fromMe }}",
+              "value": "={{ $('Webhook').item.json.body.data.key.fromMe }}",
               "type": "boolean"
             },
             {
               "id": "7b9ae23a-9797-42d3-87b7-2fbbd3637f43",
               "name": "body.data.key.id",
-              "value": "={{ $json.body.data.key.id }}",
+              "value": "={{  $('Webhook').item.json.body.data.key.id }}",
               "type": "string"
             },
             {
               "id": "30cdbaa7-e6f7-456e-8c06-9c9cd84f681f",
               "name": "body.data.key.participant",
-              "value": "={{ $json.body.data.key.participant }}",
+              "value": "={{  $('Webhook').item.json.body.data.key.participant }}",
               "type": "string"
             },
             {
               "id": "35c0bf37-ff94-4b00-89cf-6b185f0201d9",
               "name": "body.data.pushName",
-              "value": "={{ $json.body.data.pushName }}",
+              "value": "={{  $('Webhook').item.json.body.data.pushName }}",
               "type": "string"
             },
             {
               "id": "e54dd26c-7e15-4d32-ade3-7ac1664cf900",
               "name": "body.data.message.conversation",
-              "value": "={{ $json.body.data.message.conversation }}",
+              "value": "={{  $('Webhook').item.json.body.data.message.conversation }}",
               "type": "string"
             },
             {
               "id": "3ec08920-4d6a-4058-b779-43eb3c8690af",
               "name": "body.data.source",
-              "value": "={{ $json.body.data.source }}",
+              "value": "={{  $('Webhook').item.json.body.data.source }}",
               "type": "string"
             },
             {
               "id": "7cd64fa4-81b3-463f-90a2-c3d4a90a2744",
               "name": "body.data.key.remoteJid",
-              "value": "={{ $json.body.data.key.remoteJid }}",
+              "value": "={{  $('Webhook').item.json.body.data.key.remoteJid }}",
+              "type": "string"
+            },
+            {
+              "id": "5f598eed-8777-442e-ac11-c853bc998294",
+              "name": "RULE",
+              "value": "={{ $json.RULE }}",
               "type": "string"
             }
           ]
@@ -70,10 +76,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        13216,
-        6848
+        54304,
+        26864
       ],
-      "id": "44594be4-083b-4f43-93af-df166aebaa0d",
+      "id": "3b047f3e-102e-4e48-b3bd-734286407693",
       "name": "Edit Fields"
     },
     {
@@ -124,10 +130,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        13424,
-        6848
+        54480,
+        26864
       ],
-      "id": "76587f8c-1f6e-41e2-93f5-da003956d0f1",
+      "id": "a5651ee3-1ce4-4399-9008-a341bfead00b",
       "name": "If"
     },
     {
@@ -135,16 +141,16 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        13872,
-        7472
+        54912,
+        27488
       ],
-      "id": "520e6651-97c6-4bf0-b4b7-7669a2e5ce1a",
+      "id": "50f35896-d4ff-4d04-b955-5c6d62abd83d",
       "name": "No Operation, do nothing"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Voc\u00ea \u00e9 um CLASSIFICADOR DE INTEN\u00c7\u00c3O puro. Sua \u00fanica fun\u00e7\u00e3o \u00e9 extrair dados de uma mensagem e retornar um JSON.\n\nN\u00c3O GERE C\u00d3DIGO. N\u00c3O GERE EXPLICA\u00c7\u00d5ES. N\u00c3O GERE TEMPLATES ({{ if ... }}).\nAPENAS JSON V\u00c1LIDO.\n\n---\nMENSAGEM: {{ $json.body.data.message.conversation }}\n---\n\nINTEN\u00c7\u00d5ES POSS\u00cdVEIS:\n- configurar_limites (par\u00e2metros: temp_max, temp_min, volt_max, volt_min, bat_min, tempo_porta)\n- ligar_rele / desligar_rele\n- modo_manutencao \u2014 ATIVAR manuten\u00e7\u00e3o (suspender alertas e comandos)\n- modo_operacional \u2014 DESATIVAR manuten\u00e7\u00e3o (retomar monitoramento normal)\n- silenciar_alarme\n- calibrar_tensao (par\u00e2metro: nova_tensao) \u2014 para calibrar sensor de TENS\u00c3O DA REDE EL\u00c9TRICA (110V/220V)\n- calibrar_bateria (par\u00e2metro: nova_tensao) \u2014 para calibrar sensor de BATERIA (12V)\n- obter_status_atual\n- consultar_relatorio\n- habilitar_porta / desabilitar_porta \u2014 LIGAR ou DESLIGAR alertas de porta\n- habilitar_tensao / desabilitar_tensao \u2014 LIGAR ou DESLIGAR alertas de tens\u00e3o\n- habilitar_bateria / desabilitar_bateria \u2014 LIGAR ou DESLIGAR alertas de bateria\n\nREGRAS DE DISAMBIGUA\u00c7\u00c3O:\n\nMANUTEN\u00c7\u00c3O vs OPERACIONAL:\n- \"manuten\u00e7\u00e3o\", \"manuten\u00e7\u00e3o\", \"parar\", \"suspender\", \"pausar monitoramento\" \u2192 modo_manutencao\n- \"operacional\", \"voltar\", \"retomar\", \"reativar\", \"ativar monitoramento\", \"sair da manuten\u00e7\u00e3o\" \u2192 modo_operacional\n\nTENS\u00c3O vs BATERIA:\n- Se a mensagem mencionar \"bateria\", \"bat\", \"12V\", \"nobreak\", \"backup\" \u2192 calibrar_bateria\n- Se a mensagem mencionar \"tens\u00e3o\", \"rede\", \"220V\", \"110V\", \"energia\" \u2192 calibrar_tensao\n- Se ambiguo, pergunte ao usu\u00e1rio (requer_dados: true)\n\nREGRAS DE EXTRA\u00c7\u00c3O:\n1. Se a mensagem for \"Calibrar tens\u00e3o para 220V\", retorne:\n   { \"intencao\": \"calibrar_tensao\", \"nova_tensao\": 220, \"requer_dados\": false }\n\n2. Se a mensagem for \"Calibrar bateria para 12.4V\", retorne:\n   { \"intencao\": \"calibrar_bateria\", \"nova_tensao\": 12.4, \"requer_dados\": false }\n\n3. Se a mensagem for \"Calibrar tens\u00e3o\" (sem valor), retorne:\n   { \"intencao\": \"calibrar_tensao\", \"nova_tensao\": null, \"requer_dados\": true }\n\n4. Se a mensagem for \"Calibrar bateria\" (sem valor), retorne:\n   { \"intencao\": \"calibrar_bateria\", \"nova_tensao\": null, \"requer_dados\": true }\n\n5. Se a mensagem for \"Silenciar alarme\", retorne:\n   { \"intencao\": \"silenciar_alarme\" }\n\n6. Se a mensagem for \"Status\", retorne:\n   { \"intencao\": \"obter_status_atual\" }\n\n7. Se a mensagem for \"Manuten\u00e7\u00e3o\", retorne:\n   { \"intencao\": \"modo_manutencao\" }\n\n8. Se a mensagem for \"Operacional\", retorne:\n   { \"intencao\": \"modo_operacional\" }\n\n9. Para \"Limites\":\n   - \"Bateria minima 11.5\" -> { \"intencao\": \"configurar_limites\", \"bat_min\": 11.5 }\n   - \"Porta 30s\" -> { \"intencao\": \"configurar_limites\", \"tempo_porta\": 30 }\n\n10. Para Habilitar/Desabilitar:\n   - \"n\u00e3o quero mais alerta de porta\" ou \"desativar porta\" -> { \"intencao\": \"desabilitar_porta\" }\n   - \"voltar a monitorar porta\" -> { \"intencao\": \"habilitar_porta\" }\n   - \"n\u00e3o alerte para tens\u00e3o\" -> { \"intencao\": \"desabilitar_tensao\" }\n\nFORMATO DE SA\u00cdDA OBRIGAT\u00d3RIO:\n{\n  \"intencao\": \"string\",\n  \"temp_max\": number | null,\n  \"temp_min\": number | null,\n  \"volt_max\": number | null,\n  \"volt_min\": number | null,\n  \"bat_min\": number | null,\n  \"tempo_porta\": number | null,\n  \"nova_tensao\": number | null,\n  \"requer_dados\": boolean,\n  \"fonte_dados\": \"mqtt\" | null,\n  \"parametros\": {\n    \"solicitacao_original\": \"{{ $json.body.data.message.conversation }}\",\n    \"detalhe\": null\n  }\n}\n",
+        "text": "=Voc\u00ea \u00e9 um CLASSIFICADOR DE INTEN\u00c7\u00c3O puro. Sua \u00fanica fun\u00e7\u00e3o \u00e9 extrair dados de uma mensagem e retornar um JSON.\n\nN\u00c3O GERE C\u00d3DIGO. N\u00c3O GERE EXPLICA\u00c7\u00d5ES. N\u00c3O GERE TEMPLATES .\nAPENAS JSON V\u00c1LIDO.\n\n---\nMENSAGEM: {{ $json.body.data.message.conversation }}\n---\n\nINTEN\u00c7\u00d5ES POSS\u00cdVEIS:\n- adicionar_admin (par\u00e2metros: novo_numero)\n- configurar_limites (par\u00e2metros: temp_max, temp_min, volt_max, volt_min, bat_min, tempo_porta)\n- ligar_rele / desligar_rele\n- modo_manutencao \u2014 ATIVAR manuten\u00e7\u00e3o (suspender alertas e comandos)\n- modo_operacional \u2014 DESATIVAR manuten\u00e7\u00e3o (retomar monitoramento normal)\n- silenciar_alarme\n- calibrar_tensao (par\u00e2metro: nova_tensao) \u2014 para calibrar sensor de TENS\u00c3O DA REDE EL\u00c9TRICA (110V/220V)\n- calibrar_bateria (par\u00e2metro: nova_tensao) \u2014 para calibrar sensor de BATERIA (12V)\n- obter_status_atual\n- consultar_relatorio\n- habilitar_porta / desabilitar_porta \u2014 LIGAR ou DESLIGAR alertas de porta\n- habilitar_tensao / desabilitar_tensao \u2014 LIGAR ou DESLIGAR alertas de tens\u00e3o\n- habilitar_bateria / desabilitar_bateria \u2014 LIGAR ou DESLIGAR alertas de bateria\n\nREGRAS DE DISAMBIGUA\u00c7\u00c3O:\n\nMANUTEN\u00c7\u00c3O vs OPERACIONAL:\n- \"manuten\u00e7\u00e3o\", \"manuten\u00e7\u00e3o\", \"parar\", \"suspender\", \"pausar monitoramento\" \u2192 modo_manutencao\n- \"operacional\", \"voltar\", \"retomar\", \"reativar\", \"ativar monitoramento\", \"sair da manuten\u00e7\u00e3o\" \u2192 modo_operacional\n\nTENS\u00c3O vs BATERIA:\n- Se a mensagem mencionar \"bateria\", \"bat\", \"12V\", \"nobreak\", \"backup\" \u2192 calibrar_bateria\n- Se a mensagem mencionar \"tens\u00e3o\", \"rede\", \"220V\", \"110V\", \"energia\" \u2192 calibrar_tensao\n- Se ambiguo, pergunte ao usu\u00e1rio (requer_dados: true)\n\nREGRAS DE EXTRA\u00c7\u00c3O:\n1. Se a mensagem for \"Calibrar tens\u00e3o para 220V\", retorne:\n   { \"intencao\": \"calibrar_tensao\", \"nova_tensao\": 220, \"requer_dados\": false }\n\n2. Se a mensagem for \"Calibrar bateria para 12.4V\", retorne:\n   { \"intencao\": \"calibrar_bateria\", \"nova_tensao\": 12.4, \"requer_dados\": false }\n\n3. Se a mensagem for \"Calibrar tens\u00e3o\" (sem valor), retorne:\n   { \"intencao\": \"calibrar_tensao\", \"nova_tensao\": null, \"requer_dados\": true }\n\n4. Se a mensagem for \"Calibrar bateria\" (sem valor), retorne:\n   { \"intencao\": \"calibrar_bateria\", \"nova_tensao\": null, \"requer_dados\": true }\n\n5. Se a mensagem for \"Silenciar alarme\", retorne:\n   { \"intencao\": \"silenciar_alarme\" }\n\n6. Se a mensagem for \"Status\", retorne:\n   { \"intencao\": \"obter_status_atual\" }\n\n7. Se a mensagem for \"Manuten\u00e7\u00e3o\", retorne:\n   { \"intencao\": \"modo_manutencao\" }\n\n8. Se a mensagem for \"Operacional\", retorne:\n   { \"intencao\": \"modo_operacional\" }\n\n9. Para \"Limites\":\n   - \"Bateria minima 11.5\" -> { \"intencao\": \"configurar_limites\", \"bat_min\": 11.5 }\n   - \"Porta 30s\" -> { \"intencao\": \"configurar_limites\", \"tempo_porta\": 30 }\n\n10. Para Habilitar/Desabilitar:\n   - \"n\u00e3o quero mais alerta de porta\" ou \"desativar porta\" -> { \"intencao\": \"desabilitar_porta\" }\n   - \"voltar a monitorar porta\" -> { \"intencao\": \"habilitar_porta\" }\n   - \"n\u00e3o alerte para tens\u00e3o\" -> { \"intencao\": \"desabilitar_tensao\" }\n\n\n11. Se a mensagem for \"Adicionar o numero 81999999999 como admin\", retorne:\n   { \"intencao\": \"adicionar_admin\", \"novo_numero\": \"81999999999\" }\n\n\n12. Se o usu\u00e1rio pedir para adicionar um admin mas n\u00e3o informar o n\u00famero, retorne:\n   { \"intencao\": \"adicionar_admin\", \"novo_numero\": null, \"requer_dados\": true }\n\nFORMATO DE SA\u00cdDA OBRIGAT\u00d3RIO:\n{\n  \"intencao\": \"string\",\n  \"temp_max\": number | null,\n  \"temp_min\": number | null,\n  \"volt_max\": number | null,\n  \"volt_min\": number | null,\n  \"bat_min\": number | null,\n  \"tempo_porta\": number | null,\n  \"novo_numero\": \"string | null\",\n  \"nova_tensao\": number | null,\n  \"requer_dados\": boolean,\n  \"fonte_dados\": \"mqtt\" | null,\n  \"parametros\": {\n    \"solicitacao_original\": \"{{ $json.body.data.message.conversation }}\",\n    \"detalhe\": null\n  }\n}\n",
         "options": {
           "systemMessage": "You are a helpful assistant"
         }
@@ -152,10 +158,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        13696,
-        6832
+        54768,
+        26848
       ],
-      "id": "38c691ca-6fa5-467c-a55a-44c6d4b8ae10",
+      "id": "06ad2dc0-352e-4b3a-8190-0f6eaa370978",
       "name": "AI Agent"
     },
     {
@@ -236,17 +242,15 @@
             }
           ]
         },
-        "options": {
-          "ignoreTypeConversionErrors": true
-        }
+        "options": {}
       },
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        14496,
-        6928
+        55536,
+        26944
       ],
-      "id": "e4799fd2-197c-441d-ad90-26693c3441f3",
+      "id": "7d9fc365-825d-4ce5-a851-f2823e9987c0",
       "name": "Edit Fields1"
     },
     {
@@ -277,10 +281,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        14656,
-        6928
+        55696,
+        26944
       ],
-      "id": "1c3e3bcb-1c80-462d-8c07-759c7c51a0cd",
+      "id": "4311befa-38ad-4e7d-a410-e6ec61ad101b",
       "name": "If1"
     },
     {
@@ -291,10 +295,10 @@
       "type": "n8n-nodes-base.mqtt",
       "typeVersion": 1,
       "position": [
-        15248,
-        7040
+        56288,
+        27056
       ],
-      "id": "f9bf6eea-3e5e-4dec-ab2a-324ca43173ef",
+      "id": "833ed7b9-09c3-490c-b48f-68679a8cb16c",
       "name": "MQTT",
       "credentials": {
         "mqtt": {
@@ -330,36 +334,36 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        14272,
-        6832
+        55312,
+        26848
       ],
-      "id": "0929a658-fc69-43c6-9eae-c8b2d022f074",
+      "id": "34d1750e-4ed2-4a53-a5d4-0ca8503046ee",
       "name": "If2"
     },
     {
       "parameters": {
-        "jsCode": "const outputRaw = $input.item.json.output;\n\n// 1. Extra\u00e7\u00e3o robusta do bloco JSON (Markdown ou texto puro)\nlet jsonString = outputRaw;\n\n// Tenta encontrar bloco ```json ... ``` ou ``` ... ```\nconst codeBlockMatch = outputRaw.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) {\n    jsonString = codeBlockMatch[1]; // Pega o conte\u00fado de dentro das crases\n} else {\n    // Se n\u00e3o tiver crases, tenta encontrar o primeiro { at\u00e9 o \u00faltimo }\n    const jsonMatch = outputRaw.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n        jsonString = jsonMatch[0];\n    }\n}\n\n// 2. Sanitiza\u00e7\u00e3o de Caracteres de Controle e L\u00f3gica de Template Alucinada\n// Se a string come\u00e7ar com {{, a IA alucinou um template Handlebars/Jinja.\n// Nesse caso, tentamos limpar apenas o JSON v\u00e1lido se poss\u00edvel, ou falhamos com erro claro.\n\n// Remove caracteres de controle inv\u00e1lidos\njsonString = jsonString.replace(/[\\u0000-\\u001F]+/g, \"\");\n\nlet dados;\ntry {\n  dados = JSON.parse(jsonString);\n} catch (e) {\n  // Fallback: Tente corrigir erros comuns de JSON inv\u00e1lido gerado por LLMs\n  try {\n      const clean = jsonString\n          .replace(/(['\"])?([a-zA-Z0-9_]+)(['\"])?:/g, '\"$2\":') // Garante aspas nas chaves\n          .replace(/'/g, '\"'); // Troca aspas simples por duplas (arriscado, mas funciona pra IAs simples)\n      dados = JSON.parse(clean);\n  } catch (e2) {\n      // Se falhar tudo, retorne um objeto de erro seguro para n\u00e3o quebrar o fluxo inteiro\n      // A IA provavelmente gerou lixo ou c\u00f3digo template.\n      return [{\n          json: {\n            error: \"Falha cr\u00edtica no parse JSON\",\n            raw_output: outputRaw,\n            intencao: \"erro_parse_ia\",\n            requer_dados: false,\n            // Preenche o resto com null para evitar erros downstream\n            temp_max: null, temp_min: null, volt_max: null, volt_min: null,\n            bat_min: null, tempo_porta: null, nova_tensao: null, novo_fator: null,\n            parametros: { solicitacao_original: outputRaw, detalhe: e.message }\n          }\n      }];\n  }\n}\n\nreturn [\n  {\n    json: {\n      intencao: dados.intencao ? dados.intencao.trim() : null,\n      temp_max: dados.temp_max, \n      temp_min: dados.temp_min,\n      volt_max: dados.volt_max,\n      volt_min: dados.volt_min,\n      nova_tensao: dados.nova_tensao,\n      novo_fator: dados.novo_fator, \n      bat_min: dados.bat_min,\n      tempo_porta: dados.tempo_porta,\n      requer_dados: dados.requer_dados,\n      fonte_dados: dados.fonte_dados,\n      parametros: {\n        solicitacao_original: dados.parametros ? dados.parametros.solicitacao_original : null,\n        detalhe: dados.parametros ? dados.parametros.detalhe : null\n      }\n    }\n  }\n];\n"
+        "jsCode": "\nconst outputRaw = $input.item.json.output;\nconst remoteJid = $('Webhook').item.json.body.data.key.remoteJid;\n\nlet jsonString = outputRaw;\nconst codeBlockMatch = outputRaw.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) {\n    jsonString = codeBlockMatch[1];\n} else {\n    const jsonMatch = outputRaw.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) jsonString = jsonMatch[0];\n}\n\njsonString = jsonString.replace(/[\\u0000-\\u001F]+/g, \"\");\n\nlet dados;\ntry {\n  dados = JSON.parse(jsonString);\n} catch (e) {\n  try {\n      const clean = jsonString\n          .replace(/(['\"])?([a-zA-Z0-9_]+)(['\"])?:/g, '\"$2\":') \n          .replace(/'/g, '\"'); \n      dados = JSON.parse(clean);\n  } catch (e2) {\n      return [{\n          json: { error: \"Falha cr\u00edtica no parse JSON\", intencao: \"erro_parse_ia\", requer_dados: false }\n      }];\n  }\n}\n\n// === VALIDA\u00c7\u00c3O NA BORDA (GLOBAL) ===\nlet userRule = \"\";\nlet userFound = false;\n\ntry {\n    const editFieldsNode = $('Edit Fields').first();\n    if (editFieldsNode && editFieldsNode.json) {\n        if (editFieldsNode.json.RULE !== undefined && editFieldsNode.json.RULE !== null && editFieldsNode.json.RULE !== \"\") {\n            userFound = true;\n            userRule = editFieldsNode.json.RULE;\n        } else {\n            const sheetItems = $('Get row(s) in sheet1').all();\n            if (sheetItems && sheetItems.length > 0 && Object.keys(sheetItems[0].json).length > 0 && sheetItems[0].json.NUMERO !== undefined && sheetItems[0].json.NUMERO !== null && sheetItems[0].json.NUMERO !== \"\") {\n               userFound = true;\n               userRule = \"USER\";\n            }\n        }\n    }\n} catch(err) {\n    userFound = false;\n}\n\nif (!userFound) {\n    return [{\n      json: {\n        intencao: \"BLOQUEADO\",\n        mensagem_erro: \"\ud83d\udeab *Acesso Bloqueado*\\nDesculpe, seu n\u00famero n\u00e3o est\u00e1 cadastrado no sistema para acessar este servi\u00e7o nem para consultar relat\u00f3rios.\",\n        is_admin: false\n      }\n    }];\n}\n\n// CORRE\u00c7\u00c3O: Garante que userRule n\u00e3o \u00e9 null e \u00e9 uma string antes de chamar toUpperCase()\nconst isAdmin = (userRule && typeof userRule === 'string' && userRule.toUpperCase() === 'ADMIN');\n\nreturn [\n  {\n    json: {\n      intencao: dados.intencao ? dados.intencao.trim() : null,\n      temp_max: dados.temp_max, \n      temp_min: dados.temp_min,\n      volt_max: dados.volt_max,\n      volt_min: dados.volt_min,\n      nova_tensao: dados.nova_tensao,\n      novo_fator: dados.novo_fator, \n      bat_min: dados.bat_min,\n      tempo_porta: dados.tempo_porta,\n      novo_numero: dados.novo_numero,\n      requer_dados: dados.requer_dados,\n      fonte_dados: dados.fonte_dados,\n      is_admin: isAdmin,\n      parametros: {\n        solicitacao_original: dados.parametros ? dados.parametros.solicitacao_original : null,\n        detalhe: dados.parametros ? dados.parametros.detalhe : null\n      }\n    }\n  }\n];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        14048,
-        6832
+        55088,
+        26848
       ],
-      "id": "60ff0b63-9f84-4533-bb16-96d5be749410",
+      "id": "5ea79f38-b80a-48d6-b22c-8fed805ad17a",
       "name": "Code in JavaScript"
     },
     {
       "parameters": {
-        "jsCode": "\ntry {\n    const item = $input.first().json;\n    const outputRaw = item.intencao;\n    const remoteJid = item.remoteJid;\n\n    if (!outputRaw) {\n        return { error: \"Campo 'intencao' n\u00e3o encontrado ou vazio\" };\n    }\n\n    let dados = item;\n    \n    // Resposta normalizada\n    let resposta = {\n        intencao: dados.intencao || \"nenhuma_intencao\",\n        destination: \"mqtt\", // Default\n        remoteJid: remoteJid\n    };\n\n    // === VALIDA\u00c7\u00c3O DE DADOS FALTANTES (Chatbot) ===\n    if (dados.requer_dados) {\n        return {\n            destination: \"whatsapp\",\n            message: \"Entendi seu pedido de \" + dados.intencao.replace('_', ' ') + \", mas preciso de mais detalhes. Qual o valor desejado?\",\n            remoteJid: remoteJid\n        };\n    }\n    \n    // === ATUALIZA\u00c7\u00c3O DE STATUS ===\n    if (dados.intencao === \"obter_status_atual\") {\n        // Envia comando para ESP32 e aguarda resposta (ou ESP32 publica periodicamente)\n        // Aqui apenas repassamos a inten\u00e7\u00e3o via MQTT e o ESP32 deve responder\n    }\n\n    // Mapeamento de Campos\n    const campos = [\"temp_max\", \"temp_min\", \"volt_max\", \"volt_min\", \"bat_min\", \"tempo_porta\", \"nova_tensao\", \"novo_fator\"];\n    campos.forEach(c => {\n        if (dados[c] !== undefined && dados[c] !== null) resposta[c] = parseFloat(dados[c]);\n    });\n    \n    return resposta;\n\n} catch (e) {\n    return {\n        error: \"Erro no processamento\",\n        detalhe: e.message\n    };\n}\n"
+        "jsCode": "\ntry {\n    const item = $input.first().json;\n    const outputRaw = item.intencao;\n    const remoteJid = item.remoteJid;\n\n    if (!outputRaw) {\n        return { error: \"Campo 'intencao' n\u00e3o encontrado ou vazio\" };\n    }\n\n    if (outputRaw === \"BLOQUEADO\") {\n        return {\n            destination: \"whatsapp\",\n            message: item.mensagem_erro || \"\ud83d\udeab Acesso Bloqueado\",\n            remoteJid: remoteJid\n        };\n    }\n\n    let dados = item;\n    const isAdmin = dados.is_admin === true;\n    \n    // === VALIDA\u00c7\u00c3O DE PERMISS\u00c3O (ADMIN) ===\n    const comandosLiberados = [\"obter_status_atual\", \"obter_ambiente\", \"consultar_relatorio\", \"nenhuma_intencao\"];\n    if (!isAdmin && dados.intencao && !comandosLiberados.includes(dados.intencao)) {\n        return {\n            destination: \"whatsapp\",\n            message: \"\u26a0\ufe0f *Acesso Negado*\\nDesculpe, voc\u00ea n\u00e3o tem permiss\u00e3o de administrador para executar este comando.\\n\\nVoc\u00ea pode apenas consultar status e relat\u00f3rios.\",\n            remoteJid: remoteJid\n        };\n    }\n\n    // === GERENCIAMENTO DE USUARIOS ===\n    if (dados.intencao === \"adicionar_admin\") {\n        if (!dados.novo_numero || dados.requer_dados) {\n            return {\n                destination: \"whatsapp\",\n                message: \"Por favor, me informe o n\u00famero com DDD que deseja adicionar como Administrador (Ex: 81999999999).\",\n                remoteJid: remoteJid\n            };\n        }\n        \n        let num_limpo = dados.novo_numero.toString().replace(/\\D/g, '');\n        \n        return {\n            destination: \"sheets_add_user\",\n            message: \"\u23f3 *Cadastrando Administrador...*\\nAdicionando o n\u00famero \" + num_limpo + \" ao sistema.\",\n            remoteJid: remoteJid,\n            novo_numero: num_limpo,\n            nova_role: \"ADMIN\"\n        };\n    }\n    \n    // Resposta normalizada\n    let resposta = {\n        intencao: dados.intencao || \"nenhuma_intencao\",\n        destination: \"mqtt\", // Default\n        remoteJid: remoteJid,\n        is_admin: isAdmin\n    };\n\n    if (dados.requer_dados) {\n        return {\n            destination: \"whatsapp\",\n            message: \"Entendi seu pedido de \" + dados.intencao.replace('_', ' ') + \", mas preciso de mais detalhes. Qual o valor desejado?\",\n            remoteJid: remoteJid\n        };\n    }\n\n    // Mapeamento de Campos\n    const campos = [\"temp_max\", \"temp_min\", \"volt_max\", \"volt_min\", \"bat_min\", \"tempo_porta\", \"nova_tensao\", \"novo_fator\"];\n    campos.forEach(c => {\n        if (dados[c] !== undefined && dados[c] !== null) resposta[c] = parseFloat(dados[c]);\n    });\n    \n    return resposta;\n\n} catch (e) {\n    return {\n        error: \"Erro no processamento\",\n        detalhe: e.message\n    };\n}\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        14864,
-        6928
+        55904,
+        26944
       ],
-      "id": "6005853a-1012-4e82-9ed1-f45ad424141f",
+      "id": "688f02b4-9ab5-4489-b424-29750d36d92e",
       "name": "Code in JavaScript1"
     },
     {
@@ -413,6 +417,29 @@
               },
               "renameOutput": true,
               "outputKey": "mqtt"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.destination }}",
+                    "rightValue": "sheets_add_user",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "sheets_add_user"
             }
           ]
         },
@@ -421,10 +448,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        15040,
-        6928
+        56080,
+        26944
       ],
-      "id": "74597148-c983-4a0c-ab0b-20a98191f01d",
+      "id": "e58c7213-3b66-4eee-8061-b4e5c1c238f7",
       "name": "Switch Validation"
     },
     {
@@ -438,10 +465,10 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        15248,
-        6848
+        56288,
+        26864
       ],
-      "id": "61b68b74-374d-4ec1-bcda-10d0a2075833",
+      "id": "b2d67333-a340-4fd5-b47c-81c7a09f1dee",
       "name": "Responder Erro",
       "credentials": {
         "evolutionApi": {
@@ -461,7 +488,7 @@
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "Página1",
+          "cachedResultName": "P\u00e1gina1",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
         },
         "options": {}
@@ -469,10 +496,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        15040,
-        6480
+        56080,
+        26496
       ],
-      "id": "c8633826-f0c3-4868-8553-170f97d373a0",
+      "id": "56aaaccb-9cc5-451e-a810-fceb1d4f13cb",
       "name": "Get row(s) in sheet",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -488,10 +515,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        14832,
-        6480
+        55872,
+        26496
       ],
-      "id": "865ae61d-bb8c-41c2-bfe1-3cf68edab687",
+      "id": "05d443aa-f8fe-4e2b-b382-9f4a541d37e1",
       "name": "Code in JavaScript2"
     },
     {
@@ -503,10 +530,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        14512,
-        6480
+        55552,
+        26496
       ],
-      "id": "317a52e4-b441-446e-9b97-025b35e776ea",
+      "id": "7751debc-a704-4d99-a6e5-57e9c92c0a9f",
       "name": "AI Agent1"
     },
     {
@@ -517,15 +544,15 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        14912,
-        6688
+        55552,
+        26704
       ],
-      "id": "ae8b4bc8-d78b-40ac-b124-d8d18218b18d",
+      "id": "83fd5b77-c8f4-4d1c-8b24-461f3c9a3868",
       "name": "OpenRouter Chat Model1",
       "credentials": {
         "openRouterApi": {
           "id": "XMVmk3hYpFTHTSyt",
-          "name": "OpenRouter account"
+          "name": "open router 3"
         }
       }
     },
@@ -536,10 +563,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        15216,
-        6480
+        56256,
+        26496
       ],
-      "id": "72148648-b99e-4042-81e6-e3d3d4e01993",
+      "id": "e959721d-4c11-4582-bc88-893621101cbc",
       "name": "Code in JavaScript3"
     },
     {
@@ -549,10 +576,10 @@
       "type": "n8n-nodes-base.html",
       "typeVersion": 1.2,
       "position": [
-        15376,
-        6480
+        56416,
+        26496
       ],
-      "id": "b9edebf6-84a5-4dcf-9ef4-5a356cdf7e48",
+      "id": "296e1026-2d80-4d97-98db-e30658b51b91",
       "name": "HTML"
     },
     {
@@ -572,10 +599,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        15552,
-        6480
+        56592,
+        26496
       ],
-      "id": "b08cd69f-580e-4af8-a5f8-c3d556355741",
+      "id": "8919f213-5e76-4969-bf61-3f0579e2dd57",
       "name": "htmToBase64"
     },
     {
@@ -590,16 +617,25 @@
       "type": "n8n-nodes-base.convertToFile",
       "typeVersion": 1.1,
       "position": [
-        15728,
-        6480
+        56768,
+        26496
       ],
-      "id": "c774396b-c1c6-40cb-a823-3de362f294e5",
+      "id": "fd1a5664-88ba-4442-a05b-42cc014a7e90",
       "name": "Convert to File"
     },
     {
       "parameters": {
         "method": "POST",
         "url": "=http://173.249.10.19:3000/forms/chromium/convert/html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "multipart-form-data",
         "bodyParameters": {
@@ -611,20 +647,10 @@
             }
           ]
         },
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "ngrok-skip-browser-warning",
-              "value": "true"
-            }
-          ]
-        },
         "options": {
           "response": {
             "response": {
-              "responseFormat": "file",
-              "outputPropertyName": "data"
+              "responseFormat": "file"
             }
           }
         }
@@ -632,10 +658,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        15920,
-        6480
+        56960,
+        26496
       ],
-      "id": "8ab2a418-8e92-4bcd-9232-3f625eecd13e",
+      "id": "2785fd38-b728-41b7-886e-e53a370c4ab5",
       "name": "HTTP Request"
     },
     {
@@ -645,10 +671,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        16112,
-        6480
+        57152,
+        26496
       ],
-      "id": "998ea8b9-dcbd-4472-9efd-d5f22399dc99",
+      "id": "8c8c1d5d-9f76-4e98-9991-c8bfb7c9bb2d",
       "name": "Code in JavaScript4"
     },
     {
@@ -665,10 +691,10 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        16528,
-        6480
+        57568,
+        26496
       ],
-      "id": "eab5c2e7-eaa0-4b84-a8df-00962f2dd678",
+      "id": "0932fb0d-4119-45eb-9df1-b4b6d7c51304",
       "name": "Enviar documento1",
       "credentials": {
         "evolutionApi": {
@@ -684,64 +710,11 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        16320,
-        6480
+        57360,
+        26496
       ],
-      "id": "ed55bdb8-45b1-4877-87cd-5e0bcf7fc304",
+      "id": "bdf60408-9903-46e0-b0c9-99fbf2906193",
       "name": "Code in JavaScript5"
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1,
-      "position": [
-        14480,
-        6688
-      ],
-      "id": "385bb9ca-4557-4d7c-bfa1-13cf62b11fb0",
-      "name": "Google Gemini Chat Model",
-      "credentials": {
-        "googlePalmApi": {
-          "id": "MywRDCvjWfb2xBnW",
-          "name": "Google Gemini(PaLM) Api account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1,
-      "position": [
-        13696,
-        7072
-      ],
-      "id": "86497e8c-d8ff-4d86-9637-41865356ce3e",
-      "name": "Google Gemini Chat Model1",
-      "credentials": {
-        "googlePalmApi": {
-          "id": "MywRDCvjWfb2xBnW",
-          "name": "Google Gemini(PaLM) Api account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "sessionIdType": "customKey",
-        "sessionKey": "={{ $json.body.data.key.remoteJid }}",
-        "contextWindowLength": "={{ 5 }}"
-      },
-      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      "typeVersion": 1.3,
-      "position": [
-        13776,
-        7024
-      ],
-      "id": "0fd94df6-777f-49bb-8788-ef56c647ff1b",
-      "name": "Simple Memory"
     },
     {
       "parameters": {
@@ -751,11 +724,160 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        14608,
-        6688
+        55648,
+        26704
       ],
-      "id": "b7ba74f0-4ed2-4001-9f0b-0121dab9e021",
+      "id": "6314dacc-3ff6-4d89-a4ea-22a86b5d767b",
       "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        54768,
+        27040
+      ],
+      "id": "3957d502-cc94-4ccc-a64f-007ca83ab2ba",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "XMVmk3hYpFTHTSyt",
+          "name": "open router 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4",
+          "mode": "list",
+          "cachedResultName": "users_casinhas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "P\u00e1gina1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "NUMERO",
+              "lookupValue": "={{ $json.body.data.key.remoteJid.split('@')[0] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        54128,
+        26864
+      ],
+      "id": "a652942a-89f1-40af-8911-ecc2ab8896fc",
+      "name": "Get row(s) in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4",
+          "mode": "list",
+          "cachedResultName": "users_casinhas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "P\u00e1gina1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "NUMERO": "={{ $json.novo_numero }}",
+            "RULE": "={{ $json.nova_role }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "NUMERO",
+              "displayName": "NUMERO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "RULE",
+              "displayName": "RULE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        56288,
+        27264
+      ],
+      "id": "b6f21cc0-a01b-4b93-89ce-c29b87e859f7",
+      "name": "Add Admin to Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.remoteJid }}",
+        "messageText": "\u2705 *Administrador cadastrado com sucesso!*\\n\\nO n\u00famero {{ $json.novo_numero }} agora tem acesso de administrador ao sistema.",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        56512,
+        27264
+      ],
+      "id": "b87d8243-fd3c-460b-9c7f-dd63997bb947",
+      "name": "Responder Sucesso Admin",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -764,7 +886,7 @@
       "main": [
         [
           {
-            "node": "Edit Fields",
+            "node": "Get row(s) in sheet1",
             "type": "main",
             "index": 0
           }
@@ -895,6 +1017,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "Add Admin to Sheet",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -929,11 +1058,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "OpenRouter Chat Model1": {
-      "ai_languageModel": [
-        []
       ]
     },
     "Code in JavaScript3": {
@@ -1013,45 +1137,56 @@
         ]
       ]
     },
-    "Google Gemini Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent1",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Google Gemini Chat Model1": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Simple Memory": {
-      "ai_memory": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Simple Memory1": {
       "ai_memory": [
         [
           {
             "node": "AI Agent1",
             "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Admin to Sheet": {
+      "main": [
+        [
+          {
+            "node": "Responder Sucesso Admin",
+            "type": "main",
             "index": 0
           }
         ]
@@ -1063,7 +1198,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "c1e7dcc4-b9cd-4406-bd44-865b64e0670c",
+  "versionId": "767e7ba1-35bd-4f8d-a108-eb9aeb791aea",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "be63eec592610c4f78e7b17a812f5d022e962bcad508e6c20e665203393891ed"

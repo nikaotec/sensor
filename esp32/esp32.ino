@@ -296,7 +296,22 @@ void processarMensagemMqtt(String topic, String payload) {
   }
 
   String intencao = doc["intencao"] | "";
-  Serial.println("[MQTT RX] Intencao: " + intencao);
+  bool isAdmin = doc["is_admin"] | false;
+
+  Serial.println("[MQTT RX] Intencao: " + intencao +
+                 " | Admin: " + String(isAdmin ? "SIM" : "NAO"));
+
+  // --- VERIFICAÇÃO DE AUTORIZAÇÃO ---
+  // Se não for um comando de leitura ("obter_status_atual", "obter_ambiente"),
+  // requer ser admin
+  if (intencao != "" && intencao != "obter_status_atual" &&
+      intencao != "obter_ambiente") {
+    if (!isAdmin) {
+      Serial.println("[MQTT RX] BLOQUEADO - Usuario nao autorizado");
+      enviarDadosMqtt("ERRO_NAO_AUTORIZADO");
+      return;
+    }
+  }
 
   // --- MODO MANUTENÇÃO: Bloqueia todos os comandos exceto
   // modo_manutencao/modo_operacional ---
