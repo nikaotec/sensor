@@ -3,46 +3,6 @@
   "nodes": [
     {
       "parameters": {
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
-      "typeVersion": 1,
-      "position": [
-        15760,
-        5824
-      ],
-      "id": "5a7494fc-2fb3-40a6-aec2-fd7ca53357f5",
-      "name": "Google Gemini Chat Model",
-      "credentials": {
-        "googlePalmApi": {
-          "id": "MywRDCvjWfb2xBnW",
-          "name": "Google Gemini(PaLM) Api account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "options": {
-          "temperature": 0.5
-        }
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
-      "typeVersion": 1,
-      "position": [
-        16224,
-        5904
-      ],
-      "id": "11e40d94-0ef6-485d-9b31-cd5570c5c3d9",
-      "name": "DeepSeek Chat Model",
-      "credentials": {
-        "deepSeekApi": {
-          "id": "6TsuPLR4Iqz1wXOr",
-          "name": "DeepSeek account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "topics": "esp32c3/data",
         "options": {
           "jsonParseBody": true,
@@ -52,10 +12,10 @@
       "type": "n8n-nodes-base.mqttTrigger",
       "typeVersion": 1,
       "position": [
-        15504,
-        5616
+        51904,
+        21344
       ],
-      "id": "757ac2e3-47ec-49c8-9606-5d613952ec26",
+      "id": "8a0f9a79-7ed2-4543-bfa5-5d7742683836",
       "name": "MQTT Trigger",
       "credentials": {
         "mqtt": {
@@ -103,6 +63,96 @@
               "name": "numeros",
               "value": "[{ \"phone\": \"5581995981890\" }, { \"phone\": \"5581996678501\" }]",
               "type": "array"
+            },
+            {
+              "id": "ef-tipo-field",
+              "name": "TIPO",
+              "value": "={{ $json['0'].TIPO || $json.TIPO || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-remote-jid",
+              "name": "REMOTE_JID",
+              "value": "={{ $json['0'].REMOTE_JID || $json['0'].REMOTE_jid || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-max",
+              "name": "MAX",
+              "value": "={{ $json['0'].MAX ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-min",
+              "name": "MIN",
+              "value": "={{ $json['0'].MIN ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-voltagem",
+              "name": "VOLTAGEM",
+              "value": "={{ $json['0'].VOLTAGEM || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-bateria",
+              "name": "BATERIA",
+              "value": "={{ $json['0'].BATERIA || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-rssi",
+              "name": "RSSI",
+              "value": "={{ $json['0'].RSSI || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-modo",
+              "name": "MODO",
+              "value": "={{ $json['0'].MODO || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-rele",
+              "name": "RELE",
+              "value": "={{ $json['0'].RELE ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-alarm-max",
+              "name": "ALARM_MAX",
+              "value": "={{ $json['0'].ALARM_MAX || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-alarm-min",
+              "name": "ALARM_MIN",
+              "value": "={{ $json['0'].ALARM_MIN || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-volt_max_limit",
+              "name": "VOLT_MAX_LIMIT",
+              "value": "={{ $json['0'].VOLT_MAX_LIMIT || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-volt_min_limit",
+              "name": "VOLT_MIN_LIMIT",
+              "value": "={{ $json['0'].VOLT_MIN_LIMIT || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-bat_min_limit",
+              "name": "BAT_MIN_LIMIT",
+              "value": "={{ $json['0'].BAT_MIN_LIMIT  || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-door_time",
+              "name": "DOOR_TIME",
+              "value": "={{ $json['0'].DOOR_TIME       || '' }}",
+              "type": "string"
             }
           ]
         },
@@ -111,69 +161,11 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        15680,
-        5616
+        52080,
+        21344
       ],
-      "id": "6cbe1b3e-5cd4-4ede-8a32-ad12eded0ef7",
+      "id": "1027a877-75c6-4c51-a2eb-56512f161c75",
       "name": "Edit Fields"
-    },
-    {
-      "parameters": {
-        "resource": "messages-api",
-        "instanceName": "sensor_temperatura",
-        "remoteJid": "5581995981890",
-        "messageText": "={{ $json.output || $json.msg }}",
-        "options_message": {}
-      },
-      "type": "n8n-nodes-evolution-api.evolutionApi",
-      "typeVersion": 1,
-      "position": [
-        16416,
-        5616
-      ],
-      "id": "06070abc-27cc-472f-b19f-7e85067de130",
-      "name": "Enviar texto",
-      "credentials": {
-        "evolutionApi": {
-          "id": "QqcSRveOqQAdkYAB",
-          "name": "Evolution account"
-        }
-      }
-    },
-    {
-      "parameters": {},
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        16576,
-        5616
-      ],
-      "id": "525d60ba-8f6a-4405-b5f2-7f1eba9c4364",
-      "name": "Wait",
-      "webhookId": "a07f83fa-9ef3-4fb6-9dce-fb47fd6b95bb"
-    },
-    {
-      "parameters": {
-        "resource": "messages-api",
-        "instanceName": "sensor_temperatura",
-        "remoteJid": "5581997070639",
-        "messageText": "={{ $json.data.message.conversation }}",
-        "options_message": {}
-      },
-      "type": "n8n-nodes-evolution-api.evolutionApi",
-      "typeVersion": 1,
-      "position": [
-        16704,
-        5824
-      ],
-      "id": "92c725b0-4c5d-4359-b62b-f2d56f218b8d",
-      "name": "Enviar texto1",
-      "credentials": {
-        "evolutionApi": {
-          "id": "QqcSRveOqQAdkYAB",
-          "name": "Evolution account"
-        }
-      }
     },
     {
       "parameters": {
@@ -195,84 +187,17 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "HORA": "={{ $('MQTT Trigger').item.json['0'].HORA }}",
-            "DATA": "={{ $('MQTT Trigger').item.json['0'].DATA }}",
-            "DISPOSITIVO": "={{ $('MQTT Trigger').item.json['0'].DISPOSITIVO }}",
-            "TEMP.": "={{ $('MQTT Trigger').item.json['0'].TEMP_ATUAL }}",
-            "MAX": "={{ $('MQTT Trigger').item.json['0'].MAX }}",
-            "MIN": "={{ $('MQTT Trigger').item.json['0'].MIN }}"
+            "HORA": "={{ $json.HORA }}",
+            "DATA": "={{ $json.DATA }}",
+            "DISPOSITIVO": "={{ $json.DISPOSITIVO }}",
+            "TEMP.": "={{ $json.TEMP }}",
+            "MAX": "={{ $json.MAX }}",
+            "MIN": "={{ $json.MIN }}",
+            "VOLTAGEM": "={{ $json.VOLTAGEM }}",
+            "BATERIA": "={{ $json.BATERIA }}",
+            "OBS": "={{ $json.OBS }}"
           },
           "matchingColumns": [],
-          "schema": [
-            {
-              "id": "DISPOSITIVO",
-              "displayName": "DISPOSITIVO",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "DATA",
-              "displayName": "DATA",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "HORA",
-              "displayName": "HORA",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true
-            },
-            {
-              "id": "TEMP.",
-              "displayName": "TEMP.",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "MAX",
-              "displayName": "MAX",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "MIN",
-              "displayName": "MIN",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            },
-            {
-              "id": "VOLTAGEM",
-              "displayName": "VOLTAGEM",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "type": "string",
-              "canBeUsedToMatch": true,
-              "removed": false
-            }
-          ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         },
@@ -281,10 +206,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        16736,
-        5616
+        53296,
+        21360
       ],
-      "id": "bdac849a-2a99-4c9e-8af6-05c1e160ee51",
+      "id": "a26d44e4-59a1-46f0-b93d-f80f8bf9716d",
       "name": "salva temperatura",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -304,10 +229,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        15888,
-        5616
+        52688,
+        21360
       ],
-      "id": "d45f542d-34b7-466e-b851-bd1017d58f8c",
+      "id": "420e7068-a994-4750-b8c6-1aa4657cbb1f",
       "name": "AI Agent"
     },
     {
@@ -318,10 +243,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        15888,
-        5824
+        52688,
+        21568
       ],
-      "id": "ac8e9740-7165-4fe8-9250-1043703b8abb",
+      "id": "a6c65c35-8b87-4dfe-8dd6-50891e5409b2",
       "name": "OpenRouter Chat Model",
       "credentials": {
         "openRouterApi": {
@@ -351,10 +276,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        16096,
-        5616
+        53104,
+        21360
       ],
-      "id": "node-read-users-broadcast",
+      "id": "3c48f9a3-8f4b-4986-b8e6-0ef9c14ed395",
       "name": "Read Users for Broadcast",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -365,33 +290,32 @@
     },
     {
       "parameters": {
-        "batchSize": 1,
         "options": {}
       },
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        16256,
-        5616
+        53472,
+        21360
       ],
-      "id": "node-split-users-broadcast",
+      "id": "b5f9d75c-150e-430c-878f-f4d56e288e06",
       "name": "Split Users Broadcast"
     },
     {
       "parameters": {
         "resource": "messages-api",
         "instanceName": "sensor_temperatura",
-        "remoteJid": "={{ $json.NUMERO }}",
+        "remoteJid": "={{ $json.NUMERO }}@s.whatsapp.net",
         "messageText": "={{ $('AI Agent').first().json.output || $('Edit Fields').first().json.msg }}",
         "options_message": {}
       },
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        16416,
-        5616
+        53648,
+        21456
       ],
-      "id": "node-enviar-todos-broadcast",
+      "id": "f2f1ad3c-4883-48a8-b619-7882e5d90b4d",
       "name": "Enviar para Todos",
       "credentials": {
         "evolutionApi": {
@@ -402,31 +326,29 @@
     },
     {
       "parameters": {
-        "resume": "timeInterval",
-        "amount": "={{ Math.floor(Math.random() * 271) + 30 }}",
-        "unit": "seconds"
+        "amount": "={{ Math.floor(Math.random() * 271) + 30 }}"
       },
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        16576,
-        5776
+        53824,
+        21456
       ],
-      "id": "node-wait-antispam",
+      "id": "41c4813e-e05b-465a-a4f7-0ca6f2cf697b",
       "name": "Wait Anti-Spam",
       "webhookId": "b17a93cb-2e5d-4a88-bfe1-cc48fd7c1035"
     },
     {
       "parameters": {
-        "jsCode": "\nconst item = $input.first().json;\nconst tipo = (item.TIPO || item['0']?.TIPO || '').toString();\nconst remoteJid = item.REMOTE_JID || '';\n\n// Map of ESP32 response types to human-friendly WhatsApp messages\nconst mensagens = {\n  'MANUTENCAO_ATIVADA':     '\ud83d\udd27 *Modo Manuten\u00e7\u00e3o ativado!*\\n\\nTodos alertas e relat\u00f3rios foram suspensos.\\nO dispositivo est\u00e1 em manuten\u00e7\u00e3o.',\n  'MANUTENCAO_DESATIVADA':  '\u2705 *Modo Operacional restaurado!*\\n\\nO sistema voltou ao monitoramento autom\u00e1tico.',\n  'EM_MANUTENCAO':          '\u26a0\ufe0f *Dispositivo em manuten\u00e7\u00e3o.*\\n\\nComandos bloqueados. Envie \"operacional\" para sair do modo manuten\u00e7\u00e3o.',\n  'ALARME_SILENCIADO':      '\ud83d\udd15 *Alarme silenciado.*\\n\\nOs alertas persistentes foram suspensos at\u00e9 normaliza\u00e7\u00e3o.',\n  'ERRO_NAO_AUTORIZADO':    '\ud83d\udeab *Acesso negado.*\\n\\nVoc\u00ea n\u00e3o tem permiss\u00e3o para executar este comando.',\n  'feedback_comando':        '\u2705 *Comando executado com sucesso.*',\n  'feedback_configuracao':  '\u2699\ufe0f *Configura\u00e7\u00e3o atualizada com sucesso!*',\n  'feedback_calibracao_sucesso': '\ud83d\udccf *Calibra\u00e7\u00e3o realizada com sucesso!*',\n  'feedback_calibracao_bateria': '\ud83d\udd0b *Calibra\u00e7\u00e3o de bateria realizada!*',\n  'ALERTA_ERRO_CALIBRACAO_FATOR': '\u274c *Erro na calibra\u00e7\u00e3o:* fator inv\u00e1lido.',\n  'ALERTA_ERRO_CALIBRACAO_TENSAO_BAIXA': '\u274c *Erro na calibra\u00e7\u00e3o:* tens\u00e3o lida muito baixa.',\n};\n\nconst mensagem = mensagens[tipo];\n\n// Is this a command response? (has a known tipo AND has remoteJid)\nif (mensagem && remoteJid) {\n  return [{\n    json: {\n      _tipo_resposta: 'COMANDO',\n      remoteJid: remoteJid,\n      msg: mensagem\n    }\n  }];\n}\n\n// Otherwise: it's telemetry data - pass through to AI Agent as-is\nreturn [{\n  json: {\n    _tipo_resposta: 'TELEMETRIA',\n    ...item\n  }\n}];\n"
+        "jsCode": "\nconst item = $input.first().json;\nconst tipo = (item.TIPO || '').toString();\nconst remoteJid = item.REMOTE_JID || item.REMOTE_jid || '';\n\n// \u2500\u2500 Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst fmt = (v, unit='') => (v !== undefined && v !== null && v !== '') ? `${v}${unit}` : '?';\n\n// \u2500\u2500 CATEGORY 1: COMANDO \u2013 preformatted static messages \u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst mensagensComando = {\n  'MANUTENCAO_ATIVADA':     '\ud83d\udd27 *Modo Manuten\u00e7\u00e3o ativado!*\\n\\nTodos alertas e relat\u00f3rios foram suspensos.\\nO dispositivo est\u00e1 em manuten\u00e7\u00e3o.',\n  'MANUTENCAO_DESATIVADA':  '\u2705 *Modo Operacional restaurado!*\\n\\nO sistema voltou ao monitoramento autom\u00e1tico.',\n  'EM_MANUTENCAO':          '\u26a0\ufe0f *Dispositivo em manuten\u00e7\u00e3o.*\\n\\nComandos bloqueados. Envie \"operacional\" para sair do modo manuten\u00e7\u00e3o.',\n  'ALARME_SILENCIADO':      '\ud83d\udd15 *Alarme silenciado.*\\n\\nOs alertas persistentes foram suspensos at\u00e9 normaliza\u00e7\u00e3o.',\n  'ERRO_NAO_AUTORIZADO':    '\ud83d\udeab *Acesso negado.*\\n\\nVoc\u00ea n\u00e3o tem permiss\u00e3o para executar este comando.',\n  'feedback_comando':        '\u2705 *Comando executado com sucesso.*',\n  'feedback_calibracao_sucesso':         '\ud83d\udccf *Calibra\u00e7\u00e3o de tens\u00e3o realizada com sucesso!*',\n  'feedback_calibracao_bateria':         '\ud83d\udd0b *Calibra\u00e7\u00e3o de bateria realizada com sucesso!*',\n  'ALERTA_ERRO_CALIBRACAO_FATOR':        '\u274c *Erro na calibra\u00e7\u00e3o:* fator inv\u00e1lido.',\n  'ALERTA_ERRO_CALIBRACAO_TENSAO_BAIXA': '\u274c *Erro na calibra\u00e7\u00e3o:* tens\u00e3o lida muito baixa.',\n};\n\n// \u2500\u2500 feedback_configuracao \u2500\u2500 DYNAMIC MESSAGE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// The ESP32 sends back the full set of limits after any config change.\n// We build a descriptive message showing what is configured NOW.\nif (tipo === 'feedback_configuracao') {\n  const alarmMax  = fmt(item.ALARM_MAX, '\u00b0C');\n  const alarmMin  = fmt(item.ALARM_MIN, '\u00b0C');\n  const voltMax   = fmt(item.VOLT_MAX_LIMIT, 'V');\n  const voltMin   = fmt(item.VOLT_MIN_LIMIT, 'V');\n  const batMin    = fmt(item.BAT_MIN_LIMIT, 'V');\n\n  let msg = '\u2699\ufe0f *Configura\u00e7\u00e3o atualizada!*\\n\\n';\n  msg += '\ud83d\udccb *Limites vigentes:*\\n';\n  msg += `\ud83c\udf21\ufe0f Temperatura: M\u00edn ${alarmMin} / M\u00e1x ${alarmMax}\\n`;\n  if (voltMax !== '?V' || voltMin !== '?V') {\n    msg += `\u26a1 Tens\u00e3o: ${voltMin} \u2013 ${voltMax}\\n`;\n  }\n  if (batMin !== '?V') {\n    msg += `\ud83d\udd0b Bateria m\u00edn: ${batMin}\\n`;\n  }\n\n  return [{ json: {\n    _tipo_resposta: 'COMANDO',\n    remoteJid,\n    msg\n  }}];\n}\n\nconst msgComando = mensagensComando[tipo];\n\n// Static COMANDO: requires REMOTE_JID\nif (msgComando && remoteJid) {\n  return [{ json: {\n    _tipo_resposta: 'COMANDO',\n    remoteJid,\n    msg: msgComando\n  }}];\n}\n\n// \u2500\u2500 CATEGORY 2: SOLICITACAO \u2013 response to user data request \u2500\u2500\nconst tiposSolicitacao = ['STATUS_SOLICITADO', 'DADOS_AMBIENTE'];\nif (tiposSolicitacao.includes(tipo)) {\n  return [{ json: { _tipo_resposta: 'SOLICITACAO', ...item }}];\n}\n\n// \u2500\u2500 CATEGORY 3: TELEMETRIA \u2013 spontaneous alerts / periodic \u2500\u2500\u2500\nreturn [{ json: { _tipo_resposta: 'TELEMETRIA', ...item }}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        15648,
-        5616
+        52256,
+        21344
       ],
-      "id": "node-roteador-resposta",
+      "id": "e0b0fdf4-5e62-49e2-90fc-1156508c15b4",
       "name": "Roteador de Resposta"
     },
     {
@@ -468,6 +390,30 @@
                 "conditions": [
                   {
                     "leftValue": "={{ $json._tipo_resposta }}",
+                    "rightValue": "SOLICITACAO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "tipo-sol"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "solicitacao"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._tipo_resposta }}",
                     "rightValue": "TELEMETRIA",
                     "operator": {
                       "type": "string",
@@ -488,10 +434,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        15768,
-        5616
+        52448,
+        21328
       ],
-      "id": "node-switch-tipo-resposta",
+      "id": "08217abe-989b-47e2-8214-d6fdd74c0b22",
       "name": "Tipo de Resposta"
     },
     {
@@ -505,10 +451,10 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        15888,
-        5776
+        52624,
+        21168
       ],
-      "id": "node-enviar-resposta-comando",
+      "id": "c85dd988-d3e3-4cdd-bf56-620d60e93a83",
       "name": "Enviar Resposta Comando",
       "credentials": {
         "evolutionApi": {
@@ -516,6 +462,55 @@
           "name": "Evolution account"
         }
       }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.remoteJid }}",
+        "messageText": "={{ $json.msg }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        53216,
+        21168
+      ],
+      "id": "446f1770-829a-4e7c-9ca8-50caf375dbde",
+      "name": "Enviar para Solicitante",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst d = $json;\nconst remoteJid = d.REMOTE_JID || '';\nconst tipo = (d.TIPO || '').toString();\n\n// Build WhatsApp-formatted message from mapped Edit Fields data\nlet msg = '';\n\nif (tipo === 'STATUS_SOLICITADO') {\n  const temp    = d.temperatura ?? '?';\n  const max     = d.MAX || '?';\n  const min     = d.MIN || '?';\n  const volt    = d.VOLTAGEM || '';\n  const bat     = d.BATERIA || '';\n  const hora    = d.hora || '';\n  const dataStr = d.data || '';\n  const device  = d.device || 'Sensor';\n  const rssi    = d.RSSI || '';\n  const modo    = d.MODO || '';\n  const rele    = d.RELE;\n  const alMax   = d.ALARM_MAX || '';\n  const alMin   = d.ALARM_MIN || '';\n\n  msg  = `\ud83c\udf21\ufe0f *Status do Dispositivo*\\n`;\n  msg += `\ud83d\udcf1 *${device}*\\n`;\n  msg += `\ud83d\udcc5 ${dataStr}  \ud83d\udd70\ufe0f ${hora}\\n\\n`;\n  msg += `\ud83c\udf21\ufe0f Temperatura: *${temp}\u00b0C*\\n`;\n  msg += `\ud83d\udcca Hoje \u2014 Min: ${min}\u00b0C / Max: ${max}\u00b0C\\n\\n`;\n\n  if (volt && parseFloat(volt) > 0.1) msg += `\u26a1 Tens\u00e3o: *${volt}V*\\n`;\n  if (bat)  msg += `\ud83d\udd0b Bateria: *${bat}V*\\n`;\n  if (rele !== '' && rele !== undefined) msg += `\ud83d\udca1 Rel\u00e9: *${rele ? 'LIGADO' : 'DESLIGADO'}*\\n`;\n  if (modo) msg += `\u2699\ufe0f Modo: *${modo}*\\n`;\n  if (rssi) msg += `\ud83d\udcf6 Sinal WiFi: *${rssi} dBm*\\n`;\n\n} else if (tipo === 'DADOS_AMBIENTE') {\n  msg = d.msg || `\ud83c\udf0d *Dados Ambientais*\\n\ud83d\udcc5 ${d.data || ''} \u00e0s ${d.hora || ''}`;\n}\n\nif (!msg) return [];\n\n// If we have a specific REMOTE_JID, send directly to that person\nif (remoteJid) {\n  return [{ json: { _destino: 'DIRETO', remoteJid, msg } }];\n}\n\n// No REMOTE_JID (firmware not yet updated): broadcast to all registered users\n// Pass to the next node which handles the numeros array\nconst numeros = d.numeros || d.numeross || [];\nreturn numeros.map(n => ({\n  json: { _destino: 'BROADCAST_UNIT', remoteJid: n.phone, msg }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        52992,
+        21168
+      ],
+      "id": "a9280737-a28d-4f13-a231-0feac754a7b5",
+      "name": "Formatar Resposta Direta"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst raw = $('MQTT Trigger').item.json;\nconst d = raw['0'] || raw;\nconst tipo = (d.TIPO || '').toString();\n\n// TIPOs que devem ser salvos na planilha\nconst tiposPeriodicos   = ['relatorio_diario'];\nconst tiposAlertaTemp   = ['ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'];\nconst tiposAlertaTensao = ['ALERTA_TENSAO_ALTA', 'ALERTA_TENSAO_BAIXA',\n                           'ALERTA_FALTA_ENERGIA', 'ENERGIA_RESTABELECIDA',\n                           'ALERTA_BATERIA_BAIXA', 'BATERIA_NORMALIZADA'];\nconst tiposRede         = ['ALERTA_PORTA_ABERTA', 'PORTA_FECHADA'];\n\nconst tiposParaSalvar = [\n  ...tiposPeriodicos,\n  ...tiposAlertaTemp,\n  ...tiposAlertaTensao,\n  ...tiposRede\n];\n\nif (!tiposParaSalvar.includes(tipo)) {\n  return []; // Descarta silenciosamente\n}\n\n// Monta observa\u00e7\u00e3o baseada no tipo\nconst obsMap = {\n  'relatorio_diario':      'Relat\u00f3rio peri\u00f3dico autom\u00e1tico',\n  'ALERTA_TEMP_ALTA':      `\u26a0\ufe0f Temperatura ALTA ${d.TEMP_ATUAL}\u00b0C (limite: ${d.ALARM_MAX || '?'}\u00b0C)`,\n  'ALERTA_TEMP_BAIXA':     `\u26a0\ufe0f Temperatura BAIXA ${d.TEMP_ATUAL}\u00b0C (limite: ${d.ALARM_MIN || '?'}\u00b0C)`,\n  'TEMP_NORMALIZADA':      `\u2705 Temperatura normalizada ${d.TEMP_ATUAL}\u00b0C`,\n  'ALERTA_TENSAO_ALTA':    `\u26a1 Tens\u00e3o ALTA ${d.VOLTAGEM}V (limite: ${d.VOLT_MAX_LIMIT || '?'}V)`,\n  'ALERTA_TENSAO_BAIXA':   `\u26a1 Tens\u00e3o BAIXA ${d.VOLTAGEM}V (limite: ${d.VOLT_MIN_LIMIT || '?'}V)`,\n  'ALERTA_FALTA_ENERGIA':  '\ud83d\udd0c Falta de energia detectada',\n  'ENERGIA_RESTABELECIDA': '\u2705 Energia restabelecida',\n  'ALERTA_BATERIA_BAIXA':  `\ud83e\udeab Bateria baixa ${d.BATERIA}V (limite: ${d.BAT_MIN_LIMIT || '?'}V)`,\n  'BATERIA_NORMALIZADA':   `\u2705 Bateria normalizada ${d.BATERIA}V`,\n  'ALERTA_PORTA_ABERTA':   '\ud83d\udeaa Porta aberta detectada',\n  'PORTA_FECHADA':         '\u2705 Porta fechada',\n};\n\nconst obs = obsMap[tipo] || tipo;\n\nreturn [{\n  json: {\n    HORA:        d.HORA || '',\n    DATA:        d.DATA || '',\n    DISPOSITIVO: d.DISPOSITIVO || '',\n    TEMP:        d.TEMP_ATUAL || '',\n    MAX:         d.MAX || '',\n    MIN:         d.MIN || '',\n    VOLTAGEM:    d.VOLTAGEM || '',\n    BATERIA:     d.BATERIA || '',\n    TIPO:        tipo,\n    OBS:         obs\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16128,
+        5736
+      ],
+      "id": "node-filtro-gravacao",
+      "name": "Filtro Gravacao"
     }
   ],
   "pinData": {},
@@ -538,15 +533,9 @@
             "node": "Roteador de Resposta",
             "type": "main",
             "index": 0
-          }
-        ]
-      ]
-    },
-    "Wait": {
-      "main": [
-        [
+          },
           {
-            "node": "salva temperatura",
+            "node": "Filtro Gravacao",
             "type": "main",
             "index": 0
           }
@@ -575,34 +564,17 @@
         ]
       ]
     },
-    "Google Gemini Chat Model": {
-      "ai_languageModel": [
-        []
-      ]
-    },
     "Read Users for Broadcast": {
       "main": [
-        [
-          {
-            "node": "Split Users Broadcast",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Split Users Broadcast": {
       "main": [
+        [],
         [
           {
             "node": "Enviar para Todos",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Wait",
             "type": "main",
             "index": 0
           }
@@ -653,7 +625,47 @@
         ],
         [
           {
+            "node": "Formatar Resposta Direta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta Direta": {
+      "main": [
+        [
+          {
+            "node": "Enviar para Solicitante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "salva temperatura": {
+      "main": [
+        [
+          {
+            "node": "Split Users Broadcast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro Gravacao": {
+      "main": [
+        [
+          {
+            "node": "salva temperatura",
             "type": "main",
             "index": 0
           }
@@ -668,7 +680,7 @@
     "timeSavedMode": "fixed",
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "657a9a41-0ffe-4446-8062-74380da307b8",
+  "versionId": "b1e7fffb-2c4a-47c6-9154-91afdd9e9f09",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "be63eec592610c4f78e7b17a812f5d022e962bcad508e6c20e665203393891ed"
