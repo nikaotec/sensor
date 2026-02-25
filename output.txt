@@ -1,0 +1,97 @@
+
+try {
+    const item = $input.first().json;
+    const outputRaw = item.intencao;
+    const remoteJid = item.remoteJid;
+
+    if (!outputRaw) {
+        return { error: "Campo 'intencao' não encontrado ou vazio" };
+    }
+
+    if (outputRaw === "BLOQUEADO") {
+        return {
+            destination: "whatsapp",
+            message: item.mensagem_erro || "🚫 Acesso Bloqueado",
+            remoteJid: remoteJid
+        };
+    }
+
+    let dados = item;
+    const isAdmin = dados.is_admin === true;
+    
+    // === VALIDAÇÃO DE PERMISSÃO (ADMIN) ===
+    const comandosLiberados = ["obter_status_atual", "obter_ambiente", "consultar_relatorio", "nenhuma_intencao"];
+    if (!isAdmin && dados.intencao && !comandosLiberados.includes(dados.intencao)) {
+        return {
+            destination: "whatsapp",
+            message: "⚠️ *Acesso Negado*\nDesculpe, você não tem permissão de administrador para executar este comando.\n\nVocê pode apenas consultar status e relatórios.",
+            remoteJid: remoteJid
+        };
+    }
+
+    // === GERENCIAMENTO DE USUARIOS ===
+    if (dados.intencao === "adicionar_admin" || dados.intencao === "adicionar_usuario") {
+        if (!dados.novo_numero && !dados.nivel_acesso) {
+            return {
+                destination: "whatsapp",
+                message: "Por favor, me informe o número com DDD e o nível de acesso (Admin ou Usuário comum) que deseja cadastrar.",
+                remoteJid: remoteJid
+            };
+        } else if (!dados.novo_numero) {
+            return {
+                destination: "whatsapp",
+                message: `Certo, vamos cadastrar como ${dados.nivel_acesso === "ADMIN" ? "Administrador" : "Usuário comum"}. Qual é o número com DDD? (Ex: 81999999999).`,
+                remoteJid: remoteJid
+            };
+        } else if (!dados.nivel_acesso) {
+            return {
+                destination: "whatsapp",
+                message: `Entendido para o número ${dados.novo_numero}. Deseja cadastrar como Administrador ou Usuário comum?`,
+                remoteJid: remoteJid
+            };
+        }
+        
+        let num_limpo = dados.novo_numero.toString().replace(/\D/g, '');
+        let role = dados.nivel_acesso && dados.nivel_acesso.toUpperCase().includes("ADMIN") ? "ADMIN" : "USER";
+        let statusMsg = role === "ADMIN" ? "⏳ *Cadastrando Administrador...*\nAdicionando o número " : "⏳ *Cadastrando Usuário...*\nAdicionando o número ";
+        
+        return {
+            destination: "sheets_add_user",
+            message: statusMsg + num_limpo + " ao sistema.",
+            remoteJid: remoteJid,
+            novo_numero: num_limpo,
+            nova_role: role
+        };
+    }
+    
+    // Resposta normalizada
+    let resposta = {
+        intencao: dados.intencao || "nenhuma_intencao",
+        destination: "mqtt", // Default
+        remoteJid: remoteJid,
+        is_admin: isAdmin
+    };
+
+    if (dados.requer_dados) {
+        return {
+            destination: "whatsapp",
+            message: "Entendi seu pedido de " + dados.intencao.replace('_', ' ') + ", mas preciso de mais detalhes. Qual o valor desejado?",
+            remoteJid: remoteJid
+        };
+    }
+
+    // Mapeamento de Campos
+    const campos = ["temp_max", "temp_min", "volt_max", "volt_min", "bat_min", "tempo_porta", "nova_tensao", "novo_fator"];
+    campos.forEach(c => {
+        if (dados[c] !== undefined && dados[c] !== null) resposta[c] = parseFloat(dados[c]);
+    });
+    
+    return resposta;
+
+} catch (e) {
+    return {
+        error: "Erro no processamento",
+        detalhe: e.message
+    };
+}
+
