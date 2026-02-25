@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ata para Controle Diário de Temperatura - ADMIN</title>
+  <style>
+    :root {
+      --border: #000;
+      --thin: 1px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 10px; /* Reduced slightly to fit more columns */
+      color: #000;
+      margin: 18px;
+    }
+
+    .line {
+      border-top: var(--thin) solid var(--border);
+      margin: 8px 0;
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0 8px;
+    }
+
+    .header .left,
+    .header .right {
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .header .center {
+      text-align: center;
+      font-style: italic;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .title {
+      font-weight: bold;
+      text-transform: uppercase;
+      margin: 6px 0 6px;
+      text-align: center;
+    }
+    
+    .subtitle-admin {
+      color: #d32f2f;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      page-break-inside: auto;
+    }
+
+    th, td {
+      border: var(--thin) solid var(--border);
+      padding: 2px 3px;
+      vertical-align: middle;
+      font-size: 9px;
+    }
+
+    th {
+      font-weight: bold;
+      text-transform: uppercase;
+      text-align: center;
+      background: #f7f7f7;
+    }
+
+    .meta th,
+    .meta td {
+      font-size: 10px;
+      background: transparent;
+      border: none;
+      padding: 2px 4px;
+    }
+
+    .meta {
+      margin-bottom: 10px;
+    }
+
+    .meta .label {
+      width: 90px;
+      text-transform: uppercase;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    .meta .value {
+      border-bottom: var(--thin) solid var(--border);
+      height: 18px;
+      font-weight: normal;
+      text-transform: none;
+    }
+
+    .group {
+      text-align: center;
+      font-weight: bold;
+      background: #e0e0e0;
+    }
+
+    .obs {
+      width: 15%;
+    }
+
+    .footer-box {
+      margin-top: 10px;
+      width: 55%;
+    }
+
+    .footer-box td {
+      height: 16px;
+      font-size: 10px;
+      border: var(--thin) solid var(--border);
+    }
+
+    @page {
+      size: A4 landscape; /* using landscape to fit more data */
+      margin: 10mm;
+    }
+
+    @media print {
+      body {
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="line"></div>
+
+  <div class="header">
+    <div class="left">Secretaria de Saúde</div>
+    <div class="center">Pernambuco</div>
+    <div class="right">Governo do Estado</div>
+  </div>
+
+  <div class="line"></div>
+
+  <div class="title">Ata para controle diário de temperatura e telemetria</div>
+  <div class="subtitle-admin">USO EXCLUSIVO ADMINISTRADOR</div>
+
+  <table class="meta">
+    <tr>
+      <td class="label">Estado</td>
+      <td class="value">Pernambuco</td>
+      <td class="label">Município</td>
+      <td class="value">__________________________</td>
+      <td class="label">Unidade Sanitária III GIRES</td>
+      <td class="value">__________________________</td>
+    </tr>
+    <tr>
+      <td class="label">Ano</td>
+      <td class="value">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { return parts[2]; } } return (new Date()).getFullYear(); })() }}</td>
+      <td class="label">Mês</td>
+      <td class="value">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { const dt = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])); return dt.toLocaleString('pt-BR', { month: 'long' }); } } return (new Date()).toLocaleString('pt-BR', { month: 'long' }); })() }}</td>
+      <td class="label">Marca da geladeira ou freezer</td>
+      <td class="value">{{ $json.relatorio?.[0]?.DISPOSITIVO ?? '__________________________' }}</td>
+    </tr>
+  </table>
+
+  <table>
+    <thead>
+      <tr>
+        <th rowspan="2">Dia</th>
+        <th rowspan="2">Hora Solic.</th>
+        <th class="group" colspan="3">Temp. Interna (°C)</th>
+        <th class="group" colspan="3">Tensão / Bateria (V)</th>
+        <th class="group" colspan="2">Ambiente Externo</th>
+        <th class="obs" rowspan="2">Rubrica / Obs</th>
+      </tr>
+      <tr>
+        <th>Máx</th>
+        <th>Mín</th>
+        <th>Atual</th>
+        <th>Tensão Ext.</th>
+        <th>Bat. Mín</th>
+        <th>Bat. Atual</th>
+        <th>Temp. Ext</th>
+        <th>Umid. Ext</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{
+        (() => {
+          return ($json.relatorio || [])
+            .map(linha => {
+              const dia = (linha.DATA || '').split('/')[0] || '';
+              const hora = linha.HORA ?? '';
+              
+              // Internal Temp
+              const atual = linha["TEMP."] ?? linha.TEMP ?? '';
+              const max = linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? '';
+              const min = linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? '';
+              
+              // Voltage / Battery
+              const voltagem = linha.VOLTAGEM ?? '';
+              const bateriaAtual = linha.BATERIA ?? '';
+              const bateriaMin = linha.BAT_MIN_LIMIT ?? linha.BAT_MIN ?? ''; // or max if applicable
+
+              // Environment Ext
+              const tempExt = linha.TEMP_EXTERNA ?? linha.TEMP_AMB ?? '';
+              const umidExt = linha.UMIDADE ?? linha.UMIDADE_EXTERNA ?? '';
+              
+              const rubrica = linha.RUBRICA ?? '';
+              const obs = linha.OBS ?? linha.OBSERVACAO ?? '';
+              
+              const mergedObs = [rubrica, obs].filter(Boolean).join(" - ");
+
+              return `
+                <tr>
+                  <td style="text-align:center;">${dia}</td>
+                  <td style="text-align:center;">${hora}</td>
+                  <td style="text-align:center;">${max}</td>
+                  <td style="text-align:center;">${min}</td>
+                  <td style="text-align:center; font-weight:bold;">${atual}</td>
+                  
+                  <td style="text-align:center;">${voltagem}</td>
+                  <td style="text-align:center;">${bateriaMin}</td>
+                  <td style="text-align:center;">${bateriaAtual}</td>
+                  
+                  <td style="text-align:center;">${tempExt}</td>
+                  <td style="text-align:center;">${umidExt}</td>
+                  
+                  <td>${mergedObs}</td>
+                </tr>
+              `;
+            })
+            .join('');
+        })()
+      }}
+    </tbody>
+  </table>
+
+  <table class="footer-box">
+    <tr>
+      <td style="width: 30%;">Hora da falha de energia</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td>Temp. no momento da falha</td>
+      <td></td>
+    </tr>
+  </table>
+</body>
+</html>
