@@ -31,11 +31,15 @@ export interface Device {
         temp?: number;
         tempMax?: number;
         tempMin?: number;
+        minTemp?: number;
+        maxTemp?: number;
+        tempExternal?: number;
         batteryVoltage?: number;
         inputVoltage?: number;
         humidity?: number;
         signal?: number;
         doorOpen?: boolean;
+        relay?: boolean;
     };
     config?: {
         minTempInfo?: number;

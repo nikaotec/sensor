@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Josefin+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,16 +6,24 @@
 
 @layer base {
     :root {
-        --color-primary: #3B82F6;
-        --color-secondary: #60A5FA;
-        --color-cta: #F97316;
-        --color-background-light: #F8FAFC;
-        --color-background-dark: #020617;
-        /* Midnight OLED */
-        --color-surface-dark: #0f172a;
-        --color-border-dark: #1e293b;
-        --font-heading: 'Cinzel', serif;
-        --font-body: 'Josefin Sans', sans-serif;
+        --color-primary: #179729; /* Verde Primário */
+        --color-secondary: #22601C; /* Verde Escuro */
+        --color-accent: #C4D5B6; /* Verde Pastel */
+        
+        --color-background-light: #DFDFDF; /* Cinza Claro Background */
+        --color-background-dark: #12150F; /* Quase Preto (Sidebar/Dark mode) */
+        
+        --color-surface-dark: #12150F;
+        --color-border-dark: #2A2E24;
+        
+        --color-text-primary: #65646A; /* Textos primários */
+        --color-text-dark: #12150F; /* Textos escuros/títulos */
+        
+        --color-danger: #DC2626; /* Vermelho */
+        --color-warning: #FBBF24; /* Amarelo */
+        
+        --font-heading: 'Poppins', sans-serif;
+        --font-body: 'Inter', sans-serif;
     }
 }
 

@@ -1,8 +1,8 @@
-
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { useTenant } from '../contexts/TenantContext';
 import { alerts as allAlerts } from '../data/mockData';
+import { BellRing, ShieldAlert, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface AlertsProps {
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details') => void;
@@ -10,6 +10,8 @@ interface AlertsProps {
 
 const Alerts: React.FC<AlertsProps> = ({ onNavigate }) => {
     const { currentTenant } = useTenant();
+    if (!currentTenant) return <div className="flex h-screen items-center justify-center bg-background-dark text-white">Carregando dados...</div>;
+
     const [filter, setFilter] = useState<'all' | 'critical' | 'warning'>('all');
 
     // Filter by tenant and severity
@@ -21,111 +23,122 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate }) => {
 
     const getSeverityBadge = (severity: string) => {
         switch (severity) {
-            case 'critical': return <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-1 rounded text-xs font-bold uppercase">Critical</span>;
-            case 'warning': return <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-1 rounded text-xs font-bold uppercase">Warning</span>;
-            case 'info': return <span className="bg-blue-500/10 text-blue-500 border border-blue-500/20 px-2 py-1 rounded text-xs font-bold uppercase">Info</span>;
-            default: return <span className="bg-slate-700 text-slate-400 px-2 py-1 rounded text-xs font-bold uppercase">Unknown</span>;
+            case 'critical': return <span className="bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest">Crítico</span>;
+            case 'warning': return <span className="bg-amber-500/10 text-amber-500 border border-amber-500/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest">Aviso</span>;
+            case 'info': return <span className="bg-primary/10 text-primary border border-primary/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest">Info</span>;
+            default: return <span className="bg-slate-800 text-slate-400 border border-slate-700 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest">Desconhecido</span>;
         }
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+        <div className="flex h-screen overflow-hidden bg-background-dark text-slate-100 font-display">
             <Sidebar activeItem="alerts" onNavigate={onNavigate} />
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background-dark">
 
                 {/* Top Bar */}
-                <header className="h-16 flex items-center justify-between px-8 bg-background-light dark:bg-background-dark border-b border-slate-200 dark:border-slate-border">
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Alertas de {currentTenant.name}</h2>
-                    <div className="flex items-center gap-3">
-                        <button className="text-sm text-slate-500 hover:text-primary transition-colors font-medium">Marcar todos como lidos</button>
-                        <div className="h-4 w-px bg-slate-700 mx-2"></div>
-                        <div className="flex bg-slate-800 rounded-lg p-1">
-                            <button onClick={() => setFilter('all')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${filter === 'all' ? 'bg-slate-700 text-white' : 'text-slate-400 hover:text-slate-200'}`}>Todos</button>
-                            <button onClick={() => setFilter('critical')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${filter === 'critical' ? 'bg-red-500/20 text-red-500' : 'text-slate-400 hover:text-slate-200'}`}>Críticos</button>
-                            <button onClick={() => setFilter('warning')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${filter === 'warning' ? 'bg-amber-500/20 text-amber-500' : 'text-slate-400 hover:text-slate-200'}`}>Avisos</button>
+                <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-[#1A1D17]/80 backdrop-blur-md border-b border-[#2A2E24] sticky top-0 z-30 shadow-sm">
+                    <h2 className="text-xl font-bold text-white tracking-tight">Alertas de {currentTenant.name}</h2>
+                    <div className="flex items-center gap-4">
+                        <button className="text-xs text-slate-400 hover:text-primary transition-colors font-bold uppercase tracking-widest bg-[#0F110D] px-4 py-2 rounded-xl border border-[#2A2E24]">Marcar todos como lidos</button>
+                        <div className="flex bg-[#0F110D] rounded-xl p-1 border border-[#2A2E24]">
+                            <button onClick={() => setFilter('all')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all tracking-widest uppercase border ${filter === 'all' ? 'bg-primary/20 text-primary border-primary/30' : 'text-slate-400 hover:text-white border-transparent'}`}>Todos</button>
+                            <button onClick={() => setFilter('critical')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all tracking-widest uppercase border ${filter === 'critical' ? 'bg-[#E63946]/20 text-[#E63946] border-[#E63946]/30' : 'text-slate-400 hover:text-white border-transparent'}`}>Críticos</button>
+                            <button onClick={() => setFilter('warning')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all tracking-widest uppercase border ${filter === 'warning' ? 'bg-amber-500/20 text-amber-500 border-amber-500/30' : 'text-slate-400 hover:text-white border-transparent'}`}>Avisos</button>
                         </div>
                     </div>
                 </header>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 custom-scrollbar">
                     <div className="max-w-7xl mx-auto space-y-6">
 
                         {/* Summary Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div className="bg-white dark:bg-slate-card p-6 rounded-xl border border-slate-200 dark:border-slate-border shadow-sm flex items-center justify-between">
-                                <div>
-                                    <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">Alertas Ativos</p>
-                                    <h3 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-1">{tenantAlerts.length}</h3>
+                            <div className="bg-[#1A1D17] p-6 rounded-2xl border border-[#2A2E24] shadow-lg flex items-center justify-between group hover:border-primary/50 transition-all relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
+                                    <BellRing size={64} className="text-primary" />
                                 </div>
-                                <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-primary">notifications_active</span>
+                                <div className="z-10">
+                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1 font-heading">Alertas Ativos</p>
+                                    <h3 className="text-4xl font-bold text-white tracking-tight">{tenantAlerts.length}</h3>
                                 </div>
-                            </div>
-                            <div className="bg-white dark:bg-slate-card p-6 rounded-xl border border-slate-200 dark:border-slate-border shadow-sm flex items-center justify-between">
-                                <div>
-                                    <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">Críticos</p>
-                                    <h3 className="text-3xl font-bold text-red-500 mt-1">{criticalCount}</h3>
-                                </div>
-                                <div className="size-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-red-500">dangerous</span>
+                                <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 z-10">
+                                    <BellRing className="text-primary" size={24} />
                                 </div>
                             </div>
-                            <div className="bg-white dark:bg-slate-card p-6 rounded-xl border border-slate-200 dark:border-slate-border shadow-sm flex items-center justify-between">
-                                <div>
-                                    <p className="text-slate-500 text-sm font-medium uppercase tracking-wider">Avisos</p>
-                                    <h3 className="text-3xl font-bold text-amber-500 mt-1">{warningCount}</h3>
+                            <div className="bg-[#1A1D17] p-6 rounded-2xl border border-[#2A2E24] shadow-lg flex items-center justify-between group hover:border-[#E63946]/50 transition-all relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
+                                    <ShieldAlert size={64} className="text-[#E63946]" />
                                 </div>
-                                <div className="size-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-amber-500">warning</span>
+                                <div className="z-10">
+                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1 font-heading">Críticos</p>
+                                    <h3 className="text-4xl font-bold text-[#E63946] tracking-tight">{criticalCount}</h3>
+                                </div>
+                                <div className="size-12 rounded-xl bg-[#E63946]/10 flex items-center justify-center border border-[#E63946]/20 z-10">
+                                    <ShieldAlert className="text-[#E63946]" size={24} />
+                                </div>
+                            </div>
+                            <div className="bg-[#1A1D17] p-6 rounded-2xl border border-[#2A2E24] shadow-lg flex items-center justify-between group hover:border-amber-500/50 transition-all relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
+                                    <AlertTriangle size={64} className="text-amber-500" />
+                                </div>
+                                <div className="z-10">
+                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-1 font-heading">Avisos</p>
+                                    <h3 className="text-4xl font-bold text-amber-500 tracking-tight">{warningCount}</h3>
+                                </div>
+                                <div className="size-12 rounded-xl bg-amber-500/10 flex items-center justify-center border border-amber-500/20 z-10">
+                                    <AlertTriangle className="text-amber-500" size={24} />
                                 </div>
                             </div>
                         </div>
 
                         {/* Alerts List */}
-                        <div className="bg-white dark:bg-slate-card rounded-xl border border-slate-200 dark:border-slate-border shadow-sm overflow-hidden">
+                        <div className="bg-[#1A1D17] rounded-2xl border border-[#2A2E24] shadow-lg overflow-hidden">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left">
-                                    <thead className="text-xs text-slate-500 uppercase bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                                    <thead className="text-[10px] text-slate-500 uppercase tracking-widest bg-[#0F110D] border-b border-[#2A2E24] font-heading">
                                         <tr>
-                                            <th className="px-6 py-4 font-medium">Severidade</th>
-                                            <th className="px-6 py-4 font-medium">Dispositivo</th>
-                                            <th className="px-6 py-4 font-medium">Mensagem</th>
-                                            <th className="px-6 py-4 font-medium">Tempo</th>
-                                            <th className="px-6 py-4 font-medium text-right">Ações</th>
+                                            <th className="px-6 py-4 font-bold">Severidade</th>
+                                            <th className="px-6 py-4 font-bold">Dispositivo</th>
+                                            <th className="px-6 py-4 font-bold">Mensagem</th>
+                                            <th className="px-6 py-4 font-bold">Tempo</th>
+                                            <th className="px-6 py-4 font-bold text-right">Ações</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                                    <tbody className="divide-y divide-[#2A2E24]">
                                         {filteredAlerts.length === 0 ? (
                                             <tr>
-                                                <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                                                    Nenhum alerta encontrado para este filtro.
+                                                <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        <CheckCircle2 size={40} className="text-primary/50 mb-3" />
+                                                        <p>Nenhum alerta encontrado para este filtro.</p>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ) : (
                                             filteredAlerts.map((alert) => (
-                                                <tr key={alert.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                <tr key={alert.id} className="hover:bg-[#2A2E24]/30 transition-colors group">
+                                                    <td className="px-6 py-5 whitespace-nowrap">
                                                         {getSeverityBadge(alert.severity)}
                                                     </td>
-                                                    <td className="px-6 py-4 text-slate-300 font-medium">
+                                                    <td className="px-6 py-5 text-white font-medium">
                                                         {alert.device}
                                                     </td>
-                                                    <td className="px-6 py-4 text-slate-400">
+                                                    <td className="px-6 py-5 text-slate-400">
                                                         {alert.message}
                                                     </td>
-                                                    <td className="px-6 py-4 text-slate-500 font-mono text-xs">
+                                                    <td className="px-6 py-5 text-slate-500 font-mono text-xs">
                                                         {alert.time}
                                                     </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <div className="flex items-center justify-end gap-2">
-                                                            <button className="p-1.5 text-slate-500 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors" title="Confirmar">
-                                                                <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                                                    <td className="px-6 py-5 text-right">
+                                                        <div className="flex items-center justify-end gap-3">
+                                                            <button className="text-slate-500 hover:text-emerald-400 bg-[#0F110D] hover:bg-emerald-500/10 border border-[#2A2E24] hover:border-emerald-500/30 p-2 rounded-lg transition-all shadow-sm" title="Confirmar">
+                                                                <CheckCircle2 size={16} />
                                                             </button>
-                                                            <button className="p-1.5 text-slate-500 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors" title="Ver Detalhes">
-                                                                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                                                            <button className="text-slate-500 hover:text-primary bg-[#0F110D] hover:bg-primary/10 border border-[#2A2E24] hover:border-primary/30 p-2 rounded-lg transition-all shadow-sm" title="Ver Detalhes">
+                                                                <ArrowRight size={16} />
                                                             </button>
                                                         </div>
                                                     </td>

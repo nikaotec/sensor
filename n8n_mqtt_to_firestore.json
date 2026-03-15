@@ -1,0 +1,208 @@
+{
+  "name": "IoT Sensor - MQTT to Firestore",
+  "nodes": [
+    {
+      "parameters": {
+        "topics": "sensor/data",
+        "options": {}
+      },
+      "id": "e3b0c442-989b-464c-8b8d-2a1d3fdef451",
+      "name": "MQTT Trigger",
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const payloadString = $input.item.json.message;\ntry {\n  const payload = JSON.parse(payloadString);\n  return { json: payload };\n} catch(e) {\n  return { json: { error: 'Invalid JSON', payload: payloadString } };\n}"
+      },
+      "id": "164e2229-bfda-4b10-85f9-2c7020d1c810",
+      "name": "Parse Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "4540c497-2a44-4822-ba35-c33583ae139c",
+              "leftValue": "={{ $json.DISPOSITIVO }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c1f7aab5-25df-4d6b-bd85-e3d6bfbb4f3b",
+      "name": "Validate Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 3,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "projectId": "smartrf-iot-dashboard",
+        "collection": "devices_status",
+        "documentId": "={{ $json.DISPOSITIVO.replace(/\\s+/g, '_').toLowerCase() }}",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "name",
+              "fieldValue": "={{ $json.DISPOSITIVO }}"
+            },
+            {
+              "fieldId": "temperature",
+              "fieldValue": "={{ parseFloat($json.TEMP_ATUAL) }}"
+            },
+            {
+              "fieldId": "voltage",
+              "fieldValue": "={{ parseFloat($json.VOLTAGEM) }}"
+            },
+            {
+              "fieldId": "humidity",
+              "fieldValue": "={{ parseFloat($json.UMIDADE || 0) }}"
+            },
+            {
+              "fieldId": "battery",
+              "fieldValue": "={{ parseFloat($json.BATERIA || 0) }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "online"
+            },
+            {
+              "fieldId": "lastSeen",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldId": "tenantId",
+              "fieldValue": "empresa_default"
+            }
+          ]
+        }
+      },
+      "id": "b960b7b1-213c-4a33-8b77-3e1b0d2d34a4",
+      "name": "Upsert Firestore Device Status",
+      "type": "n8n-nodes-base.googleFirestore",
+      "typeVersion": 1,
+      "position": [
+        900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": "smartrf-iot-dashboard",
+        "collection": "telemetry",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "deviceId",
+              "fieldValue": "={{ $json.DISPOSITIVO.replace(/\\s+/g, '_').toLowerCase() }}"
+            },
+            {
+              "fieldId": "temperature",
+              "fieldValue": "={{ parseFloat($json.TEMP_ATUAL) }}"
+            },
+            {
+              "fieldId": "voltage",
+              "fieldValue": "={{ parseFloat($json.VOLTAGEM) }}"
+            },
+            {
+              "fieldId": "humidity",
+              "fieldValue": "={{ parseFloat($json.UMIDADE || 0) }}"
+            },
+            {
+              "fieldId": "battery",
+              "fieldValue": "={{ parseFloat($json.BATERIA || 0) }}"
+            },
+            {
+              "fieldId": "timestamp",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            },
+            {
+              "fieldId": "tenantId",
+              "fieldValue": "empresa_default"
+            }
+          ]
+        }
+      },
+      "id": "da5d5904-6f4e-4f01-9a74-d4d03e9ff7da",
+      "name": "Insert Telemetry Log",
+      "type": "n8n-nodes-base.googleFirestore",
+      "typeVersion": 1,
+      "position": [
+        900,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "MQTT Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Payload": {
+      "main": [
+        [
+          {
+            "node": "Validate Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Data": {
+      "main": [
+        [
+          {
+            "node": "Upsert Firestore Device Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Telemetry Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

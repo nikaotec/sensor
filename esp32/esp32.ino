@@ -42,12 +42,14 @@ bool alertasSilenciados =
     false; // Novo flag para silenciar alertas persistentes
 unsigned long manualTimeout = 0;
 String statusSeguranca = "OK";
-String ultimoRemoteJid = ""; // remoteJid do ultimo comando recebido
+String ultimoRemoteJid = "";        // remoteJid do ultimo comando recebido
+String ultimosCamposAlterados = ""; // Campos alterados na ultima configuracao
 
 // ---------- TIMERS ----------
 unsigned long lastTempCheck = 0;
-unsigned long lastReportTime = 0; // Novo Timer
-unsigned long lastWebReport = 0;  // Timer para Dashboard Web
+unsigned long lastReportTime = 0;    // Novo Timer
+unsigned long lastWebReport = 0;     // Timer para Dashboard Web
+unsigned long lastSupportReport = 0; // Timer relatorio suporte (1h)
 int lastReportDay = -1;
 
 // ...
@@ -254,6 +256,12 @@ void loop() {
       }
     }
 
+    // 3.1. Relatorio de suporte (hora em hora)
+    if (!modoManual && (now - lastSupportReport >= 3600000UL)) {
+      lastSupportReport = now;
+      enviarDadosMqtt("periodico_suporte");
+    }
+
     // 4. Atualizar Display
     display.update(temperaturaAtual, storage.data.tempMaxRec,
                    storage.data.tempMinRec, voltSensor.getVoltage(),
@@ -364,6 +372,10 @@ void processarMensagemMqtt(String topic, String payload) {
 
     if (alterouTemp || alterouTensao || alterouBat || alterouPorta) {
       storage.save();
+      ultimosCamposAlterados = String(alterouTemp ? "ALARM," : "") +
+                               String(alterouTensao ? "VOLT," : "") +
+                               String(alterouBat ? "BAT," : "") +
+                               String(alterouPorta ? "DOOR," : "");
       enviarDadosMqtt("feedback_configuracao");
 
       if (alterouTemp && alterouTensao && alterouBat) {
@@ -657,10 +669,17 @@ void enviarDadosMqtt(String evento) {
   doc["CHK_BAT"] = storage.data.chkBat;
   doc["CHK_DOOR"] = storage.data.chkDoor;
 
-  // Sensor Ambiente (DHT11) - só envia quando o usuário pedir
-  if (evento == "STATUS_SOLICITADO") {
+  // Sensor Ambiente (DHT11)
+  if (evento == "STATUS_SOLICITADO" || evento == "periodico_suporte") {
     doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
     doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
+  }
+
+  // Inclui campos alterados no feedback de configuracao
+  if (evento == "feedback_configuracao" &&
+      ultimosCamposAlterados.length() > 0) {
+    doc["CAMPOS_ALTERADOS"] = ultimosCamposAlterados;
+    ultimosCamposAlterados = "";
   }
 
   // Estado da Porta, RSSI e Saúde apenas se solicitado

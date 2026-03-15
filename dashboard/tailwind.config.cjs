@@ -8,15 +8,21 @@ module.exports = {
     theme: {
         extend: {
             colors: {
-                "primary": "#f48c25",
-                "background-light": "#f8f7f5",
-                "background-dark": "#221910",
-                "slate-card": "#0f172a",
-                "slate-border": "#1e293b",
+                "primary": "var(--color-primary)",
+                "secondary": "var(--color-secondary)",
+                "accent": "var(--color-accent)",
+                "background-light": "var(--color-background-light)",
+                "background-dark": "var(--color-background-dark)",
+                "surface-dark": "var(--color-surface-dark)",
+                "border-dark": "var(--color-border-dark)",
+                "text-primary": "var(--color-text-primary)",
+                "text-dark": "var(--color-text-dark)",
+                "danger": "var(--color-danger)",
+                "warning": "var(--color-warning)",
             },
             fontFamily: {
-                "sans": ["Inter", "sans-serif"],
-                "display": ["Inter", "sans-serif"]
+                "sans": ["var(--font-body)", "sans-serif"],
+                "display": ["var(--font-heading)", "sans-serif"]
             },
             borderRadius: {
                 "lg": "1rem", // 16px

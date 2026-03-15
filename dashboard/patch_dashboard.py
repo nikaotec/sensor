@@ -1,153 +1,44 @@
-import React from 'react';
-import Sidebar from './Sidebar';
-import { useTenant } from '../contexts/TenantContext';
-import { useAuth } from '../contexts/AuthContext';
-import { useFirebaseData } from '../hooks/useFirebaseData';
-import { useMqttData } from '../hooks/useMqttData';
-import {
-    Search,
-    Bell,
-    Zap,
-    BatteryCharging,
+import sys
+
+filepath = '/media/venancio/f429fc29-48c2-4ca6-975a-6363fef9fc848/home/antonio/Documentos/projetos/n8n/workflows/sensor/dashboard/src/components/Dashboard.tsx'
+
+with open(filepath, 'r') as f:
+    content = f.read()
+
+# Fix imports
+import_old = """    DoorOpen,
+    Wifi
+} from 'lucide-react';"""
+import_new = """    DoorOpen,
     Wifi,
     ServerCrash,
-    AlertTriangle,
-    ArrowUp,
-    ArrowDown
-} from 'lucide-react';
+    AlertTriangle
+} from 'lucide-react';"""
+content = content.replace(import_old, import_new)
 
-interface DashboardProps {
-    onDeviceClick: () => void;
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
-}
-
-const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
-    const { currentTenant, availableTenants, setTenantId } = useTenant();
-    const { currentUser, logout } = useAuth();
-    const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
-
-    // Fetch initial devices from Firebase and update with live MQTT stream
-    const { devices: firebaseDevices } = useFirebaseData(currentTenant?.id || '');
-    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData(currentTenant?.id || null, currentUser?.role, firebaseDevices);
-
-    // Filtro para garantir que administradores/usuários só vejam os dispositivos de empresas vinculadas na aba "Todos"
-    const displayDevices = React.useMemo(() => {
-        if (currentUser?.role === 'manager') return tenantDevices;
-        const allowedTenantIds = availableTenants.map(t => t.id);
-        return tenantDevices.filter(d => allowedTenantIds.includes(d.tenantId));
-    }, [tenantDevices, currentUser?.role, availableTenants]);
-
-    // No longer needing primaryDevice or mocks
-
-    if (!currentTenant || !currentUser) {
-        return <div className="flex h-screen items-center justify-center bg-slate-900 text-white">Carregando dados da Empresa...</div>;
-    }
-
-    return (
-        <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
-            <Sidebar activeItem="dashboard" onNavigate={onNavigate} />
-
-            <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden relative bg-background-light text-text-dark">
-                {/* HEADER */}
-                <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30 shadow-sm">
-                    <div className="flex items-center gap-4">
-                        <h2 className="text-xl font-bold text-text-dark tracking-tight">Monitoramento <span className="text-text-primary text-sm font-normal ml-2">Câmeras Frias de Vacinas</span></h2>
-                        {mqttConnected && (
-                            <span className="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-bold border border-emerald-500/20">
-                                <Wifi size={10} /> MQTT Live
-                            </span>
-                        )}
-                        <div className="h-6 w-px bg-gray-300 mx-2"></div>
-                        <div className="hidden lg:flex items-center bg-gray-100 px-4 py-2 rounded-xl border border-gray-200 w-96 group focus-within:border-primary/50 transition-all">
-                            <Search size={18} className="text-gray-400 group-focus-within:text-primary transition-colors" />
-                            <input type="text" placeholder="Procurar dispositivos ou registros..." className="bg-transparent border-none outline-none text-sm px-3 w-full text-text-dark placeholder:text-gray-400" />
-                        </div>
+# Find the start and end of the SCADA section
+start_marker = "                    {/* SCADA DEVICE HEADER */}"
+end_marker = """                        </div>
                     </div>
-                    <div className="flex items-center gap-6">
-                        <button className="relative p-2 text-gray-400 hover:text-primary transition-colors">
-                            <Bell size={20} />
-                            <span className="absolute top-1.5 right-1.5 size-2 bg-danger rounded-full border-2 border-white"></span>
-                        </button>
-                        <div className="relative">
-                            <button
-                                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                                className="flex items-center gap-3 pl-6 border-l border-gray-200 group focus:outline-none"
-                            >
-                                <div className="flex flex-col items-end hidden sm:flex text-right">
-                                    <p className="text-sm font-bold text-text-dark leading-none group-hover:text-primary transition-colors">{currentUser.name}</p>
-                                    <p className="text-[10px] text-text-primary mt-1 uppercase font-semibold">
-                                        {currentUser.role === 'manager' ? 'Gestor' : currentUser.role === 'admin' ? 'Admin' : 'Usuário'}
-                                    </p>
-                                </div>
-                                <img
-                                    className="size-10 rounded-full border-2 border-primary/20 group-hover:border-primary transition-all"
-                                    src={currentUser.avatarUrl || `https://ui-avatars.com/api/?name=${currentUser.name}`}
-                                    alt="Profile"
-                                />
-                            </button>
+                </div>
+            </main>"""
 
-                            {isProfileMenuOpen && (
-                                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#12150F] rounded-xl border border-gray-200 dark:border-[#2A2E24] shadow-lg py-1 z-50">
-                                    <button
-                                        onClick={() => {
-                                            setIsProfileMenuOpen(false);
-                                            onNavigate('settings');
-                                        }}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1D16] transition-colors"
-                                    >
-                                        Configurações
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setIsProfileMenuOpen(false);
-                                            logout();
-                                        }}
-                                        className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors border-t border-gray-100 dark:border-[#2A2E24]"
-                                    >
-                                        Fazer Logout
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </header>
+start_idx = content.find(start_marker)
+end_idx = content.find(end_marker)
 
-                <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 py-6 custom-scrollbar">
-                    {/* TABS E STATUS */}
-                    <div className="flex flex-col gap-6 mb-8">
-                        {/* Tabs */}
-                        <div className="flex items-center gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                            <button
-                                onClick={() => setTenantId('all')}
-                                className={`px-4 py-2 whitespace-nowrap text-sm font-semibold transition-all border-b-2 ${currentTenant?.id === 'all' || !currentTenant ? 'border-primary text-text-dark' : 'border-transparent text-text-primary hover:text-text-dark'} `}
-                            >
-                                Todos
-                            </button>
-                            {availableTenants.map(t => (
-                                <button
-                                    key={t.id}
-                                    onClick={() => setTenantId(t.id)}
-                                    className={`px-4 py-2 whitespace-nowrap text-sm font-semibold transition-all border-b-2 ${currentTenant?.id === t.id ? 'border-primary text-text-dark' : 'border-transparent text-text-primary hover:text-text-dark'} `}
-                                >
-                                    {t.name}
-                                </button>
-                            ))}
-                            <button className="flex items-center gap-2 px-3 py-1.5 ml-2 text-xs font-semibold bg-white border border-gray-200 text-text-primary hover:text-primary hover:border-primary/30 rounded-lg transition-colors whitespace-nowrap shadow-sm">
-                                <span>+</span>
-                                <span>Nova Empresa</span>
-                            </button>
-                        </div>
-                    </div>
+if start_idx == -1 or end_idx == -1:
+    print("Markers not found!")
+    sys.exit(1)
 
-
+grid_code = """
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {displayDevices.length === 0 ? (
+                        {tenantDevices.length === 0 ? (
                             <div className="col-span-1 md:col-span-2 xl:col-span-3 py-12 flex flex-col items-center justify-center text-slate-500 bg-[#1A1D17] rounded-2xl border border-[#2A2E24]">
                                 <ServerCrash size={48} className="mb-4 opacity-50" />
                                 <p className="text-lg">Nenhum dispositivo encontrado para esta empresa.</p>
                             </div>
                         ) : (
-                            displayDevices.map((device) => {
+                            tenantDevices.map((device) => {
                                 const getStatusLabel = (status: string) => {
                                     switch (status) {
                                         case 'online': return 'ESTÁVEL';
@@ -218,19 +109,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
 
                                         <div className="grid grid-cols-2 gap-4 mb-4 z-10">
                                             <div className="bg-[#0F110D] rounded-xl p-4 border border-[#2A2E24] flex flex-col items-center justify-center text-center">
-                                                <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
-                                                    <ArrowUp size={16} color="#f43f5e" />
-                                                    Máxima
-                                                </div>
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Máxima</div>
                                                 <div className="text-lg font-bold text-rose-500">
                                                     {device.telemetry.tempMax !== undefined ? `${device.telemetry.tempMax.toFixed(1)}°C` : '--'}
                                                 </div>
                                             </div>
                                             <div className="bg-[#0F110D] rounded-xl p-4 border border-[#2A2E24] flex flex-col items-center justify-center text-center">
-                                                <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
-                                                    <ArrowDown size={16} color="#818cf8" />
-                                                    Mínima
-                                                </div>
+                                                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Mínima</div>
                                                 <div className="text-lg font-bold text-indigo-400">
                                                     {device.telemetry.tempMin !== undefined ? `${device.telemetry.tempMin.toFixed(1)}°C` : '--'}
                                                 </div>
@@ -275,11 +160,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                 );
                             })
                         )}
-                    </div>
-                </div>
-            </main>
-        </div>
-    );
-};
+"""
 
-export default Dashboard;
+new_content = content[:start_idx] + grid_code + "\n" + content[end_idx:]
+
+with open(filepath, 'w') as f:
+    f.write(new_content)
+
+print("Dashboard updated successfully!")

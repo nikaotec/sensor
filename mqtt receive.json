@@ -9,10 +9,10 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        90128,
-        48208
+        94896,
+        49632
       ],
-      "id": "58605b44-9f34-47fd-b02b-547743f9ee5e",
+      "id": "9f61ed49-5cad-465c-b315-a8e484d7b188",
       "name": "Simple Memory"
     },
     {
@@ -20,16 +20,16 @@
         "resource": "messages-api",
         "instanceName": "sensor_temperatura",
         "remoteJid": "={{ $('Code in JavaScript1').first().json.remoteJid }}",
-        "messageText": "=\u2705 Cadastrado com sucesso!\n\nO n\u00famero {{ $json.NUMERO }} agora tem acesso de {{ $json.RULE === 'ADMIN' ? 'Administrador' : 'Usu\u00e1rio comum' }} ao sistema.",
+        "messageText": "=✅ Cadastrado com sucesso!\n\nO número {{ $json.NUMERO }} agora tem acesso de {{ $json.RULE === 'ADMIN' ? 'Administrador' : 'Usuário comum' }} ao sistema.",
         "options_message": {}
       },
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        91808,
-        48208
+        96576,
+        49632
       ],
-      "id": "bafb8519-d641-4134-9745-613c4735d0b6",
+      "id": "6c8517a1-05e3-4200-a2cc-1fb7f8acb5b5",
       "name": "Responder Sucesso Add User",
       "credentials": {
         "evolutionApi": {
@@ -52,7 +52,7 @@
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
+          "cachedResultName": "Página1",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
         },
         "columns": {
@@ -90,10 +90,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        91584,
-        48208
+        96352,
+        49632
       ],
-      "id": "a8bef05f-343f-49fa-8cd8-60995905f2a2",
+      "id": "83bf2ada-9ca0-4eb9-9485-f1bbad2899ec",
       "name": "Add Admin to Sheet",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -115,7 +115,7 @@
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
+          "cachedResultName": "Página1",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
         },
         "filtersUI": {
@@ -131,10 +131,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        89392,
-        48016
+        94160,
+        49440
       ],
-      "id": "d4010b41-babc-4007-ab78-084f5914bdd4",
+      "id": "a40f8dc1-edf4-4108-b92f-5e93ffeae7f3",
       "name": "Get row(s) in sheet1",
       "alwaysOutputData": true,
       "credentials": {
@@ -152,10 +152,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        90032,
-        48192
+        94800,
+        49616
       ],
-      "id": "11f5af39-1c9d-43db-82a2-9806071d7a1d",
+      "id": "89121f67-ee63-44c1-96ab-749adc394449",
       "name": "OpenRouter Chat Model",
       "credentials": {
         "openRouterApi": {
@@ -172,10 +172,10 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        90912,
-        47856
+        95936,
+        49296
       ],
-      "id": "3b202530-45bc-47a1-aac7-e1572932932c",
+      "id": "aa5d683d-9f94-4145-ab55-882dab12f9cd",
       "name": "Simple Memory1"
     },
     {
@@ -185,10 +185,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        92624,
-        47648
+        97648,
+        49040
       ],
-      "id": "9f3a3d87-6262-4f5d-bf65-9889b19d4990",
+      "id": "debe2da4-f01a-40e6-afd0-a022880d8862",
       "name": "Code in JavaScript5"
     },
     {
@@ -198,17 +198,17 @@
         "instanceName": "sensor_temperatura",
         "remoteJid": "={{ $json.numeroDestinatario }}",
         "media": "={{ $json.base64Data }}",
-        "caption": "Relat\u00f3rio",
+        "caption": "Relatório",
         "fileName": "relatorio.pdf",
         "options_message": {}
       },
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        92832,
-        47648
+        97856,
+        49040
       ],
-      "id": "6e8869fc-9f53-4981-b6ad-be39d7873e46",
+      "id": "b0232cd0-b421-474d-a013-f4eed4069750",
       "name": "Enviar documento1",
       "credentials": {
         "evolutionApi": {
@@ -219,15 +219,15 @@
     },
     {
       "parameters": {
-        "jsCode": "// Fun\u00e7\u00e3o correta para acessar bin\u00e1rio no n8n\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\n\n// Converter para base64\nconst base64String = binaryData.toString('base64');\n\nreturn [{\n  json: {\n    base64Data: base64String,\n    fileName: '659d1edd-aa6a-467f-ae51-3bca1aae595c.pdf',\n    mimeType: 'application/pdf'\n  }\n}];"
+        "jsCode": "// Função correta para acessar binário no n8n\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\n\n// Converter para base64\nconst base64String = binaryData.toString('base64');\n\nreturn [{\n  json: {\n    base64Data: base64String,\n    fileName: '659d1edd-aa6a-467f-ae51-3bca1aae595c.pdf',\n    mimeType: 'application/pdf'\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        92416,
-        47648
+        97440,
+        49040
       ],
-      "id": "7aa7468c-df2f-4735-85d8-e385700dabcc",
+      "id": "f218c4ab-bf3e-4f37-9457-bb60b5ea4c05",
       "name": "Code in JavaScript4"
     },
     {
@@ -265,10 +265,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        92224,
-        47648
+        97248,
+        49040
       ],
-      "id": "378e1412-95f8-4e0d-b713-19b25ba01770",
+      "id": "f2611a9f-df93-4d9a-908b-01f771a6f5f9",
       "name": "HTTP Request"
     },
     {
@@ -283,10 +283,10 @@
       "type": "n8n-nodes-base.convertToFile",
       "typeVersion": 1.1,
       "position": [
-        92032,
-        47648
+        97056,
+        49040
       ],
-      "id": "cdfbe020-55e3-4fc0-a1a3-c37d566f04eb",
+      "id": "9c91bd0f-a432-4667-9a6f-66a596208489",
       "name": "Convert to File"
     },
     {
@@ -306,36 +306,36 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        91856,
-        47648
+        96880,
+        49040
       ],
-      "id": "b695f155-d6d5-4dcc-8ac0-33bc08fcf1e0",
+      "id": "0bdb00b5-80df-4efb-b886-5d546e579648",
       "name": "htmToBase64"
     },
     {
       "parameters": {
-        "html": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Ata para Controle Di\u00e1rio de Temperatura</title>\n  <style>\n    :root {\n      --border: #000;\n      --thin: 1px;\n    }\n\n    * {\n      box-sizing: border-box;\n    }\n\n    body {\n      font-family: \"Times New Roman\", Times, serif;\n      font-size: 11px;\n      color: #000;\n      margin: 18px;\n    }\n\n    .line {\n      border-top: var(--thin) solid var(--border);\n      margin: 8px 0;\n    }\n\n    .header {\n      display: grid;\n      grid-template-columns: 1fr auto 1fr;\n      align-items: center;\n      gap: 8px;\n      margin: 6px 0 8px;\n    }\n\n    .header .left,\n    .header .right {\n      font-size: 10px;\n      text-transform: uppercase;\n    }\n\n    .header .center {\n      text-align: center;\n      font-style: italic;\n      font-size: 16px;\n      font-weight: bold;\n    }\n\n    .title {\n      font-weight: bold;\n      text-transform: uppercase;\n      margin: 6px 0 6px;\n    }\n\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      page-break-inside: auto;\n    }\n\n    th, td {\n      border: var(--thin) solid var(--border);\n      padding: 3px 4px;\n      vertical-align: middle;\n    }\n\n    th {\n      font-weight: bold;\n      text-transform: uppercase;\n      font-size: 9px;\n      text-align: center;\n    }\n\n    .meta th,\n    .meta td {\n      font-size: 10px;\n    }\n\n    .meta .label {\n      width: 90px;\n      text-transform: uppercase;\n      font-weight: bold;\n      text-align: left;\n    }\n\n    .meta .value {\n      height: 18px;\n      font-weight: normal;\n      text-transform: none;\n    }\n\n    .subhead th {\n      background: #f7f7f7;\n    }\n\n    .group {\n      text-align: center;\n      font-weight: bold;\n    }\n\n    .obs {\n      width: 16%;\n    }\n\n    .footer-box {\n      margin-top: 10px;\n      width: 55%;\n    }\n\n    .footer-box td {\n      height: 16px;\n      font-size: 10px;\n    }\n\n    @page {\n      size: A4;\n      margin: 15mm;\n    }\n\n    @media print {\n      body {\n        margin: 0;\n      }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"line\"></div>\n\n  <div class=\"header\">\n    <div class=\"left\">Secretaria de Sa\u00fade</div>\n    <div class=\"center\">Pernambuco</div>\n    <div class=\"right\">Governo do Estado</div>\n  </div>\n\n  <div class=\"line\"></div>\n\n  <div class=\"title\">Ata para controle di\u00e1rio de temperatura</div>\n\n  <table class=\"meta\">\n    <tr>\n      <td class=\"label\">Estado</td>\n      <td class=\"value\">Pernambuco</td>\n      <td class=\"label\">Munic\u00edpio</td>\n      <td class=\"value\">__________________________</td>\n      <td class=\"label\">Unidade Sanit\u00e1ria III GIRES</td>\n      <td class=\"value\">__________________________</td>\n    </tr>\n    <tr>\n      <td class=\"label\">Ano</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { return parts[2]; } } return (new Date()).getFullYear(); })() }}</td>\n      <td class=\"label\">M\u00eas</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { const dt = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])); return dt.toLocaleString('pt-BR', { month: 'long' }); } } return (new Date()).toLocaleString('pt-BR', { month: 'long' }); })() }}</td>\n      <td class=\"label\">Marca da geladeira ou freezer</td>\n      <td class=\"value\">{{ $json.relatorio?.[0]?.DISPOSITIVO ?? '__________________________' }}</td>\n    </tr>\n  </table>\n\n  <table>\n    <thead>\n      <tr>\n        <th rowspan=\"2\">Dia</th>\n        <th class=\"group\" colspan=\"5\">Manh\u00e3</th>\n        <th class=\"group\" colspan=\"5\">Tarde</th>\n        <th class=\"obs\" rowspan=\"2\">Observa\u00e7\u00e3o</th>\n      </tr>\n      <tr class=\"subhead\">\n        <th>Hora</th>\n        <th>M\u00e1x</th>\n        <th>M\u00edn</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n        <th>Hora</th>\n        <th>M\u00e1x</th>\n        <th>M\u00edn</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n      </tr>\n    </thead>\n    <tbody>\n      {{\n        (() => {\n          const toHour = (h) => {\n            if (!h) return null;\n            const m = String(h).match(/(\\d{1,2})(?::(\\d{2}))?/);\n            if (!m) return null;\n            return Number(m[1]);\n          };\n\n          const dados = $json.relatorio || [];\n          const diasAgrupados = {};\n\n          // Agrupa todas as leituras de manh\u00e3 e tarde por dia, sem agrupar/esconder registros\n          dados.forEach(linha => {\n            const dia = (linha.DATA || '').split('/')[0] || '';\n            if (!dia) return;\n            \n            if (!diasAgrupados[dia]) {\n              diasAgrupados[dia] = { \n                dia: dia, \n                manhas: [], \n                tardes: [] \n              };\n            }\n            \n            const hora = toHour(linha.HORA);\n            if (hora !== null && hora >= 12) {\n              diasAgrupados[dia].tardes.push(linha);\n            } else {\n              diasAgrupados[dia].manhas.push(linha);\n            }\n          });\n\n          let htmlOutput = '';\n\n          Object.values(diasAgrupados)\n            .sort((a, b) => Number(a.dia) - Number(b.dia)) // Ordena por diazinho\n            .forEach(grupo => {\n              const extrair = (linha) => {\n                if (!linha) return { hora: '', max: '', min: '', atual: '', rubrica: '', obs: '' };\n                return {\n                  hora: linha.HORA ?? '',\n                  atual: linha[\"TEMP.\"] ?? linha.TEMP ?? '',\n                  max: linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? linha.TEMPMAX ?? linha['TEMP MAX'] ?? linha['TEMP_MAX'] ?? '',\n                  min: linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '',\n                  rubrica: linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '',\n                  obs: linha.OBS ?? linha.OBSERVACAO ?? ''\n                };\n              };\n\n              // Pode haver 3 registros de manh\u00e3 e 1 de tarde no mesmo dia. Precisamos percorrer at\u00e9 o maior n\u00famero.\n              const maxLinhas = Math.max(grupo.manhas.length, grupo.tardes.length, 1);\n\n              for (let i = 0; i < maxLinhas; i++) {\n                const manha = extrair(grupo.manhas[i]);\n                const tarde = extrair(grupo.tardes[i]);\n                const obs = manha.obs || tarde.obs || '';\n                // Somente mostra o n\u00famero do dia na primeira linha desse dia (ou em todas)\n                const labelDia = i === 0 ? grupo.dia : ''; \n\n                htmlOutput += `\n                  <tr>\n                    <td style=\"text-align:center;\">${labelDia}</td>\n                    <td>${manha.hora}</td>\n                    <td>${manha.max}</td>\n                    <td>${manha.min}</td>\n                    <td>${manha.atual}</td>\n                    <td>${manha.rubrica}</td>\n                    <td>${tarde.hora}</td>\n                    <td>${tarde.max}</td>\n                    <td>${tarde.min}</td>\n                    <td>${tarde.atual}</td>\n                    <td>${tarde.rubrica}</td>\n                    <td>${obs}</td>\n                  </tr>\n                `;\n              }\n            });\n\n          return htmlOutput;\n        })()\n      }}\n    </tbody>\n  </table>\n\n  <table class=\"footer-box\">\n    <tr>\n      <td style=\"width: 30%;\">Hora da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Temp. no momento da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Dias parados por falha</td>\n      <td></td>\n    </tr>\n  </table>\n</body>\n</html>\n"
+        "html": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Ata para Controle Diário de Temperatura</title>\n  <style>\n    :root {\n      --border: #000;\n      --thin: 1px;\n    }\n\n    * {\n      box-sizing: border-box;\n    }\n\n    body {\n      font-family: \"Times New Roman\", Times, serif;\n      font-size: 11px;\n      color: #000;\n      margin: 18px;\n    }\n\n    .line {\n      border-top: var(--thin) solid var(--border);\n      margin: 8px 0;\n    }\n\n    .header {\n      display: grid;\n      grid-template-columns: 1fr auto 1fr;\n      align-items: center;\n      gap: 8px;\n      margin: 6px 0 8px;\n    }\n\n    .header .left,\n    .header .right {\n      font-size: 10px;\n      text-transform: uppercase;\n    }\n\n    .header .center {\n      text-align: center;\n      font-style: italic;\n      font-size: 16px;\n      font-weight: bold;\n    }\n\n    .title {\n      font-weight: bold;\n      text-transform: uppercase;\n      margin: 6px 0 6px;\n    }\n\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      page-break-inside: auto;\n    }\n\n    th, td {\n      border: var(--thin) solid var(--border);\n      padding: 3px 4px;\n      vertical-align: middle;\n    }\n\n    th {\n      font-weight: bold;\n      text-transform: uppercase;\n      font-size: 9px;\n      text-align: center;\n    }\n\n    .meta th,\n    .meta td {\n      font-size: 10px;\n    }\n\n    .meta .label {\n      width: 90px;\n      text-transform: uppercase;\n      font-weight: bold;\n      text-align: left;\n    }\n\n    .meta .value {\n      height: 18px;\n      font-weight: normal;\n      text-transform: none;\n    }\n\n    .subhead th {\n      background: #f7f7f7;\n    }\n\n    .group {\n      text-align: center;\n      font-weight: bold;\n    }\n\n    .obs {\n      width: 16%;\n    }\n\n    .footer-box {\n      margin-top: 10px;\n      width: 55%;\n    }\n\n    .footer-box td {\n      height: 16px;\n      font-size: 10px;\n    }\n\n    @page {\n      size: A4;\n      margin: 15mm;\n    }\n\n    @media print {\n      body {\n        margin: 0;\n      }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"line\"></div>\n\n  <div class=\"header\">\n    <div class=\"left\">Secretaria de Saúde</div>\n    <div class=\"center\">Pernambuco</div>\n    <div class=\"right\">Governo do Estado</div>\n  </div>\n\n  <div class=\"line\"></div>\n\n  <div class=\"title\">Ata para controle diário de temperatura</div>\n\n  <table class=\"meta\">\n    <tr>\n      <td class=\"label\">Estado</td>\n      <td class=\"value\">Pernambuco</td>\n      <td class=\"label\">Município</td>\n      <td class=\"value\">__________________________</td>\n      <td class=\"label\">Unidade Sanitária III GIRES</td>\n      <td class=\"value\">__________________________</td>\n    </tr>\n    <tr>\n      <td class=\"label\">Ano</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { return parts[2]; } } return (new Date()).getFullYear(); })() }}</td>\n      <td class=\"label\">Mês</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { const dt = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])); return dt.toLocaleString('pt-BR', { month: 'long' }); } } return (new Date()).toLocaleString('pt-BR', { month: 'long' }); })() }}</td>\n      <td class=\"label\">Marca da geladeira ou freezer</td>\n      <td class=\"value\">{{ $json.relatorio?.[0]?.DISPOSITIVO ?? '__________________________' }}</td>\n    </tr>\n  </table>\n\n  <table>\n    <thead>\n      <tr>\n        <th rowspan=\"2\">Dia</th>\n        <th class=\"group\" colspan=\"5\">Manhã</th>\n        <th class=\"group\" colspan=\"5\">Tarde</th>\n        <th class=\"obs\" rowspan=\"2\">Observação</th>\n      </tr>\n      <tr class=\"subhead\">\n        <th>Hora</th>\n        <th>Máx</th>\n        <th>Mín</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n        <th>Hora</th>\n        <th>Máx</th>\n        <th>Mín</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n      </tr>\n    </thead>\n    <tbody>\n      {{\n        (() => {\n          const toHour = (h) => {\n            if (!h) return null;\n            const m = String(h).match(/(\\d{1,2})(?::(\\d{2}))?/);\n            if (!m) return null;\n            return Number(m[1]);\n          };\n\n          const dados = $json.relatorio || [];\n          const diasAgrupados = {};\n\n          // Agrupa todas as leituras de manhã e tarde por dia, sem agrupar/esconder registros\n          dados.forEach(linha => {\n            const dia = (linha.DATA || '').split('/')[0] || '';\n            if (!dia) return;\n            \n            if (!diasAgrupados[dia]) {\n              diasAgrupados[dia] = { \n                dia: dia, \n                manhas: [], \n                tardes: [] \n              };\n            }\n            \n            const hora = toHour(linha.HORA);\n            if (hora !== null && hora >= 12) {\n              diasAgrupados[dia].tardes.push(linha);\n            } else {\n              diasAgrupados[dia].manhas.push(linha);\n            }\n          });\n\n          let htmlOutput = '';\n\n          Object.values(diasAgrupados)\n            .sort((a, b) => Number(a.dia) - Number(b.dia)) // Ordena por diazinho\n            .forEach(grupo => {\n              const extrair = (linha) => {\n                if (!linha) return { hora: '', max: '', min: '', atual: '', rubrica: '', obs: '' };\n                return {\n                  hora: linha.HORA ?? '',\n                  atual: linha[\"TEMP.\"] ?? linha.TEMP ?? '',\n                  max: linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? linha.TEMPMAX ?? linha['TEMP MAX'] ?? linha['TEMP_MAX'] ?? '',\n                  min: linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '',\n                  rubrica: linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '',\n                  obs: linha.OBS ?? linha.OBSERVACAO ?? ''\n                };\n              };\n\n              // Pode haver 3 registros de manhã e 1 de tarde no mesmo dia. Precisamos percorrer até o maior número.\n              const maxLinhas = Math.max(grupo.manhas.length, grupo.tardes.length, 1);\n\n              for (let i = 0; i < maxLinhas; i++) {\n                const manha = extrair(grupo.manhas[i]);\n                const tarde = extrair(grupo.tardes[i]);\n                const obs = manha.obs || tarde.obs || '';\n                // Somente mostra o número do dia na primeira linha desse dia (ou em todas)\n                const labelDia = i === 0 ? grupo.dia : ''; \n\n                htmlOutput += `\n                  <tr>\n                    <td style=\"text-align:center;\">${labelDia}</td>\n                    <td>${manha.hora}</td>\n                    <td>${manha.max}</td>\n                    <td>${manha.min}</td>\n                    <td>${manha.atual}</td>\n                    <td>${manha.rubrica}</td>\n                    <td>${tarde.hora}</td>\n                    <td>${tarde.max}</td>\n                    <td>${tarde.min}</td>\n                    <td>${tarde.atual}</td>\n                    <td>${tarde.rubrica}</td>\n                    <td>${obs}</td>\n                  </tr>\n                `;\n              }\n            });\n\n          return htmlOutput;\n        })()\n      }}\n    </tbody>\n  </table>\n\n  <table class=\"footer-box\">\n    <tr>\n      <td style=\"width: 30%;\">Hora da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Temp. no momento da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Dias parados por falha</td>\n      <td></td>\n    </tr>\n  </table>\n</body>\n</html>\n"
       },
       "type": "n8n-nodes-base.html",
       "typeVersion": 1.2,
       "position": [
-        91680,
-        47648
+        96704,
+        49040
       ],
-      "id": "56458407-7b09-4e3c-ac83-b698f21dc9ab",
+      "id": "f50c6638-f2dc-4179-bf57-3acb19252143",
       "name": "HTML"
     },
     {
       "parameters": {
-        "jsCode": "// ==============================\n// Helpers\n// ==============================\nfunction parseDateBR(dateStr) {\n  if (!dateStr) return null;\n\n  const [day, month, year] = dateStr.split('/').map(Number);\n  return new Date(year, month - 1, day, 0, 0, 0);\n}\n\n// ==============================\n// Datas do filtro (vindas do agente)\n// ==============================\nconst filtro = $items('Code in JavaScript2')[0]?.json || {};\n\nconst dataInicio = parseDateBR(filtro.data_inicio);\nconst dataFim = parseDateBR(filtro.data_fim);\n\n// Prote\u00e7\u00e3o forte\nif (!dataInicio || !dataFim) {\n  return [];\n}\n\n// Ajuste para pegar at\u00e9 o final do dia (23:59:59)\nif (filtro.periodo !== 'ultimas_24_horas') {\n    dataFim.setHours(23, 59, 59, 999);\n}\n\nconst tsInicio = dataInicio.getTime();\nconst tsFim = dataFim.getTime();\n\n// ==============================\n// Filtro + normaliza\u00e7\u00e3o\n// ==============================\nconst resultado = [];\n\nfor (const item of items) {\n  const linha = item.json;\n  const dataLinha = parseDateBR(linha.DATA);\n\n  if (!dataLinha) continue;\n  const hora = linha.HORA || \"00:00\";\n  const [hr, min] = hora.split(':').map(Number);\n  dataLinha.setHours(hr || 0, min || 0, 0, 0);\n\n  const t = dataLinha.getTime();\n\n  if (t >= tsInicio && t <= tsFim) {\n    // \ud83d\udd39 Aqui voc\u00ea entrega o JSON LIMPO\n    // Enrich OBS with VOLTAGEM/BATERIA info if present (from alert rows)\n    let obsExtra = '';\n    if (linha.VOLTAGEM && parseFloat(linha.VOLTAGEM) > 0.1) {\n      obsExtra += ` | Tens\u00e3o: ${linha.VOLTAGEM}V`;\n    }\n    if (linha.BATERIA && parseFloat(linha.BATERIA) > 0.1) {\n      obsExtra += ` | Bat: ${linha.BATERIA}V`;\n    }\n    if (obsExtra && linha.OBS && !linha.OBS.includes('peri\u00f3dico')) {\n      linha.OBS = (linha.OBS || '') + obsExtra;\n    }\n    resultado.push(linha);\n  }\n}\n\n// ==============================\n// Sa\u00edda FINAL para o HTML\n// ==============================\nreturn [\n  {\n    json: {\n      relatorio: resultado,\n      total: resultado.length,\n      periodo: {\n        inicio: filtro.data_inicio,\n        fim: filtro.data_fim\n      }\n    }\n  }\n];\n"
+        "jsCode": "// ==============================\n// Helpers\n// ==============================\nfunction parseDateBR(dateStr) {\n  if (!dateStr) return null;\n\n  const [day, month, year] = dateStr.split('/').map(Number);\n  return new Date(year, month - 1, day, 0, 0, 0);\n}\n\n// ==============================\n// Datas do filtro (vindas do agente)\n// ==============================\nconst filtro = $items('Code in JavaScript2')[0]?.json || {};\n\nconst dataInicio = parseDateBR(filtro.data_inicio);\nconst dataFim = parseDateBR(filtro.data_fim);\n\n// Proteção forte\nif (!dataInicio || !dataFim) {\n  return [];\n}\n\n// Ajuste para pegar até o final do dia (23:59:59)\nif (filtro.periodo !== 'ultimas_24_horas') {\n    dataFim.setHours(23, 59, 59, 999);\n}\n\nconst tsInicio = dataInicio.getTime();\nconst tsFim = dataFim.getTime();\n\n// ==============================\n// Filtro + normalização\n// ==============================\nconst resultado = [];\n\nfor (const item of items) {\n  const linha = item.json;\n  const dataLinha = parseDateBR(linha.DATA);\n\n  if (!dataLinha) continue;\n  const hora = linha.HORA || \"00:00\";\n  const [hr, min] = hora.split(':').map(Number);\n  dataLinha.setHours(hr || 0, min || 0, 0, 0);\n\n  const t = dataLinha.getTime();\n\n  if (t >= tsInicio && t <= tsFim) {\n    // 🔹 Aqui você entrega o JSON LIMPO\n    // Enrich OBS with VOLTAGEM/BATERIA info if present (from alert rows)\n    let obsExtra = '';\n    if (linha.VOLTAGEM && parseFloat(linha.VOLTAGEM) > 0.1) {\n      obsExtra += ` | Tensão: ${linha.VOLTAGEM}V`;\n    }\n    if (linha.BATERIA && parseFloat(linha.BATERIA) > 0.1) {\n      obsExtra += ` | Bat: ${linha.BATERIA}V`;\n    }\n    if (obsExtra && linha.OBS && !linha.OBS.includes('periódico')) {\n      linha.OBS = (linha.OBS || '') + obsExtra;\n    }\n    resultado.push(linha);\n  }\n}\n\n// ==============================\n// Saída FINAL para o HTML\n// ==============================\nreturn [\n  {\n    json: {\n      relatorio: resultado,\n      total: resultado.length,\n      periodo: {\n        inicio: filtro.data_inicio,\n        fim: filtro.data_fim\n      }\n    }\n  }\n];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        91520,
-        47648
+        96544,
+        49040
       ],
-      "id": "7396cc42-fba1-4f53-b892-6e64bbee1832",
+      "id": "7af28156-d81c-4cfb-aa9d-8650bff3b62d",
       "name": "Code in JavaScript3"
     },
     {
@@ -346,10 +346,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        90816,
-        47856
+        95776,
+        49280
       ],
-      "id": "ca21c012-499f-4cc8-a240-97f1c83d0c01",
+      "id": "3f92da96-4422-4d1c-97ba-d3a1ca947a1d",
       "name": "OpenRouter Chat Model1",
       "credentials": {
         "openRouterApi": {
@@ -361,29 +361,29 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Voc\u00ea \u00e9 um classificador de inten\u00e7\u00e3o e per\u00edodo temporal.\nEntrada do usu\u00e1rio: {{ $json.parametros.solicitacao_original }}\nData atual: {{ $now.setZone('America/Sao_Paulo').format('dd/MM/yyyy HH:mm:ss') }}\nAnalise a mensagem do usu\u00e1rio e retorne:\n1) Inten\u00e7\u00e3o principal\n2) Per\u00edodo temporal NORMALIZADO\n\nN\u00e3o calcule datas, n\u00e3o execute a\u00e7\u00f5es, n\u00e3o explique a resposta.\nRetorne APENAS JSON v\u00e1lido, sem texto extra e apenas um objeto.\n\nINTEN\u00c7\u00d5ES SUPORTADAS:\n- consultar_relatorio\n- nenhuma_intencao\n\nPER\u00cdODOS SUPORTADOS:\n- hoje\n- ontem\n- ultimas_24_horas\n- ultima_semana\n- ultimo_mes\n- ultimos_X_dias\n- intervalo_datas\n- nenhum\n\nREGRAS:\n- O usu\u00e1rio pode escrever de qualquer forma (ex: \"24hs\", \"24 horas\", \"dia inteiro\", \"relat\u00f3rio do dia\").\n- Interprete semanticamente a inten\u00e7\u00e3o.\n- Normalize o per\u00edodo para UM dos valores suportados.\n- Se houver n\u00famero expl\u00edcito de dias, use \"ultimos_X_dias\" e informe o valor.\n- Se o usu\u00e1rio citar um m\u00eas (ex: janeiro, fev, mar\u00e7o) com ou sem ano, use \"intervalo_datas\" e preencha data_inicio e data_fim com o primeiro e o \u00faltimo dia do m\u00eas.\n- Se o usu\u00e1rio pedir \"relat\u00f3rio do m\u00eas\" sem especificar qual, use o m\u00eas atual com \"intervalo_datas\".\n- Se n\u00e3o houver refer\u00eancia temporal clara, use \"nenhum\".\n- Para 'intervalo_datas', se o m\u00eas ou ano n\u00e3o for especificado, considere o m\u00eas e/ou ano atual.\n\nFORMATO DE SA\u00cdDA:\n{\n  \"intencao\": \"consultar_relatorio | nenhuma_intencao\",\n  \"periodo\": \"hoje | ontem | ultimas_24_horas | ultima_semana | ultimo_mes | ultimos_X_dias | intervalo_datas | nenhum\",\n  \"valor\": null,\n  \"data_inicio\": \"dd/MM/yyyy | null\",\n  \"data_fim\": \"dd/MM/yyyy | null\"\n}\n",
+        "text": "=Você é um classificador de intenção e período temporal.\nEntrada do usuário: {{ $json.parametros.solicitacao_original }}\nData atual: {{ $now.setZone('America/Sao_Paulo').format('dd/MM/yyyy HH:mm:ss') }}\nAnalise a mensagem do usuário e retorne:\n1) Intenção principal\n2) Período temporal NORMALIZADO\n\nNão calcule datas, não execute ações, não explique a resposta.\nRetorne APENAS JSON válido, sem texto extra e apenas um objeto.\n\nINTENÇÕES SUPORTADAS:\n- consultar_relatorio\n- nenhuma_intencao\n\nPERÍODOS SUPORTADOS:\n- hoje\n- ontem\n- ultimas_24_horas\n- ultima_semana\n- ultimo_mes\n- ultimos_X_dias\n- intervalo_datas\n- nenhum\n\nREGRAS:\n- O usuário pode escrever de qualquer forma (ex: \"24hs\", \"24 horas\", \"dia inteiro\", \"relatório do dia\").\n- Interprete semanticamente a intenção.\n- Normalize o período para UM dos valores suportados.\n- Se houver número explícito de dias, use \"ultimos_X_dias\" e informe o valor.\n- Se o usuário citar um mês (ex: janeiro, fev, março) com ou sem ano, use \"intervalo_datas\" e preencha data_inicio e data_fim com o primeiro e o último dia do mês.\n- Se o usuário pedir \"relatório do mês\" sem especificar qual, use o mês atual com \"intervalo_datas\".\n- Se não houver referência temporal clara, use \"nenhum\".\n- Para 'intervalo_datas', se o mês ou ano não for especificado, considere o mês e/ou ano atual.\n\nFORMATO DE SAÍDA:\n{\n  \"intencao\": \"consultar_relatorio | nenhuma_intencao\",\n  \"periodo\": \"hoje | ontem | ultimas_24_horas | ultima_semana | ultimo_mes | ultimos_X_dias | intervalo_datas | nenhum\",\n  \"valor\": null,\n  \"data_inicio\": \"dd/MM/yyyy | null\",\n  \"data_fim\": \"dd/MM/yyyy | null\"\n}\n",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        90816,
-        47648
+        95824,
+        49072
       ],
-      "id": "c781540b-b1b7-45a0-afe5-1bbebaa9948e",
+      "id": "537363bd-cb54-4fbc-b157-487c36faaa0e",
       "name": "AI Agent1"
     },
     {
       "parameters": {
-        "jsCode": "let rawOutput = $('AI Agent1').first().json.output;\n// Limpa bloco de markdown (```json ... ```) se houver\nconst codeBlockMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) {\n    rawOutput = codeBlockMatch[1];\n} else {\n    const jsonMatch = rawOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) rawOutput = jsonMatch[0];\n}\n\nlet dados;\ntry {\n  dados = JSON.parse(rawOutput);\n} catch (e) {\n  return [{ json: { error: \"Erro ao interpretar JSON da IA\", detalhe: e.message } }];\n}\n\nconst periodo = dados.periodo;\nconst valor = dados.valor;\n\n//const now = new Date();\nconst now = new Date(\n  new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })\n);\n\n// ===== Helpers =====\nconst pad = (n) => String(n).padStart(2, \"0\");\nconst formatDate = (d) => {\n  if (d instanceof Date && !isNaN(d)) {\n    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;\n  }\n  return null; // Retorna null se a data for inv\u00e1lida\n};\nconst formatTime = (d) =>\n  `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;\nconst cloneDate = (d) => new Date(d.getTime());\n\n// ===== Resultado =====\nlet result = {\n  dispositivo: null,\n  hora_inicio: null,\n  hora_fim: null,\n  data_inicio: null,\n  data_fim: null,\n};\n\n// ===== Switch determin\u00edstico =====\nswitch (periodo) {\n  case \"hoje\": {\n    const d = formatDate(now);\n    result.data_inicio = d;\n    result.data_fim = d;\n    break;\n  }\n  case \"ontem\": {\n    const d = cloneDate(now);\n    d.setDate(d.getDate() - 1);\n    const fd = formatDate(d);\n    result.data_inicio = fd;\n    result.data_fim = fd;\n    break;\n  }\n  case \"ultimas_24_horas\": {\n    const start = cloneDate(now);\n    start.setHours(start.getHours() - 24);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    result.hora_inicio = formatTime(start);\n    result.hora_fim = formatTime(now);\n    break;\n  }\n  case \"ultima_semana\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 7);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimo_mes\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 30);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimos_X_dias\": {\n    if (typeof valor === \"number\" && valor > 0) {\n      const start = cloneDate(now);\n      start.setDate(start.getDate() - valor);\n      result.data_inicio = formatDate(start);\n      result.data_fim = formatDate(now);\n    }\n    break;\n  }\n  case \"intervalo_datas\": {\n    // As datas j\u00e1 v\u00eam formatadas como DD/MM/YYYY do classificador\n    if (dados.data_inicio) {\n      result.data_inicio = dados.data_inicio;\n    }\n    if (dados.data_fim) {\n      result.data_fim = dados.data_fim;\n    }\n    break;\n  }\n  case \"nenhum\":\n  default: {\n    // Se o usu\u00e1rio n\u00e3o informou m\u00eas/ano, assume o m\u00eas/ano corrente\n    const start = new Date(now.getFullYear(), now.getMonth(), 1);\n    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(end);\n    break;\n  }\n}\n\nreturn result;\n"
+        "jsCode": "let rawOutput = $('AI Agent1').first().json.output;\n// Limpa bloco de markdown (```json ... ```) se houver\nconst codeBlockMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) {\n    rawOutput = codeBlockMatch[1];\n} else {\n    const jsonMatch = rawOutput.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) rawOutput = jsonMatch[0];\n}\n\nlet dados;\ntry {\n  dados = JSON.parse(rawOutput);\n} catch (e) {\n  return [{ json: { error: \"Erro ao interpretar JSON da IA\", detalhe: e.message } }];\n}\n\nconst periodo = dados.periodo;\nconst valor = dados.valor;\n\n//const now = new Date();\nconst now = new Date(\n  new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })\n);\n\n// ===== Helpers =====\nconst pad = (n) => String(n).padStart(2, \"0\");\nconst formatDate = (d) => {\n  if (d instanceof Date && !isNaN(d)) {\n    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;\n  }\n  return null; // Retorna null se a data for inválida\n};\nconst formatTime = (d) =>\n  `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;\nconst cloneDate = (d) => new Date(d.getTime());\n\n// ===== Resultado =====\nlet result = {\n  dispositivo: null,\n  hora_inicio: null,\n  hora_fim: null,\n  data_inicio: null,\n  data_fim: null,\n};\n\n// ===== Switch determinístico =====\nswitch (periodo) {\n  case \"hoje\": {\n    const d = formatDate(now);\n    result.data_inicio = d;\n    result.data_fim = d;\n    break;\n  }\n  case \"ontem\": {\n    const d = cloneDate(now);\n    d.setDate(d.getDate() - 1);\n    const fd = formatDate(d);\n    result.data_inicio = fd;\n    result.data_fim = fd;\n    break;\n  }\n  case \"ultimas_24_horas\": {\n    const start = cloneDate(now);\n    start.setHours(start.getHours() - 24);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    result.hora_inicio = formatTime(start);\n    result.hora_fim = formatTime(now);\n    break;\n  }\n  case \"ultima_semana\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 7);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimo_mes\": {\n    const start = cloneDate(now);\n    start.setDate(start.getDate() - 30);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(now);\n    break;\n  }\n  case \"ultimos_X_dias\": {\n    if (typeof valor === \"number\" && valor > 0) {\n      const start = cloneDate(now);\n      start.setDate(start.getDate() - valor);\n      result.data_inicio = formatDate(start);\n      result.data_fim = formatDate(now);\n    }\n    break;\n  }\n  case \"intervalo_datas\": {\n    // As datas já vêm formatadas como DD/MM/YYYY do classificador\n    if (dados.data_inicio) {\n      result.data_inicio = dados.data_inicio;\n    }\n    if (dados.data_fim) {\n      result.data_fim = dados.data_fim;\n    }\n    break;\n  }\n  case \"nenhum\":\n  default: {\n    // Se o usuário não informou mês/ano, assume o mês/ano corrente\n    const start = new Date(now.getFullYear(), now.getMonth(), 1);\n    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);\n    result.data_inicio = formatDate(start);\n    result.data_fim = formatDate(end);\n    break;\n  }\n}\n\nreturn result;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        91136,
-        47648
+        96160,
+        49040
       ],
-      "id": "11392b4f-e322-4af6-a218-1d2df6b9c310",
+      "id": "17959df5-df85-4b76-835c-da6f23f81bb6",
       "name": "Code in JavaScript2"
     },
     {
@@ -397,7 +397,7 @@
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
+          "cachedResultName": "CLIENTE",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
         },
         "options": {}
@@ -405,10 +405,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        91344,
-        47648
+        96368,
+        49040
       ],
-      "id": "ebeaffa1-b2d2-432a-8078-25f8d9e0c50a",
+      "id": "c71a9426-66c9-47e2-b614-cb9014ad347d",
       "name": "Get row(s) in sheet",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -428,10 +428,10 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        91584,
-        47872
+        96352,
+        49296
       ],
-      "id": "e409e0dc-8389-487f-b3fc-a2d14b19f3cb",
+      "id": "82ac4393-9cb2-4ec6-905a-281e4ee73164",
       "name": "Responder Erro",
       "credentials": {
         "evolutionApi": {
@@ -546,36 +546,36 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        91360,
-        48080
+        96128,
+        49504
       ],
-      "id": "9baab66d-8aa9-4f61-926d-90b781626622",
+      "id": "cc21f2ab-1229-492f-b5a9-7e76b4250e2f",
       "name": "Switch Validation"
     },
     {
       "parameters": {
-        "jsCode": "\ntry {\n    const item = $input.first().json;\n    const outputRaw = item.intencao;\n    const remoteJid = item.remoteJid;\n\n    if (!outputRaw) {\n        return { error: \"Campo 'intencao' n\u00e3o encontrado ou vazio\" };\n    }\n\n    if (outputRaw === \"BLOQUEADO\") {\n        return {\n            destination: \"whatsapp\",\n            message: item.mensagem_erro || \"\ud83d\udeab Acesso Bloqueado\",\n            remoteJid: remoteJid\n        };\n    }\n\n    let dados = item;\n    const isAdmin = dados.is_admin === true;\n    \n    // === VALIDA\u00c7\u00c3O DE PERMISS\u00c3O (ADMIN) ===\n    const comandosLiberados = [\"obter_status_atual\", \"obter_ambiente\", \"consultar_relatorio\", \"nenhuma_intencao\"];\n    if (!isAdmin && dados.intencao && !comandosLiberados.includes(dados.intencao)) {\n        return {\n            destination: \"whatsapp\",\n            message: \"\u26a0\ufe0f *Acesso Negado*\\nDesculpe, voc\u00ea n\u00e3o tem permiss\u00e3o de administrador para executar este comando.\\n\\nVoc\u00ea pode apenas consultar status e relat\u00f3rios.\",\n            remoteJid: remoteJid\n        };\n    }\n\n    const textoOriginal = dados.parametros?.solicitacao_original?.toLowerCase() || \"\";\n\n    // ============================\n    // FUN\u00c7\u00c3O DE FORMATA\u00c7\u00c3O DE N\u00daMERO\n    // ============================\n    function formatarNumero(numOriginal) {\n        let num = numOriginal.toString().replace(/\\D/g, '');\n        if (num.startsWith('55') && num.length >= 12) {\n            num = num.substring(2);\n        }\n        if (num.length === 11) {\n            num = num.substring(0, 2) + num.substring(3);\n        }\n        return '55' + num;\n    }\n\n    // === ADICIONAR USUARIO ===\n    if (dados.intencao === \"adicionar_admin\" || dados.intencao === \"adicionar_usuario\") {\n    \n        if (!dados.nivel_acesso) {\n            if (textoOriginal.includes(\"comum\") || textoOriginal.includes(\"usuario\") || textoOriginal.includes(\"usu\u00e1rio\")) {\n                dados.nivel_acesso = \"USER\";\n            } else if (textoOriginal.includes(\"admin\")) {\n                dados.nivel_acesso = \"ADMIN\";\n            }\n        }\n    \n        if (!dados.novo_numero || !dados.nivel_acesso) {\n            return {\n                destination: \"whatsapp\",\n                message: \"\u26a0\ufe0f Para cadastrar, envie o n\u00edvel de acesso e o n\u00famero juntos na mesma mensagem.\\n\\nExemplo: *Cadastrar o n\u00famero 81999999999 como usu\u00e1rio comum*\",\n                remoteJid: remoteJid\n            };\n        }\n        \n        let num_limpo = formatarNumero(dados.novo_numero);\n        let role = dados.nivel_acesso.toUpperCase().includes(\"ADMIN\") ? \"ADMIN\" : \"USER\";\n        let roleLabel = role === \"ADMIN\" ? \"Administrador\" : \"Usu\u00e1rio comum\";\n        \n        return {\n            destination: \"sheets_add_user\",\n            message: \"\u23f3 *Cadastrando \" + roleLabel + \"...*\\nAdicionando o n\u00famero \" + num_limpo + \" ao sistema.\",\n            remoteJid: remoteJid,\n            novo_numero: num_limpo,\n            nova_role: role\n        };\n    }\n\n    // === ALTERAR REGRA DO USUARIO ===\n    if (dados.intencao === \"alterar_regra_usuario\") {\n        // Toler\u00e2ncia se a IA extrair nos campos errados (novo_numero em vez de numero_alvo)\n        const tgtNum = dados.numero_alvo || dados.novo_numero;\n        let tgtLevel = dados.novo_nivel || dados.nivel_acesso;\n        \n        if (!tgtLevel) {\n            if (textoOriginal.includes(\"comum\") || textoOriginal.includes(\"usuario\") || textoOriginal.includes(\"usu\u00e1rio\")) {\n                tgtLevel = \"USER\";\n            } else if (textoOriginal.includes(\"admin\")) {\n                tgtLevel = \"ADMIN\";\n            }\n        }\n\n        if (!tgtNum || !tgtLevel) {\n            return {\n                destination: \"whatsapp\",\n                message: \"\u26a0\ufe0f Para alterar a regra, envie o n\u00famero e o novo n\u00edvel juntos na mesma mensagem.\\n\\nExemplo: *Alterar o n\u00famero 81999999999 para admin*\",\n                remoteJid: remoteJid\n            };\n        }\n        \n        let num_limpo = formatarNumero(tgtNum);\n        let novoNivel = tgtLevel.toUpperCase().includes(\"ADMIN\") ? \"ADMIN\" : \"USER\";\n        let nivelLabel = novoNivel === \"ADMIN\" ? \"Administrador\" : \"Usu\u00e1rio comum\";\n        \n        return {\n            destination: \"sheets_manage_user\",\n            message: \"\u23f3 *Alterando permiss\u00e3o...*\\nAtualizando o n\u00famero \" + num_limpo + \" para \" + nivelLabel + \".\",\n            remoteJid: remoteJid,\n            numero_alvo: num_limpo,\n            novo_nivel: novoNivel,\n            operacao: \"update\"\n        };\n    }\n\n    // === EXCLUIR USUARIO ===\n    if (dados.intencao === \"excluir_usuario\") {\n        const tgtNum = dados.numero_alvo || dados.novo_numero;\n        if (!tgtNum) {\n            return {\n                destination: \"whatsapp\",\n                message: \"\u26a0\ufe0f Para excluir, informe o n\u00famero que deseja remover.\\n\\nExemplo: *Excluir o n\u00famero 81999999999*\",\n                remoteJid: remoteJid\n            };\n        }\n        \n        let num_limpo = formatarNumero(tgtNum);\n        \n        return {\n            destination: \"sheets_manage_user\",\n            message: \"\u23f3 *Excluindo usu\u00e1rio...*\\nRemovendo o n\u00famero \" + num_limpo + \" do sistema.\",\n            remoteJid: remoteJid,\n            numero_alvo: num_limpo,\n            operacao: \"delete\"\n        };\n    }\n    \n    // === RESPOSTA NORMALIZADA (MQTT e outros) ===\n    let resposta = {\n        intencao: dados.intencao || \"nenhuma_intencao\",\n        destination: \"mqtt\",\n        remoteJid: remoteJid,\n        is_admin: isAdmin\n    };\n\n    if (dados.requer_dados) {\n        return {\n            destination: \"whatsapp\",\n            message: \"Entendi seu pedido de \" + dados.intencao.replace('_', ' ') + \", mas preciso de mais detalhes. Qual o valor desejado?\",\n            remoteJid: remoteJid\n        };\n    }\n\n    const campos = [\"temp_max\", \"temp_min\", \"volt_max\", \"volt_min\", \"bat_min\", \"tempo_porta\", \"nova_tensao\", \"novo_fator\"];\n    campos.forEach(c => {\n        if (dados[c] !== undefined && dados[c] !== null) resposta[c] = parseFloat(dados[c]);\n    });\n    \n    return resposta;\n\n} catch (e) {\n    return {\n        error: \"Erro no processamento\",\n        detalhe: e.message\n    };\n}\n"
+        "jsCode": "\ntry {\n    const item = $input.first().json;\n    const outputRaw = item.intencao;\n    const remoteJid = item.remoteJid;\n\n    if (!outputRaw) {\n        return { error: \"Campo 'intencao' não encontrado ou vazio\" };\n    }\n\n    if (outputRaw === \"BLOQUEADO\") {\n        return {\n            destination: \"whatsapp\",\n            message: item.mensagem_erro || \"🚫 Acesso Bloqueado\",\n            remoteJid: remoteJid\n        };\n    }\n\n    let dados = item;\n    const isAdmin = dados.is_admin === true;\n    \n    // === VALIDAÇÃO DE PERMISSÃO (ADMIN) ===\n    const comandosLiberados = [\"obter_status_atual\", \"obter_ambiente\", \"consultar_relatorio\", \"nenhuma_intencao\"];\n    if (!isAdmin && dados.intencao && !comandosLiberados.includes(dados.intencao)) {\n        return {\n            destination: \"whatsapp\",\n            message: \"⚠️ *Acesso Negado*\\nDesculpe, você não tem permissão de administrador para executar este comando.\\n\\nVocê pode apenas consultar status e relatórios.\",\n            remoteJid: remoteJid\n        };\n    }\n\n    const textoOriginal = dados.parametros?.solicitacao_original?.toLowerCase() || \"\";\n\n    // ============================\n    // FUNÇÃO DE FORMATAÇÃO DE NÚMERO\n    // ============================\n    function formatarNumero(numOriginal) {\n        let num = numOriginal.toString().replace(/\\D/g, '');\n        if (num.startsWith('55') && num.length >= 12) {\n            num = num.substring(2);\n        }\n        if (num.length === 11) {\n            num = num.substring(0, 2) + num.substring(3);\n        }\n        return '55' + num;\n    }\n\n    // === ADICIONAR USUARIO ===\n    if (dados.intencao === \"adicionar_admin\" || dados.intencao === \"adicionar_usuario\") {\n    \n        if (!dados.nivel_acesso) {\n            if (textoOriginal.includes(\"comum\") || textoOriginal.includes(\"usuario\") || textoOriginal.includes(\"usuário\")) {\n                dados.nivel_acesso = \"USER\";\n            } else if (textoOriginal.includes(\"admin\")) {\n                dados.nivel_acesso = \"ADMIN\";\n            }\n        }\n    \n        if (!dados.novo_numero || !dados.nivel_acesso) {\n            return {\n                destination: \"whatsapp\",\n                message: \"⚠️ Para cadastrar, envie o nível de acesso e o número juntos na mesma mensagem.\\n\\nExemplo: *Cadastrar o número 81999999999 como usuário comum*\",\n                remoteJid: remoteJid\n            };\n        }\n        \n        let num_limpo = formatarNumero(dados.novo_numero);\n        let role = dados.nivel_acesso.toUpperCase().includes(\"ADMIN\") ? \"ADMIN\" : \"USER\";\n        let roleLabel = role === \"ADMIN\" ? \"Administrador\" : \"Usuário comum\";\n        \n        return {\n            destination: \"sheets_add_user\",\n            message: \"⏳ *Cadastrando \" + roleLabel + \"...*\\nAdicionando o número \" + num_limpo + \" ao sistema.\",\n            remoteJid: remoteJid,\n            novo_numero: num_limpo,\n            nova_role: role\n        };\n    }\n\n    // === ALTERAR REGRA DO USUARIO ===\n    if (dados.intencao === \"alterar_regra_usuario\") {\n        // Tolerância se a IA extrair nos campos errados (novo_numero em vez de numero_alvo)\n        const tgtNum = dados.numero_alvo || dados.novo_numero;\n        let tgtLevel = dados.novo_nivel || dados.nivel_acesso;\n        \n        if (!tgtLevel) {\n            if (textoOriginal.includes(\"comum\") || textoOriginal.includes(\"usuario\") || textoOriginal.includes(\"usuário\")) {\n                tgtLevel = \"USER\";\n            } else if (textoOriginal.includes(\"admin\")) {\n                tgtLevel = \"ADMIN\";\n            }\n        }\n\n        if (!tgtNum || !tgtLevel) {\n            return {\n                destination: \"whatsapp\",\n                message: \"⚠️ Para alterar a regra, envie o número e o novo nível juntos na mesma mensagem.\\n\\nExemplo: *Alterar o número 81999999999 para admin*\",\n                remoteJid: remoteJid\n            };\n        }\n        \n        let num_limpo = formatarNumero(tgtNum);\n        let novoNivel = tgtLevel.toUpperCase().includes(\"ADMIN\") ? \"ADMIN\" : \"USER\";\n        let nivelLabel = novoNivel === \"ADMIN\" ? \"Administrador\" : \"Usuário comum\";\n        \n        return {\n            destination: \"sheets_manage_user\",\n            message: \"⏳ *Alterando permissão...*\\nAtualizando o número \" + num_limpo + \" para \" + nivelLabel + \".\",\n            remoteJid: remoteJid,\n            numero_alvo: num_limpo,\n            novo_nivel: novoNivel,\n            operacao: \"update\"\n        };\n    }\n\n    // === EXCLUIR USUARIO ===\n    if (dados.intencao === \"excluir_usuario\") {\n        const tgtNum = dados.numero_alvo || dados.novo_numero;\n        if (!tgtNum) {\n            return {\n                destination: \"whatsapp\",\n                message: \"⚠️ Para excluir, informe o número que deseja remover.\\n\\nExemplo: *Excluir o número 81999999999*\",\n                remoteJid: remoteJid\n            };\n        }\n        \n        let num_limpo = formatarNumero(tgtNum);\n        \n        return {\n            destination: \"sheets_manage_user\",\n            message: \"⏳ *Excluindo usuário...*\\nRemovendo o número \" + num_limpo + \" do sistema.\",\n            remoteJid: remoteJid,\n            numero_alvo: num_limpo,\n            operacao: \"delete\"\n        };\n    }\n    \n    // === RESPOSTA NORMALIZADA (MQTT e outros) ===\n    let resposta = {\n        intencao: dados.intencao || \"nenhuma_intencao\",\n        destination: \"mqtt\",\n        remoteJid: remoteJid,\n        is_admin: isAdmin\n    };\n\n    if (dados.requer_dados) {\n        return {\n            destination: \"whatsapp\",\n            message: \"Entendi seu pedido de \" + dados.intencao.replace('_', ' ') + \", mas preciso de mais detalhes. Qual o valor desejado?\",\n            remoteJid: remoteJid\n        };\n    }\n\n    const campos = [\"temp_max\", \"temp_min\", \"volt_max\", \"volt_min\", \"bat_min\", \"tempo_porta\", \"nova_tensao\", \"novo_fator\"];\n    campos.forEach(c => {\n        if (dados[c] !== undefined && dados[c] !== null) resposta[c] = parseFloat(dados[c]);\n    });\n    \n    return resposta;\n\n} catch (e) {\n    return {\n        error: \"Erro no processamento\",\n        detalhe: e.message\n    };\n}\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        91184,
-        48080
+        95952,
+        49504
       ],
-      "id": "05cabef8-4a96-49b2-beee-4cc23be832df",
+      "id": "4e00556f-a620-4e6d-b950-7bb9e3913a7b",
       "name": "Code in JavaScript1"
     },
     {
       "parameters": {
-        "jsCode": "\nconst outputRaw = $input.item.json.output;\nconst remoteJid = $('Webhook').item.json.body.data.key.remoteJid;\n\nlet jsonString = outputRaw;\nconst codeBlockMatch = outputRaw.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) {\n    jsonString = codeBlockMatch[1];\n} else {\n    const jsonMatch = outputRaw.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) jsonString = jsonMatch[0];\n}\n\njsonString = jsonString.replace(/[\\u0000-\\u001F]+/g, \"\");\n\nlet dados;\ntry {\n  dados = JSON.parse(jsonString);\n} catch (e) {\n  try {\n      const clean = jsonString\n          .replace(/(['\"])?([a-zA-Z0-9_]+)(['\"])?:/g, '\"$2\":') \n          .replace(/'/g, '\"'); \n      dados = JSON.parse(clean);\n  } catch (e2) {\n      return [{\n          json: { error: \"Falha cr\u00edtica no parse JSON\", intencao: \"erro_parse_ia\", requer_dados: false }\n      }];\n  }\n}\n\n// === VALIDA\u00c7\u00c3O NA BORDA (GLOBAL) ===\nlet userRule = \"\";\nlet userFound = false;\n\ntry {\n    const editFieldsNode = $('Edit Fields').first();\n    if (editFieldsNode && editFieldsNode.json) {\n        if (editFieldsNode.json.RULE !== undefined && editFieldsNode.json.RULE !== null && editFieldsNode.json.RULE !== \"\") {\n            userFound = true;\n            userRule = editFieldsNode.json.RULE;\n        } else {\n            const sheetItems = $('Get row(s) in sheet1').all();\n            if (sheetItems && sheetItems.length > 0 && Object.keys(sheetItems[0].json).length > 0 && sheetItems[0].json.NUMERO !== undefined && sheetItems[0].json.NUMERO !== null && sheetItems[0].json.NUMERO !== \"\") {\n               userFound = true;\n               userRule = sheetItems[0].json.RULE ? sheetItems[0].json.RULE.toString().trim() : \"USER\";\n            }\n        }\n    }\n} catch(err) {\n    userFound = false;\n}\n\nif (!userFound) {\n    return [{\n      json: {\n        intencao: \"BLOQUEADO\",\n        mensagem_erro: \"\ud83d\udeab *Acesso Bloqueado*\\nDesculpe, seu n\u00famero n\u00e3o est\u00e1 cadastrado no sistema para acessar este servi\u00e7o nem para consultar relat\u00f3rios.\",\n        is_admin: false\n      }\n    }];\n}\n\n// CORRE\u00c7\u00c3O: Garante que userRule n\u00e3o \u00e9 null e \u00e9 uma string antes de chamar toUpperCase()\nconst isAdmin = (userRule && typeof userRule === 'string' && userRule.trim().toUpperCase() === 'ADMIN');\n\nreturn [\n  {\n    json: {\n      intencao: dados.intencao ? dados.intencao.trim() : null,\n      temp_max: dados.temp_max, \n      temp_min: dados.temp_min,\n      volt_max: dados.volt_max,\n      volt_min: dados.volt_min,\n      nova_tensao: dados.nova_tensao,\n      novo_fator: dados.novo_fator, \n      bat_min: dados.bat_min,\n      tempo_porta: dados.tempo_porta,\n      novo_numero: dados.novo_numero,\n      nivel_acesso: dados.nivel_acesso,\n      numero_alvo: dados.numero_alvo,\n      novo_nivel: dados.novo_nivel,\n      requer_dados: dados.requer_dados,\n      fonte_dados: dados.fonte_dados,\n      is_admin: isAdmin,\n      parametros: {\n        solicitacao_original: dados.parametros ? dados.parametros.solicitacao_original : null,\n        detalhe: dados.parametros ? dados.parametros.detalhe : null\n      }\n    }\n  }\n];\n"
+        "jsCode": "\nconst outputRaw = $input.item.json.output;\nconst remoteJid = $('Webhook').item.json.body.data.key.remoteJid;\n\nlet jsonString = outputRaw;\nconst codeBlockMatch = outputRaw.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) {\n    jsonString = codeBlockMatch[1];\n} else {\n    const jsonMatch = outputRaw.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) jsonString = jsonMatch[0];\n}\n\njsonString = jsonString.replace(/[\\u0000-\\u001F]+/g, \"\");\n\nlet dados;\ntry {\n  dados = JSON.parse(jsonString);\n} catch (e) {\n  try {\n      const clean = jsonString\n          .replace(/(['\"])?([a-zA-Z0-9_]+)(['\"])?:/g, '\"$2\":') \n          .replace(/'/g, '\"'); \n      dados = JSON.parse(clean);\n  } catch (e2) {\n      return [{\n          json: { error: \"Falha crítica no parse JSON\", intencao: \"erro_parse_ia\", requer_dados: false }\n      }];\n  }\n}\n\n// === VALIDAÇÃO NA BORDA (GLOBAL) ===\nlet userRule = \"\";\nlet userFound = false;\n\ntry {\n    const editFieldsNode = $('Edit Fields').first();\n    if (editFieldsNode && editFieldsNode.json) {\n        if (editFieldsNode.json.RULE !== undefined && editFieldsNode.json.RULE !== null && editFieldsNode.json.RULE !== \"\") {\n            userFound = true;\n            userRule = editFieldsNode.json.RULE;\n        } else {\n            const sheetItems = $('Get row(s) in sheet1').all();\n            if (sheetItems && sheetItems.length > 0 && Object.keys(sheetItems[0].json).length > 0 && sheetItems[0].json.NUMERO !== undefined && sheetItems[0].json.NUMERO !== null && sheetItems[0].json.NUMERO !== \"\") {\n               userFound = true;\n               userRule = sheetItems[0].json.RULE ? sheetItems[0].json.RULE.toString().trim() : \"USER\";\n            }\n        }\n    }\n} catch(err) {\n    userFound = false;\n}\n\nif (!userFound) {\n    return [{\n      json: {\n        intencao: \"BLOQUEADO\",\n        mensagem_erro: \"🚫 *Acesso Bloqueado*\\nDesculpe, seu número não está cadastrado no sistema para acessar este serviço nem para consultar relatórios.\",\n        is_admin: false\n      }\n    }];\n}\n\n// CORREÇÃO: Garante que userRule não é null e é uma string antes de chamar toUpperCase()\nconst isAdmin = (userRule && typeof userRule === 'string' && userRule.trim().toUpperCase() === 'ADMIN');\n\nreturn [\n  {\n    json: {\n      intencao: dados.intencao ? dados.intencao.trim() : null,\n      temp_max: dados.temp_max, \n      temp_min: dados.temp_min,\n      volt_max: dados.volt_max,\n      volt_min: dados.volt_min,\n      nova_tensao: dados.nova_tensao,\n      novo_fator: dados.novo_fator, \n      bat_min: dados.bat_min,\n      tempo_porta: dados.tempo_porta,\n      novo_numero: dados.novo_numero,\n      nivel_acesso: dados.nivel_acesso,\n      numero_alvo: dados.numero_alvo,\n      novo_nivel: dados.novo_nivel,\n      requer_dados: dados.requer_dados,\n      fonte_dados: dados.fonte_dados,\n      is_admin: isAdmin,\n      parametros: {\n        solicitacao_original: dados.parametros ? dados.parametros.solicitacao_original : null,\n        detalhe: dados.parametros ? dados.parametros.detalhe : null\n      }\n    }\n  }\n];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        90352,
-        48000
+        95120,
+        49424
       ],
-      "id": "9d0ed6c3-0990-4a0c-b657-67d62ce34ff9",
+      "id": "6f9e505e-5526-4bba-905e-87b30de21f08",
       "name": "Code in JavaScript"
     },
     {
@@ -605,10 +605,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        90576,
-        48000
+        95344,
+        49424
       ],
-      "id": "01a4c10d-a6df-42b0-9b1e-cf3fc6b303b2",
+      "id": "ade2f14d-68de-4586-a6d2-598fa374b08f",
       "name": "If2"
     },
     {
@@ -619,10 +619,10 @@
       "type": "n8n-nodes-base.mqtt",
       "typeVersion": 1,
       "position": [
-        91584,
-        48048
+        96352,
+        49472
       ],
-      "id": "85b3a21c-677d-48c3-9a76-b8b68554af91",
+      "id": "a17856fa-df5f-4539-bb6d-ef5fe30cf90d",
       "name": "MQTT",
       "credentials": {
         "mqtt": {
@@ -659,10 +659,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        90960,
-        48096
+        95728,
+        49520
       ],
-      "id": "bedb5f93-287a-4545-a478-b77140b7d29d",
+      "id": "491e015d-745b-4eb2-8df6-a73493903d2d",
       "name": "If1"
     },
     {
@@ -776,16 +776,16 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        90800,
-        48096
+        95568,
+        49520
       ],
-      "id": "9be4f6ee-c2d7-48d7-afb5-36a6e9ef3c76",
+      "id": "66118637-3aee-48e0-a125-a0e47927dd1e",
       "name": "Edit Fields1"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Voc\u00ea \u00e9 um CLASSIFICADOR DE INTEN\u00c7\u00c3O puro. Sua \u00fanica fun\u00e7\u00e3o \u00e9 extrair dados de uma mensagem e retornar um JSON.\n\nN\u00c3O GERE C\u00d3DIGO. N\u00c3O GERE EXPLICA\u00c7\u00d5ES. N\u00c3O GERE TEMPLATES .\nAPENAS JSON V\u00c1LIDO.\n\n---\nMENSAGEM: {{ $json.body.data.message.conversation }}\n---\n\nINTEN\u00c7\u00d5ES POSS\u00cdVEIS:\n- adicionar_usuario (par\u00e2metros: novo_numero, nivel_acesso -> \"ADMIN\" ou \"USER\")\n- alterar_regra_usuario (par\u00e2metros: numero_alvo, novo_nivel -> \"ADMIN\" ou \"USER\")\n- excluir_usuario (par\u00e2metro: numero_alvo)\n- configurar_limites (par\u00e2metros: temp_max, temp_min, volt_max, volt_min, bat_min, tempo_porta)\n- ligar_rele / desligar_rele\n- modo_manutencao \u2014 ATIVAR manuten\u00e7\u00e3o (suspender alertas e comandos)\n- modo_operacional \u2014 DESATIVAR manuten\u00e7\u00e3o (retomar monitoramento normal)\n- silenciar_alarme\n- calibrar_tensao (par\u00e2metro: nova_tensao)\n- calibrar_bateria (par\u00e2metro: nova_tensao)\n- obter_status_atual\n- consultar_relatorio\n- habilitar_porta / desabilitar_porta\n- habilitar_tensao / desabilitar_tensao\n- habilitar_bateria / desabilitar_bateria\n\nREGRAS DE DISAMBIGUA\u00c7\u00c3O:\n\nMANUTEN\u00c7\u00c3O vs OPERACIONAL:\n- \"manuten\u00e7\u00e3o\", \"parar\", \"suspender\", \"pausar monitoramento\" \u2192 modo_manutencao\n- \"operacional\", \"voltar\", \"retomar\", \"reativar\", \"ativar monitoramento\", \"sair da manuten\u00e7\u00e3o\" \u2192 modo_operacional\n\nTENS\u00c3O vs BATERIA:\n- \"bateria\", \"bat\", \"12V\", \"nobreak\", \"backup\" \u2192 calibrar_bateria\n- \"tens\u00e3o\", \"rede\", \"220V\", \"110V\", \"energia\" \u2192 calibrar_tensao\n\nREGRAS DE CADASTRO DE USU\u00c1RIO:\n1. \"Adicionar o numero 81999999999 como admin\" -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": \"81999999999\", \"nivel_acesso\": \"ADMIN\", \"requer_dados\": false }\n2. \"Adicionar o numero 81999999999 como usu\u00e1rio\" -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": \"81999999999\", \"nivel_acesso\": \"USER\", \"requer_dados\": false }\n3. Se pedir para adicionar usu\u00e1rio MAS N\u00c3O falar o n\u00famero nem o n\u00edvel: { \"intencao\": \"adicionar_usuario\", \"novo_numero\": null, \"nivel_acesso\": null, \"requer_dados\": true }\n4. Se o usu\u00e1rio estiver RESPONDENDO a uma pergunta dizendo apenas \"Usu\u00e1rio comum\", \"Comum\", \"Usu\u00e1rio\": -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": null, \"nivel_acesso\": \"USER\", \"requer_dados\": false }\n5. Se o usu\u00e1rio estiver RESPONDENDO a uma pergunta dizendo apenas \"Administrador\", \"Admin\": -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": null, \"nivel_acesso\": \"ADMIN\", \"requer_dados\": false }\n\n\n\nREGRAS DE ALTERA\u00c7\u00c3O DE REGRA:\n1. \"Alterar o n\u00famero 81999999999 para admin\" -> { \"intencao\": \"alterar_regra_usuario\", \"numero_alvo\": \"81999999999\", \"novo_nivel\": \"ADMIN\", \"requer_dados\": false }\n2. \"Mudar permiss\u00e3o do 81999999999 para usu\u00e1rio\" -> { \"intencao\": \"alterar_regra_usuario\", \"numero_alvo\": \"81999999999\", \"novo_nivel\": \"USER\", \"requer_dados\": false }\n3. Se pedir para alterar MAS N\u00c3O falar o n\u00famero ou o n\u00edvel: { \"intencao\": \"alterar_regra_usuario\", \"numero_alvo\": null, \"novo_nivel\": null, \"requer_dados\": true }\n\nREGRAS DE EXCLUS\u00c3O DE USU\u00c1RIO:\n1. \"Excluir o n\u00famero 81999999999\" -> { \"intencao\": \"excluir_usuario\", \"numero_alvo\": \"81999999999\", \"requer_dados\": false }\n2. \"Remover usu\u00e1rio 81999999999\" -> { \"intencao\": \"excluir_usuario\", \"numero_alvo\": \"81999999999\", \"requer_dados\": false }\n3. Se pedir para excluir MAS N\u00c3O falar o n\u00famero: { \"intencao\": \"excluir_usuario\", \"numero_alvo\": null, \"requer_dados\": true }\n\nOBSERVA\u00c7\u00c3O CR\u00cdTICA: Se a inten\u00e7\u00e3o for adicionar_usuario e o usu\u00e1rio informar apenas o n\u00edvel (\"comum\", \"admin\"), RETORNE EXATAMENTE \"USER\" ou \"ADMIN\" em \"nivel_acesso\". NUNCA retorne null nesses casos.\n\nFORMATO DE SA\u00cdDA OBRIGAT\u00d3RIO:\n{\n  \"intencao\": \"string\",\n  \"temp_max\": number | null,\n  \"temp_min\": number | null,\n  \"volt_max\": number | null,\n  \"volt_min\": number | null,\n  \"bat_min\": number | null,\n  \"tempo_porta\": number | null,\n  \"novo_numero\": \"string | null\",\n  \"nivel_acesso\": \"string | null\",\n  \"nova_tensao\": number | null,\n  \"numero_alvo\": \"string | null\",\n  \"novo_nivel\": \"string | null\",\n  \"requer_dados\": boolean,\n  \"fonte_dados\": \"mqtt\" | null,\n  \"parametros\": {\n    \"solicitacao_original\": \"{{ $json.body.data.message.conversation }}\",\n    \"detalhe\": null\n  }\n}\n",
+        "text": "=Você é um CLASSIFICADOR DE INTENÇÃO puro. Sua única função é extrair dados de uma mensagem e retornar um JSON.\n\nNÃO GERE CÓDIGO. NÃO GERE EXPLICAÇÕES. NÃO GERE TEMPLATES .\nAPENAS JSON VÁLIDO.\n\n---\nMENSAGEM: {{ $json.body.data.message.conversation }}\n---\n\nINTENÇÕES POSSÍVEIS:\n- adicionar_usuario (parâmetros: novo_numero, nivel_acesso -> \"ADMIN\" ou \"USER\")\n- alterar_regra_usuario (parâmetros: numero_alvo, novo_nivel -> \"ADMIN\" ou \"USER\")\n- excluir_usuario (parâmetro: numero_alvo)\n- configurar_limites (parâmetros: temp_max, temp_min, volt_max, volt_min, bat_min, tempo_porta)\n- ligar_rele / desligar_rele\n- modo_manutencao — ATIVAR manutenção (suspender alertas e comandos)\n- modo_operacional — DESATIVAR manutenção (retomar monitoramento normal)\n- silenciar_alarme\n- calibrar_tensao (parâmetro: nova_tensao)\n- calibrar_bateria (parâmetro: nova_tensao)\n- obter_status_atual\n- consultar_relatorio\n- habilitar_porta / desabilitar_porta\n- habilitar_tensao / desabilitar_tensao\n- habilitar_bateria / desabilitar_bateria\n\nREGRAS DE DISAMBIGUAÇÃO:\n\nMANUTENÇÃO vs OPERACIONAL:\n- \"manutenção\", \"parar\", \"suspender\", \"pausar monitoramento\" → modo_manutencao\n- \"operacional\", \"voltar\", \"retomar\", \"reativar\", \"ativar monitoramento\", \"sair da manutenção\" → modo_operacional\n\nTENSÃO vs BATERIA:\n- \"bateria\", \"bat\", \"12V\", \"nobreak\", \"backup\" → calibrar_bateria\n- \"tensão\", \"rede\", \"220V\", \"110V\", \"energia\" → calibrar_tensao\n\nREGRAS DE CADASTRO DE USUÁRIO:\n1. \"Adicionar o numero 81999999999 como admin\" -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": \"81999999999\", \"nivel_acesso\": \"ADMIN\", \"requer_dados\": false }\n2. \"Adicionar o numero 81999999999 como usuário\" -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": \"81999999999\", \"nivel_acesso\": \"USER\", \"requer_dados\": false }\n3. Se pedir para adicionar usuário MAS NÃO falar o número nem o nível: { \"intencao\": \"adicionar_usuario\", \"novo_numero\": null, \"nivel_acesso\": null, \"requer_dados\": true }\n4. Se o usuário estiver RESPONDENDO a uma pergunta dizendo apenas \"Usuário comum\", \"Comum\", \"Usuário\": -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": null, \"nivel_acesso\": \"USER\", \"requer_dados\": false }\n5. Se o usuário estiver RESPONDENDO a uma pergunta dizendo apenas \"Administrador\", \"Admin\": -> { \"intencao\": \"adicionar_usuario\", \"novo_numero\": null, \"nivel_acesso\": \"ADMIN\", \"requer_dados\": false }\n\n\n\nREGRAS DE ALTERAÇÃO DE REGRA:\n1. \"Alterar o número 81999999999 para admin\" -> { \"intencao\": \"alterar_regra_usuario\", \"numero_alvo\": \"81999999999\", \"novo_nivel\": \"ADMIN\", \"requer_dados\": false }\n2. \"Mudar permissão do 81999999999 para usuário\" -> { \"intencao\": \"alterar_regra_usuario\", \"numero_alvo\": \"81999999999\", \"novo_nivel\": \"USER\", \"requer_dados\": false }\n3. Se pedir para alterar MAS NÃO falar o número ou o nível: { \"intencao\": \"alterar_regra_usuario\", \"numero_alvo\": null, \"novo_nivel\": null, \"requer_dados\": true }\n\nREGRAS DE EXCLUSÃO DE USUÁRIO:\n1. \"Excluir o número 81999999999\" -> { \"intencao\": \"excluir_usuario\", \"numero_alvo\": \"81999999999\", \"requer_dados\": false }\n2. \"Remover usuário 81999999999\" -> { \"intencao\": \"excluir_usuario\", \"numero_alvo\": \"81999999999\", \"requer_dados\": false }\n3. Se pedir para excluir MAS NÃO falar o número: { \"intencao\": \"excluir_usuario\", \"numero_alvo\": null, \"requer_dados\": true }\n\nOBSERVAÇÃO CRÍTICA: Se a intenção for adicionar_usuario e o usuário informar apenas o nível (\"comum\", \"admin\"), RETORNE EXATAMENTE \"USER\" ou \"ADMIN\" em \"nivel_acesso\". NUNCA retorne null nesses casos.\n\nFORMATO DE SAÍDA OBRIGATÓRIO:\n{\n  \"intencao\": \"string\",\n  \"temp_max\": number | null,\n  \"temp_min\": number | null,\n  \"volt_max\": number | null,\n  \"volt_min\": number | null,\n  \"bat_min\": number | null,\n  \"tempo_porta\": number | null,\n  \"novo_numero\": \"string | null\",\n  \"nivel_acesso\": \"string | null\",\n  \"nova_tensao\": number | null,\n  \"numero_alvo\": \"string | null\",\n  \"novo_nivel\": \"string | null\",\n  \"requer_dados\": boolean,\n  \"fonte_dados\": \"mqtt\" | null,\n  \"parametros\": {\n    \"solicitacao_original\": \"{{ $json.body.data.message.conversation }}\",\n    \"detalhe\": null\n  }\n}\n",
         "options": {
           "systemMessage": "You are a helpful assistant"
         }
@@ -793,10 +793,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        90032,
-        48000
+        94800,
+        49424
       ],
-      "id": "7aa69ff8-2f8e-4a3e-a58b-506e95ebd386",
+      "id": "764b5348-cb23-4a57-9265-880ddb33527f",
       "name": "AI Agent"
     },
     {
@@ -804,10 +804,10 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        90208,
-        48800
+        94976,
+        50224
       ],
-      "id": "36d36806-f1e8-4d23-99c9-a916718bcc86",
+      "id": "274bac6d-1158-4a5b-963a-3318f0f05509",
       "name": "No Operation, do nothing"
     },
     {
@@ -858,10 +858,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        89744,
-        48016
+        94512,
+        49440
       ],
-      "id": "03e7799e-8707-4ee8-b720-cf46f6fb9769",
+      "id": "5e9140c4-6951-425b-938c-9a11bf15e7af",
       "name": "If"
     },
     {
@@ -923,10 +923,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        89568,
-        48016
+        94336,
+        49440
       ],
-      "id": "916e623c-0ee5-44ea-8f1c-2da88af66aac",
+      "id": "a6f728dd-664a-4914-926e-537c30b2b33d",
       "name": "Edit Fields"
     },
     {
@@ -938,10 +938,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        89184,
-        48016
+        93952,
+        49440
       ],
-      "id": "e3730bbd-1456-4bad-a9b1-213e0cf9d4cd",
+      "id": "cab1d13a-a0b2-44b4-8573-a35b72006e40",
       "name": "Webhook",
       "webhookId": "779ca9f1-da45-4b93-a744-876dc834aafb"
     },
@@ -959,7 +959,7 @@
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
+          "cachedResultName": "Página1",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
         },
         "columns": {
@@ -999,10 +999,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        92240,
-        48448
+        97008,
+        49872
       ],
-      "id": "e9567cbd-d33c-47bf-86e6-6fbb5b7cca3b",
+      "id": "0e304e63-05c3-498b-a159-64422007e6c0",
       "name": "Update User Rule Sheet",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -1016,16 +1016,16 @@
         "resource": "messages-api",
         "instanceName": "sensor_temperatura",
         "remoteJid": "={{ $('Code in JavaScript1').first().json.remoteJid }}",
-        "messageText": "=\u2705 Permiss\u00e3o alterada com sucesso!\n\nO n\u00famero {{ $json.NUMERO }} agora tem acesso de {{ $json.RULE === 'ADMIN' ? 'Administrador' : 'Usu\u00e1rio comum' }} ao sistema.",
+        "messageText": "=✅ Permissão alterada com sucesso!\n\nO número {{ $json.NUMERO }} agora tem acesso de {{ $json.RULE === 'ADMIN' ? 'Administrador' : 'Usuário comum' }} ao sistema.",
         "options_message": {}
       },
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        92480,
-        48448
+        97248,
+        49872
       ],
-      "id": "7d392f03-1bde-4de8-99f8-f16cfb727f7c",
+      "id": "bd351ea6-c866-436f-8b4f-4a8adbce92ed",
       "name": "Responder Sucesso Update User",
       "credentials": {
         "evolutionApi": {
@@ -1048,17 +1048,17 @@
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
+          "cachedResultName": "Página1",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
         }
       },
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        92240,
-        48672
+        97008,
+        50096
       ],
-      "id": "323f86ec-97aa-4158-b89d-950d17c9b38f",
+      "id": "e045c4cc-2acf-4890-97d7-ca11988dbb8d",
       "name": "Delete User from Sheet",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -1072,16 +1072,16 @@
         "resource": "messages-api",
         "instanceName": "sensor_temperatura",
         "remoteJid": "={{ $('Code in JavaScript1').first().json.remoteJid }}",
-        "messageText": "=\u2705 Usu\u00e1rio exclu\u00eddo com sucesso!\n\nO n\u00famero {{ $('Code in JavaScript1').first().json.numero_alvo }} foi removido do sistema.",
+        "messageText": "=✅ Usuário excluído com sucesso!\n\nO número {{ $('Code in JavaScript1').first().json.numero_alvo }} foi removido do sistema.",
         "options_message": {}
       },
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        92480,
-        48672
+        97248,
+        50096
       ],
-      "id": "320fb65c-4712-437c-ab5f-da24871a80d4",
+      "id": "ae1f5af1-e264-4b07-b9ac-33cd22525dff",
       "name": "Responder Sucesso Delete User",
       "credentials": {
         "evolutionApi": {
@@ -1103,7 +1103,7 @@
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
+          "cachedResultName": "Página1",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
         },
         "options": {}
@@ -1111,10 +1111,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        91584,
-        48448
+        96352,
+        49872
       ],
-      "id": "07bc735c-e775-4bf7-9c68-a2cc9aabb847",
+      "id": "42b8cf88-7e5b-4f2c-911e-02184a00a870",
       "name": "Get All Users Lookup",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -1125,16 +1125,15 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst todos = $input.all(); // all rows from the sheet\n\n// Get original request data from Code in JavaScript1\nconst req = $('Code in JavaScript1').first().json;\nconst rawNumero = req.numero_alvo || '';\nconst operacao = req.operacao;\nconst novoNivel = req.novo_nivel;\nconst remoteJid = req.remoteJid;\n\nfunction gerarFormatos(num) {\n    let n = num.toString().replace(/\\D/g, '');\n    const set = new Set();\n    set.add(n);\n    let sem55 = n.startsWith('55') && n.length >= 12 ? n.substring(2) : n;\n    set.add(sem55);\n    set.add('55' + sem55);\n    if (sem55.length === 10) {\n        const com9 = sem55.substring(0, 2) + '9' + sem55.substring(2);\n        set.add(com9);\n        set.add('55' + com9);\n    } else if (sem55.length === 11) {\n        const sem9 = sem55.substring(0, 2) + sem55.substring(3);\n        set.add(sem9);\n        set.add('55' + sem9);\n    }\n    return [...set];\n}\n\nconst formatos = gerarFormatos(rawNumero);\nlet encontrado = null;\nfor (const row of todos) {\n    const numNaPlanilha = (row.json.NUMERO || '').toString().trim();\n    if (formatos.includes(numNaPlanilha)) {\n        encontrado = row.json;\n        break;\n    }\n}\n\nif (!encontrado) {\n    return [{\n        json: {\n            found: false,\n            remoteJid: remoteJid,\n            message: `\u26a0\ufe0f N\u00famero *${rawNumero}* n\u00e3o encontrado no sistema.\\n\\nVerifique o n\u00famero e tente novamente.`\n        }\n    }];\n}\n\nreturn [{\n    json: {\n        found: true,\n        exact_numero: encontrado.NUMERO,\n        operacao: operacao,\n        novo_nivel: novoNivel,\n        remoteJid: remoteJid\n    }\n}];\n",
-        "mode": "runOnceForAllItems"
+        "jsCode": "\nconst todos = $input.all(); // all rows from the sheet\n\n// Get original request data from Code in JavaScript1\nconst req = $('Code in JavaScript1').first().json;\nconst rawNumero = req.numero_alvo || '';\nconst operacao = req.operacao;\nconst novoNivel = req.novo_nivel;\nconst remoteJid = req.remoteJid;\n\nfunction gerarFormatos(num) {\n    let n = num.toString().replace(/\\D/g, '');\n    const set = new Set();\n    set.add(n);\n    let sem55 = n.startsWith('55') && n.length >= 12 ? n.substring(2) : n;\n    set.add(sem55);\n    set.add('55' + sem55);\n    if (sem55.length === 10) {\n        const com9 = sem55.substring(0, 2) + '9' + sem55.substring(2);\n        set.add(com9);\n        set.add('55' + com9);\n    } else if (sem55.length === 11) {\n        const sem9 = sem55.substring(0, 2) + sem55.substring(3);\n        set.add(sem9);\n        set.add('55' + sem9);\n    }\n    return [...set];\n}\n\nconst formatos = gerarFormatos(rawNumero);\nlet encontrado = null;\nfor (const row of todos) {\n    const numNaPlanilha = (row.json.NUMERO || '').toString().trim();\n    if (formatos.includes(numNaPlanilha)) {\n        encontrado = row.json;\n        break;\n    }\n}\n\nif (!encontrado) {\n    return [{\n        json: {\n            found: false,\n            remoteJid: remoteJid,\n            message: `⚠️ Número *${rawNumero}* não encontrado no sistema.\\n\\nVerifique o número e tente novamente.`\n        }\n    }];\n}\n\nreturn [{\n    json: {\n        found: true,\n        exact_numero: encontrado.NUMERO,\n        operacao: operacao,\n        novo_nivel: novoNivel,\n        remoteJid: remoteJid\n    }\n}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        91808,
-        48448
+        96576,
+        49872
       ],
-      "id": "3b39abfe-d3b2-47c2-ae02-b4f00eaf087c",
+      "id": "0b20af18-f1e0-4d2a-9de7-917fc6f32462",
       "name": "Find and Validate User"
     },
     {
@@ -1220,10 +1219,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        92032,
-        48432
+        96800,
+        49856
       ],
-      "id": "291be352-c556-4cf5-a8aa-44995b1f67ce",
+      "id": "262afe72-0772-4768-a775-549244abfba8",
       "name": "Switch Operacao"
     },
     {
@@ -1237,10 +1236,10 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        92240,
-        48240
+        97008,
+        49664
       ],
-      "id": "d0751fba-6732-461b-9de2-5d6b0d87a067",
+      "id": "4208d3ca-a6aa-4df7-972c-232a35b78874",
       "name": "Responder Nao Encontrado",
       "credentials": {
         "evolutionApi": {
@@ -1248,6 +1247,595 @@
           "name": "Evolution account"
         }
       }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 1 * *"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        94032,
+        50624
+      ],
+      "id": "962ae9e6-b09e-4f5b-867a-a0983d74a000",
+      "name": "Agendamento Mensal"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));\nconst ano = now.getFullYear();\nconst mes = now.getMonth(); // 0-based, current month\n\n// Last month\nconst mesAnterior = mes === 0 ? 11 : mes - 1;\nconst anoAnterior = mes === 0 ? ano - 1 : ano;\n\nconst pad = n => String(n).padStart(2, '0');\nconst ultDia = new Date(anoAnterior, mesAnterior + 1, 0).getDate();\n\nconst dataInicio = `01/${pad(mesAnterior + 1)}/${anoAnterior}`;\nconst dataFim    = `${ultDia}/${pad(mesAnterior + 1)}/${anoAnterior}`;\n\n// Month name in pt-BR\nconst nomeMes = new Date(anoAnterior, mesAnterior, 1).toLocaleString('pt-BR', { month: 'long', year: 'numeric' });\n\nreturn [{ json: { data_inicio: dataInicio, data_fim: dataFim, nome_mes: nomeMes, periodo: 'intervalo_datas' } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        94256,
+        50624
+      ],
+      "id": "72f62d1c-6137-4a09-b18d-fb8ae274c871",
+      "name": "Calc Mes Anterior"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
+          "mode": "list",
+          "cachedResultName": "Temperaturas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "CLIENTE",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        94464,
+        50624
+      ],
+      "id": "024a3356-a07e-4d4b-800b-2d2ff0400ae2",
+      "name": "Ler Sheet CLIENTE",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction parseDateBR(s) {\n  if (!s) return null;\n  const [d, m, y] = s.split('/').map(Number);\n  return new Date(y, m - 1, d);\n}\n\nconst filtro = $('Calc Mes Anterior').first().json;\nconst tsIni = parseDateBR(filtro.data_inicio)?.getTime();\nconst tsFim = parseDateBR(filtro.data_fim);\nif (tsFim) tsFim.setHours(23, 59, 59, 999);\n\nconst resultado = [];\nfor (const item of items) {\n  const d = parseDateBR(item.json.DATA);\n  if (!d) continue;\n  const t = d.getTime();\n  if (tsIni && tsFim && t >= tsIni && t <= tsFim.getTime()) {\n    resultado.push({\n      HORA: item.json.HORA || '',\n      DATA: item.json.DATA || '',\n      DISPOSITIVO: item.json.DISPOSITIVO || '',\n      'TEMP.': item.json['TEMP.'] || item.json.TEMP || '',\n      MAX: item.json.MAX || '',\n      MIN: item.json.MIN || '',\n      OBS: item.json.OBS || ''\n    });\n  }\n}\n\nreturn [{ json: {\n  relatorio: resultado,\n  total: resultado.length,\n  periodo: { inicio: filtro.data_inicio, fim: filtro.data_fim },\n  nome_mes: filtro.nome_mes\n}}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        94688,
+        50624
+      ],
+      "id": "8a30fb3e-c616-4453-935a-3d1b0d394216",
+      "name": "Filtrar Dados Mensais"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4",
+          "mode": "list",
+          "cachedResultName": "users_casinhas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Página1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        94912,
+        50624
+      ],
+      "id": "81f5fa29-1339-4873-a8e5-0979f7c8c999",
+      "name": "Ler Usuarios Mensal",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Ata para Controle Diário de Temperatura</title>\n  <style>\n    :root {\n      --border: #000;\n      --thin: 1px;\n    }\n\n    * {\n      box-sizing: border-box;\n    }\n\n    body {\n      font-family: \"Times New Roman\", Times, serif;\n      font-size: 11px;\n      color: #000;\n      margin: 18px;\n    }\n\n    .line {\n      border-top: var(--thin) solid var(--border);\n      margin: 8px 0;\n    }\n\n    .header {\n      display: grid;\n      grid-template-columns: 1fr auto 1fr;\n      align-items: center;\n      gap: 8px;\n      margin: 6px 0 8px;\n    }\n\n    .header .left,\n    .header .right {\n      font-size: 10px;\n      text-transform: uppercase;\n    }\n\n    .header .center {\n      text-align: center;\n      font-style: italic;\n      font-size: 16px;\n      font-weight: bold;\n    }\n\n    .title {\n      font-weight: bold;\n      text-transform: uppercase;\n      margin: 6px 0 6px;\n    }\n\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      page-break-inside: auto;\n    }\n\n    th, td {\n      border: var(--thin) solid var(--border);\n      padding: 3px 4px;\n      vertical-align: middle;\n    }\n\n    th {\n      font-weight: bold;\n      text-transform: uppercase;\n      font-size: 9px;\n      text-align: center;\n    }\n\n    .meta th,\n    .meta td {\n      font-size: 10px;\n    }\n\n    .meta .label {\n      width: 90px;\n      text-transform: uppercase;\n      font-weight: bold;\n      text-align: left;\n    }\n\n    .meta .value {\n      height: 18px;\n      font-weight: normal;\n      text-transform: none;\n    }\n\n    .subhead th {\n      background: #f7f7f7;\n    }\n\n    .group {\n      text-align: center;\n      font-weight: bold;\n    }\n\n    .obs {\n      width: 16%;\n    }\n\n    .footer-box {\n      margin-top: 10px;\n      width: 55%;\n    }\n\n    .footer-box td {\n      height: 16px;\n      font-size: 10px;\n    }\n\n    @page {\n      size: A4;\n      margin: 15mm;\n    }\n\n    @media print {\n      body {\n        margin: 0;\n      }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"line\"></div>\n\n  <div class=\"header\">\n    <div class=\"left\">Secretaria de Saúde</div>\n    <div class=\"center\">Pernambuco</div>\n    <div class=\"right\">Governo do Estado</div>\n  </div>\n\n  <div class=\"line\"></div>\n\n  <div class=\"title\">Ata para controle diário de temperatura</div>\n\n  <table class=\"meta\">\n    <tr>\n      <td class=\"label\">Estado</td>\n      <td class=\"value\">Pernambuco</td>\n      <td class=\"label\">Município</td>\n      <td class=\"value\">__________________________</td>\n      <td class=\"label\">Unidade Sanitária III GIRES</td>\n      <td class=\"value\">__________________________</td>\n    </tr>\n    <tr>\n      <td class=\"label\">Ano</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { return parts[2]; } } return (new Date()).getFullYear(); })() }}</td>\n      <td class=\"label\">Mês</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { const dt = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])); return dt.toLocaleString('pt-BR', { month: 'long' }); } } return (new Date()).toLocaleString('pt-BR', { month: 'long' }); })() }}</td>\n      <td class=\"label\">Marca da geladeira ou freezer</td>\n      <td class=\"value\">{{ $json.relatorio?.[0]?.DISPOSITIVO ?? '__________________________' }}</td>\n    </tr>\n  </table>\n\n  <table>\n    <thead>\n      <tr>\n        <th rowspan=\"2\">Dia</th>\n        <th class=\"group\" colspan=\"5\">Manhã</th>\n        <th class=\"group\" colspan=\"5\">Tarde</th>\n        <th class=\"obs\" rowspan=\"2\">Observação</th>\n      </tr>\n      <tr class=\"subhead\">\n        <th>Hora</th>\n        <th>Máx</th>\n        <th>Mín</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n        <th>Hora</th>\n        <th>Máx</th>\n        <th>Mín</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n      </tr>\n    </thead>\n    <tbody>\n      {{\n        (() => {\n          const toHour = (h) => {\n            if (!h) return null;\n            const m = String(h).match(/(\\d{1,2})(?::(\\d{2}))?/);\n            if (!m) return null;\n            return Number(m[1]);\n          };\n\n          const dados = $json.relatorio || [];\n          const diasAgrupados = {};\n\n          // Agrupa todas as leituras de manhã e tarde por dia, sem agrupar/esconder registros\n          dados.forEach(linha => {\n            const dia = (linha.DATA || '').split('/')[0] || '';\n            if (!dia) return;\n            \n            if (!diasAgrupados[dia]) {\n              diasAgrupados[dia] = { \n                dia: dia, \n                manhas: [], \n                tardes: [] \n              };\n            }\n            \n            const hora = toHour(linha.HORA);\n            if (hora !== null && hora >= 12) {\n              diasAgrupados[dia].tardes.push(linha);\n            } else {\n              diasAgrupados[dia].manhas.push(linha);\n            }\n          });\n\n          let htmlOutput = '';\n\n          Object.values(diasAgrupados)\n            .sort((a, b) => Number(a.dia) - Number(b.dia)) // Ordena por diazinho\n            .forEach(grupo => {\n              const extrair = (linha) => {\n                if (!linha) return { hora: '', max: '', min: '', atual: '', rubrica: '', obs: '' };\n                return {\n                  hora: linha.HORA ?? '',\n                  atual: linha[\"TEMP.\"] ?? linha.TEMP ?? '',\n                  max: linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? linha.TEMPMAX ?? linha['TEMP MAX'] ?? linha['TEMP_MAX'] ?? '',\n                  min: linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '',\n                  rubrica: linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '',\n                  obs: linha.OBS ?? linha.OBSERVACAO ?? ''\n                };\n              };\n\n              // Pode haver 3 registros de manhã e 1 de tarde no mesmo dia. Precisamos percorrer até o maior número.\n              const maxLinhas = Math.max(grupo.manhas.length, grupo.tardes.length, 1);\n\n              for (let i = 0; i < maxLinhas; i++) {\n                const manha = extrair(grupo.manhas[i]);\n                const tarde = extrair(grupo.tardes[i]);\n                const obs = manha.obs || tarde.obs || '';\n                // Somente mostra o número do dia na primeira linha desse dia (ou em todas)\n                const labelDia = i === 0 ? grupo.dia : ''; \n\n                htmlOutput += `\n                  <tr>\n                    <td style=\"text-align:center;\">${labelDia}</td>\n                    <td>${manha.hora}</td>\n                    <td>${manha.max}</td>\n                    <td>${manha.min}</td>\n                    <td>${manha.atual}</td>\n                    <td>${manha.rubrica}</td>\n                    <td>${tarde.hora}</td>\n                    <td>${tarde.max}</td>\n                    <td>${tarde.min}</td>\n                    <td>${tarde.atual}</td>\n                    <td>${tarde.rubrica}</td>\n                    <td>${obs}</td>\n                  </tr>\n                `;\n              }\n            });\n\n          return htmlOutput;\n        })()\n      }}\n    </tbody>\n  </table>\n\n  <table class=\"footer-box\">\n    <tr>\n      <td style=\"width: 30%;\">Hora da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Temp. no momento da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Dias parados por falha</td>\n      <td></td>\n    </tr>\n  </table>\n</body>\n</html>\n"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        95136,
+        50624
+      ],
+      "id": "b2c6d67a-a48e-4f97-80ad-c7072948d137",
+      "name": "HTML Mensal"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "mensal-b64-uid",
+              "name": "html_base64",
+              "value": "={{ $json.html.base64Encode() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        95344,
+        50624
+      ],
+      "id": "c31cecf4-9692-4a98-9359-f853613c8bc3",
+      "name": "HTML Mensal Base64"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "html_base64",
+        "options": {
+          "fileName": "relatorio_mensal.html",
+          "mimeType": "text/html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        95568,
+        50624
+      ],
+      "id": "f6a258e7-e359-43e7-959e-deb0382a9e7b",
+      "name": "HTML Mensal para Arquivo"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://173.249.10.19:3000/forms/chromium/convert/html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        95792,
+        50624
+      ],
+      "id": "3e22032e-cf6b-46c2-b2fc-a428bc26cc64",
+      "name": "Gerar PDF Mensal"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\nreturn [{ json: { base64Data: binaryData.toString('base64'), fileName: 'relatorio_mensal.pdf', mimeType: 'application/pdf' } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96016,
+        50624
+      ],
+      "id": "8136d168-01f8-4846-8a97-8059d83339aa",
+      "name": "PDF Mensal Base64"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        96224,
+        50624
+      ],
+      "id": "919bcee9-ee32-452a-8712-9c919b9a9c52",
+      "name": "Split Usuarios Mensal"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst numero = $input.item.json.NUMERO;\nconst pdfData = $('PDF Mensal Base64').first().json;\nconst nomeMes = $('Calc Mes Anterior').first().json.nome_mes;\nreturn [{ json: {\n  remoteJid: numero + '@s.whatsapp.net',\n  base64Data: pdfData.base64Data,\n  caption: '📊 *Relatório Mensal de Temperatura*\\n' + nomeMes\n}}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96448,
+        50624
+      ],
+      "id": "c2aaffd8-5cb8-49ba-9c70-23473ff147ca",
+      "name": "Preparar Envio Mensal"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-document",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.remoteJid }}",
+        "media": "={{ $json.base64Data }}",
+        "caption": "={{ $json.caption }}",
+        "fileName": "relatorio_mensal.pdf",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        96672,
+        50624
+      ],
+      "id": "f66e3a4e-0a8f-4268-8baa-9ec7d8e99cc0",
+      "name": "Enviar Relatorio Mensal",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 271) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        96896,
+        50624
+      ],
+      "id": "327d7d58-bf40-42e3-9f4c-b47a073dc757",
+      "name": "Wait Mensal",
+      "webhookId": "mensal-wait-webhook-001"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.is_admin }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    },
+                    "id": "rule-admin"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "admin"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.is_admin }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false"
+                    },
+                    "id": "rule-user"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "usuario"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        95584,
+        48768
+      ],
+      "id": "1d99b5fa-5f13-4adb-8854-157d5a2ebf4c",
+      "name": "Admin ou Usuario"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Admin solicita relatório completo (sheet SUPORTE)\n// Parse the AI Agent1 output to get the date period\nlet rawOutput = $('AI Agent1').first().json.output;\nconst codeBlockMatch = rawOutput.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\nif (codeBlockMatch) rawOutput = codeBlockMatch[1];\nelse { const m = rawOutput.match(/\\{[\\s\\S]*\\}/); if (m) rawOutput = m[0]; }\n\nlet dados;\ntry { dados = JSON.parse(rawOutput); } catch (e) { dados = {}; }\n\nconst remoteJid = $('Webhook').first().json.body.data.key.remoteJid;\n\nreturn [{ json: {\n  data_inicio: dados.data_inicio || '',\n  data_fim:    dados.data_fim    || '',\n  periodo:     dados.periodo     || 'intervalo_datas',\n  remoteJid:   remoteJid\n}}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96192,
+        48560
+      ],
+      "id": "9236f26e-3e9c-40df-bbb3-b8656f42adf0",
+      "name": "Admin Extrair Periodo"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
+          "mode": "list",
+          "cachedResultName": "Temperaturas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "SUPORTE",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        96400,
+        48560
+      ],
+      "id": "18c2523a-555d-4c53-89ca-6fbbbb1d61bb",
+      "name": "Ler Sheet SUPORTE",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nfunction parseDateBR(s) {\n  if (!s) return null;\n  const [d, m, y] = s.split('/').map(Number);\n  return new Date(y, m - 1, d);\n}\n\nconst filtro = $('Admin Extrair Periodo').first().json;\nconst tsIni  = parseDateBR(filtro.data_inicio)?.getTime();\nconst tsEnd  = parseDateBR(filtro.data_fim);\nif (tsEnd) tsEnd.setHours(23, 59, 59, 999);\n\n// Group rows by date — show hourly columns for support report\nconst rows = [];\nfor (const item of items) {\n  const d = parseDateBR(item.json.DATA);\n  if (!d) continue;\n  const t = d.getTime();\n  if ((!tsIni || t >= tsIni) && (!tsEnd || t <= tsEnd.getTime())) {\n    rows.push({\n      HORA:         item.json.HORA         || '',\n      DATA:         item.json.DATA         || '',\n      DISPOSITIVO:  item.json.DISPOSITIVO  || '',\n      TEMP_SENSOR:  item.json.TEMP_SENSOR || item.json['TEMP.'] || item.json.TEMP  || '',\n      TEMP_AMBIENTE:item.json.TEMP_AMBIENTE|| '',\n      BATERIA:      item.json.BATERIA      || '',\n      VOLTAGEM:     item.json.VOLTAGEM     || '',\n      OBS:          item.json.OBS          || ''\n    });\n  }\n}\n\nconst remoteJid = $('Admin Extrair Periodo').first().json.remoteJid;\nreturn [{ json: {\n  relatorio:  rows,\n  total:      rows.length,\n  periodo:    { inicio: filtro.data_inicio, fim: filtro.data_fim },\n  remoteJid:  remoteJid,\n  tipo_relatorio: 'SUPORTE'\n}}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96608,
+        48560
+      ],
+      "id": "e0e1fe55-e904-460e-b976-62022eab60a7",
+      "name": "Admin Filtrar SUPORTE"
+    },
+    {
+      "parameters": {
+        "html": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Ata para Controle Diário de Temperatura</title>\n  <style>\n    :root {\n      --border: #000;\n      --thin: 1px;\n    }\n\n    * {\n      box-sizing: border-box;\n    }\n\n    body {\n      font-family: \"Times New Roman\", Times, serif;\n      font-size: 11px;\n      color: #000;\n      margin: 18px;\n    }\n\n    .line {\n      border-top: var(--thin) solid var(--border);\n      margin: 8px 0;\n    }\n\n    .header {\n      display: grid;\n      grid-template-columns: 1fr auto 1fr;\n      align-items: center;\n      gap: 8px;\n      margin: 6px 0 8px;\n    }\n\n    .header .left,\n    .header .right {\n      font-size: 10px;\n      text-transform: uppercase;\n    }\n\n    .header .center {\n      text-align: center;\n      font-style: italic;\n      font-size: 16px;\n      font-weight: bold;\n    }\n\n    .title {\n      font-weight: bold;\n      text-transform: uppercase;\n      margin: 6px 0 6px;\n    }\n\n    table {\n      width: 100%;\n      border-collapse: collapse;\n      page-break-inside: auto;\n    }\n\n    th, td {\n      border: var(--thin) solid var(--border);\n      padding: 3px 4px;\n      vertical-align: middle;\n    }\n\n    th {\n      font-weight: bold;\n      text-transform: uppercase;\n      font-size: 9px;\n      text-align: center;\n    }\n\n    .meta th,\n    .meta td {\n      font-size: 10px;\n    }\n\n    .meta .label {\n      width: 90px;\n      text-transform: uppercase;\n      font-weight: bold;\n      text-align: left;\n    }\n\n    .meta .value {\n      height: 18px;\n      font-weight: normal;\n      text-transform: none;\n    }\n\n    .subhead th {\n      background: #f7f7f7;\n    }\n\n    .group {\n      text-align: center;\n      font-weight: bold;\n    }\n\n    .obs {\n      width: 16%;\n    }\n\n    .footer-box {\n      margin-top: 10px;\n      width: 55%;\n    }\n\n    .footer-box td {\n      height: 16px;\n      font-size: 10px;\n    }\n\n    @page {\n      size: A4;\n      margin: 15mm;\n    }\n\n    @media print {\n      body {\n        margin: 0;\n      }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"line\"></div>\n\n  <div class=\"header\">\n    <div class=\"left\">Secretaria de Saúde</div>\n    <div class=\"center\">Pernambuco</div>\n    <div class=\"right\">Governo do Estado</div>\n  </div>\n\n  <div class=\"line\"></div>\n\n  <div class=\"title\">Ata para controle diário de temperatura</div>\n\n  <table class=\"meta\">\n    <tr>\n      <td class=\"label\">Estado</td>\n      <td class=\"value\">Pernambuco</td>\n      <td class=\"label\">Município</td>\n      <td class=\"value\">__________________________</td>\n      <td class=\"label\">Unidade Sanitária III GIRES</td>\n      <td class=\"value\">__________________________</td>\n    </tr>\n    <tr>\n      <td class=\"label\">Ano</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { return parts[2]; } } return (new Date()).getFullYear(); })() }}</td>\n      <td class=\"label\">Mês</td>\n      <td class=\"value\">{{ (() => { const p = $json.periodo?.inicio; if (p) { const parts = p.split('/'); if (parts.length === 3) { const dt = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])); return dt.toLocaleString('pt-BR', { month: 'long' }); } } return (new Date()).toLocaleString('pt-BR', { month: 'long' }); })() }}</td>\n      <td class=\"label\">Marca da geladeira ou freezer</td>\n      <td class=\"value\">{{ $json.relatorio?.[0]?.DISPOSITIVO ?? '__________________________' }}</td>\n    </tr>\n  </table>\n\n  <table>\n    <thead>\n      <tr>\n        <th rowspan=\"2\">Dia</th>\n        <th class=\"group\" colspan=\"5\">Manhã</th>\n        <th class=\"group\" colspan=\"5\">Tarde</th>\n        <th class=\"obs\" rowspan=\"2\">Observação</th>\n      </tr>\n      <tr class=\"subhead\">\n        <th>Hora</th>\n        <th>Máx</th>\n        <th>Mín</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n        <th>Hora</th>\n        <th>Máx</th>\n        <th>Mín</th>\n        <th>Atual</th>\n        <th>Rubrica</th>\n      </tr>\n    </thead>\n    <tbody>\n      {{\n        (() => {\n          const toHour = (h) => {\n            if (!h) return null;\n            const m = String(h).match(/(\\d{1,2})(?::(\\d{2}))?/);\n            if (!m) return null;\n            return Number(m[1]);\n          };\n\n          const dados = $json.relatorio || [];\n          const diasAgrupados = {};\n\n          // Agrupa todas as leituras de manhã e tarde por dia, sem agrupar/esconder registros\n          dados.forEach(linha => {\n            const dia = (linha.DATA || '').split('/')[0] || '';\n            if (!dia) return;\n            \n            if (!diasAgrupados[dia]) {\n              diasAgrupados[dia] = { \n                dia: dia, \n                manhas: [], \n                tardes: [] \n              };\n            }\n            \n            const hora = toHour(linha.HORA);\n            if (hora !== null && hora >= 12) {\n              diasAgrupados[dia].tardes.push(linha);\n            } else {\n              diasAgrupados[dia].manhas.push(linha);\n            }\n          });\n\n          let htmlOutput = '';\n\n          Object.values(diasAgrupados)\n            .sort((a, b) => Number(a.dia) - Number(b.dia)) // Ordena por diazinho\n            .forEach(grupo => {\n              const extrair = (linha) => {\n                if (!linha) return { hora: '', max: '', min: '', atual: '', rubrica: '', obs: '' };\n                return {\n                  hora: linha.HORA ?? '',\n                  atual: linha[\"TEMP.\"] ?? linha.TEMP ?? '',\n                  max: linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? linha.TEMPMAX ?? linha['TEMP MAX'] ?? linha['TEMP_MAX'] ?? '',\n                  min: linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '',\n                  rubrica: linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '',\n                  obs: linha.OBS ?? linha.OBSERVACAO ?? ''\n                };\n              };\n\n              // Pode haver 3 registros de manhã e 1 de tarde no mesmo dia. Precisamos percorrer até o maior número.\n              const maxLinhas = Math.max(grupo.manhas.length, grupo.tardes.length, 1);\n\n              for (let i = 0; i < maxLinhas; i++) {\n                const manha = extrair(grupo.manhas[i]);\n                const tarde = extrair(grupo.tardes[i]);\n                const obs = manha.obs || tarde.obs || '';\n                // Somente mostra o número do dia na primeira linha desse dia (ou em todas)\n                const labelDia = i === 0 ? grupo.dia : ''; \n\n                htmlOutput += `\n                  <tr>\n                    <td style=\"text-align:center;\">${labelDia}</td>\n                    <td>${manha.hora}</td>\n                    <td>${manha.max}</td>\n                    <td>${manha.min}</td>\n                    <td>${manha.atual}</td>\n                    <td>${manha.rubrica}</td>\n                    <td>${tarde.hora}</td>\n                    <td>${tarde.max}</td>\n                    <td>${tarde.min}</td>\n                    <td>${tarde.atual}</td>\n                    <td>${tarde.rubrica}</td>\n                    <td>${obs}</td>\n                  </tr>\n                `;\n              }\n            });\n\n          return htmlOutput;\n        })()\n      }}\n    </tbody>\n  </table>\n\n  <table class=\"footer-box\">\n    <tr>\n      <td style=\"width: 30%;\">Hora da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Temp. no momento da falha</td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>Dias parados por falha</td>\n      <td></td>\n    </tr>\n  </table>\n</body>\n</html>\n"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        96816,
+        48560
+      ],
+      "id": "705da2b2-ae64-482a-8e76-ce695f1ecc85",
+      "name": "HTML Admin"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "admin-b64-id",
+              "name": "html_base64",
+              "value": "={{ $json.html.base64Encode() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        97024,
+        48560
+      ],
+      "id": "2d997574-e991-4e79-938f-4d5e5316fba7",
+      "name": "Admin HTML Base64"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "html_base64",
+        "options": {
+          "fileName": "relatorio_admin.html",
+          "mimeType": "text/html"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        97232,
+        48560
+      ],
+      "id": "d5ff60fc-e906-44b4-8275-7b5d6d08393c",
+      "name": "Admin HTML para Arquivo"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://173.249.10.19:3000/forms/chromium/convert/html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "ngrok-skip-browser-warning",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        97440,
+        48560
+      ],
+      "id": "61ee7bb9-877b-480e-ae17-f4870778ad7b",
+      "name": "Admin Gerar PDF"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst base64String = binaryData.toString('base64');\n\nconst filtro    = $('Admin Extrair Periodo').first().json;\nconst remoteJid = filtro.remoteJid;\n\nreturn [{ json: {\n  base64Data:       base64String,\n  fileName:         'relatorio_suporte.pdf',\n  mimeType:         'application/pdf',\n  numeroDestinatario: remoteJid.split('@')[0],\n  remoteJid:        remoteJid\n}}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        97648,
+        48560
+      ],
+      "id": "e01cb4d6-aea8-4e01-9936-991910ffce4d",
+      "name": "Admin PDF Base64"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "operation": "send-document",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.remoteJid }}",
+        "media": "={{ $json.base64Data }}",
+        "caption": "📊 *Relatório de Suporte (ADMIN)* — dados hora a hora com temperatura ambiente, bateria e tensão.",
+        "fileName": "relatorio_suporte.pdf",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        97856,
+        48560
+      ],
+      "id": "7211e55e-28d2-4372-9e4f-31cbc519cc72",
+      "name": "Admin Enviar Relatorio",
+      "credentials": {
+        "evolutionApi": {
+          "id": "QqcSRveOqQAdkYAB",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Edit Fields').item.json.body.data.key.remoteJid }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        95984,
+        48784
+      ],
+      "id": "7210c606-0526-4102-a6c2-d22b76e53d93",
+      "name": "Simple Memory2"
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-235b-a22b-2507",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        95824,
+        48768
+      ],
+      "id": "d3ec61f1-2b89-4a95-b0dc-be2cd7ad43a7",
+      "name": "OpenRouter Chat Model2",
+      "credentials": {
+        "openRouterApi": {
+          "id": "XMVmk3hYpFTHTSyt",
+          "name": "open router 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Você é um classificador de intenção e período temporal.\nEntrada do usuário: {{ $json.parametros.solicitacao_original }}\nData atual: {{ $now.setZone('America/Sao_Paulo').format('dd/MM/yyyy HH:mm:ss') }}\nAnalise a mensagem do usuário e retorne:\n1) Intenção principal\n2) Período temporal NORMALIZADO\n\nNão calcule datas, não execute ações, não explique a resposta.\nRetorne APENAS JSON válido, sem texto extra e apenas um objeto.\n\nINTENÇÕES SUPORTADAS:\n- consultar_relatorio\n- nenhuma_intencao\n\nPERÍODOS SUPORTADOS:\n- hoje\n- ontem\n- ultimas_24_horas\n- ultima_semana\n- ultimo_mes\n- ultimos_X_dias\n- intervalo_datas\n- nenhum\n\nREGRAS:\n- O usuário pode escrever de qualquer forma (ex: \"24hs\", \"24 horas\", \"dia inteiro\", \"relatório do dia\").\n- Interprete semanticamente a intenção.\n- Normalize o período para UM dos valores suportados.\n- Se houver número explícito de dias, use \"ultimos_X_dias\" e informe o valor.\n- Se o usuário citar um mês (ex: janeiro, fev, março) com ou sem ano, use \"intervalo_datas\" e preencha data_inicio e data_fim com o primeiro e o último dia do mês.\n- Se o usuário pedir \"relatório do mês\" sem especificar qual, use o mês atual com \"intervalo_datas\".\n- Se não houver referência temporal clara, use \"nenhum\".\n- Para 'intervalo_datas', se o mês ou ano não for especificado, considere o mês e/ou ano atual.\n\nFORMATO DE SAÍDA:\n{\n  \"intencao\": \"consultar_relatorio | nenhuma_intencao\",\n  \"periodo\": \"hoje | ontem | ultimas_24_horas | ultima_semana | ultimo_mes | ultimos_X_dias | intervalo_datas | nenhum\",\n  \"valor\": null,\n  \"data_inicio\": \"dd/MM/yyyy | null\",\n  \"data_fim\": \"dd/MM/yyyy | null\"\n}\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        95872,
+        48560
+      ],
+      "id": "2f9a3d76-a2c4-45b1-92fc-27a8a458fca1",
+      "name": "AI Agent2"
     }
   ],
   "pinData": {},
@@ -1377,7 +1965,7 @@
       "main": [
         [
           {
-            "node": "Code in JavaScript2",
+            "node": "Admin ou Usuario",
             "type": "main",
             "index": 0
           }
@@ -1648,6 +2236,300 @@
           }
         ]
       ]
+    },
+    "Agendamento Mensal": {
+      "main": [
+        [
+          {
+            "node": "Calc Mes Anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calc Mes Anterior": {
+      "main": [
+        [
+          {
+            "node": "Ler Sheet CLIENTE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Sheet CLIENTE": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Dados Mensais",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Dados Mensais": {
+      "main": [
+        [
+          {
+            "node": "Ler Usuarios Mensal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Usuarios Mensal": {
+      "main": [
+        [
+          {
+            "node": "HTML Mensal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML Mensal": {
+      "main": [
+        [
+          {
+            "node": "HTML Mensal Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML Mensal Base64": {
+      "main": [
+        [
+          {
+            "node": "HTML Mensal para Arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML Mensal para Arquivo": {
+      "main": [
+        [
+          {
+            "node": "Gerar PDF Mensal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar PDF Mensal": {
+      "main": [
+        [
+          {
+            "node": "PDF Mensal Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF Mensal Base64": {
+      "main": [
+        [
+          {
+            "node": "Split Usuarios Mensal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Usuarios Mensal": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Preparar Envio Mensal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Envio Mensal": {
+      "main": [
+        [
+          {
+            "node": "Enviar Relatorio Mensal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Relatorio Mensal": {
+      "main": [
+        [
+          {
+            "node": "Wait Mensal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Mensal": {
+      "main": [
+        [
+          {
+            "node": "Split Usuarios Mensal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin ou Usuario": {
+      "main": [
+        [
+          {
+            "node": "Admin Extrair Periodo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Extrair Periodo": {
+      "main": [
+        [
+          {
+            "node": "Ler Sheet SUPORTE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Sheet SUPORTE": {
+      "main": [
+        [
+          {
+            "node": "Admin Filtrar SUPORTE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Filtrar SUPORTE": {
+      "main": [
+        [
+          {
+            "node": "HTML Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML Admin": {
+      "main": [
+        [
+          {
+            "node": "Admin HTML Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin HTML Base64": {
+      "main": [
+        [
+          {
+            "node": "Admin HTML para Arquivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin HTML para Arquivo": {
+      "main": [
+        [
+          {
+            "node": "Admin Gerar PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin Gerar PDF": {
+      "main": [
+        [
+          {
+            "node": "Admin PDF Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Admin PDF Base64": {
+      "main": [
+        [
+          {
+            "node": "Admin Enviar Relatorio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory2": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Admin Extrair Periodo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -1655,7 +2537,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "e3c81724-fa3b-441d-b609-a69f5ba0cd62",
+  "versionId": "591a5dff-2cf8-4e47-a6e8-6a5e0dce04fa",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "be63eec592610c4f78e7b17a812f5d022e962bcad508e6c20e665203393891ed"

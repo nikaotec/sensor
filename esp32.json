@@ -12,10 +12,10 @@
       "type": "n8n-nodes-base.mqttTrigger",
       "typeVersion": 1,
       "position": [
-        51904,
-        21344
+        127424,
+        37904
       ],
-      "id": "8a0f9a79-7ed2-4543-bfa5-5d7742683836",
+      "id": "ea65d754-f0be-4e37-8324-d30159c48209",
       "name": "MQTT Trigger",
       "credentials": {
         "mqtt": {
@@ -153,6 +153,24 @@
               "name": "DOOR_TIME",
               "value": "={{ $json['0'].DOOR_TIME       || '' }}",
               "type": "string"
+            },
+            {
+              "id": "ef-campos-alterados",
+              "name": "CAMPOS_ALTERADOS",
+              "value": "={{ $json['0'].CAMPOS_ALTERADOS || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-temp-externa",
+              "name": "TEMP_EXTERNA",
+              "value": "={{ $json['0'].TEMP_EXTERNA || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-umidade",
+              "name": "UMIDADE",
+              "value": "={{ $json['0'].UMIDADE || '' }}",
+              "type": "string"
             }
           ]
         },
@@ -161,78 +179,27 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        52080,
-        21344
+        127600,
+        37904
       ],
-      "id": "1027a877-75c6-4c51-a2eb-56512f161c75",
+      "id": "b003563f-700f-4bc9-b955-76ea1c0f0020",
       "name": "Edit Fields"
-    },
-    {
-      "parameters": {
-        "operation": "append",
-        "documentId": {
-          "__rl": true,
-          "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
-          "mode": "list",
-          "cachedResultName": "Temperaturas",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit#gid=0"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "HORA": "={{ $json.HORA }}",
-            "DATA": "={{ $json.DATA }}",
-            "DISPOSITIVO": "={{ $json.DISPOSITIVO }}",
-            "TEMP.": "={{ $json.TEMP }}",
-            "MAX": "={{ $json.MAX }}",
-            "MIN": "={{ $json.MIN }}",
-            "VOLTAGEM": "={{ $json.VOLTAGEM }}",
-            "BATERIA": "={{ $json.BATERIA }}",
-            "OBS": "={{ $json.OBS }}"
-          },
-          "matchingColumns": [],
-          "attemptToConvertTypes": false,
-          "convertFieldsToString": false
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        53296,
-        21360
-      ],
-      "id": "a26d44e4-59a1-46f0-b93d-f80f8bf9716d",
-      "name": "salva temperatura",
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "YFl1SEKGi4NmAyDc",
-          "name": "Google Sheets account"
-        }
-      }
     },
     {
       "parameters": {
         "promptType": "define",
         "text": "={{ $json.msg }}",
         "options": {
-          "systemMessage": "Voc\u00ea \u00e9 um assistente t\u00e9cnico inteligente de monitoramento de C\u00e2mara Fria. Sua fun\u00e7\u00e3o \u00e9 analisar dados de sensores IoT e gerar mensagens humanizadas para WhatsApp.\n\nVoc\u00ea recebe dados no formato:\nDISPOSITIVO: nome\nTIPO: tipo_do_evento\nTEMP: temperatura_atual\nMAX: pico_maximo_hoje\nMIN: pico_minimo_hoje\nVOLTAGEM: tensao_rede (s\u00f3 presente se monitoramento ativo)\nBATERIA: tensao_bateria (s\u00f3 presente se monitoramento ativo)\nPORTA: estado da porta (s\u00f3 presente se monitoramento ativo)\nMONITORES: {TENSAO: ON/OFF, BATERIA: ON/OFF, PORTA: ON/OFF, AMBIENTE: ON/OFF}\nDATA: data\nHORA: hora\n\nIMPORTANTE:\n- O monitoramento de TEMPERATURA (TEMP) \u00e9 o CORE do sistema e est\u00e1 SEMPRE ATIVO. NUNCA diga que a temperatura est\u00e1 desativada.\n- O monitoramento 'AMBIENTE' refere-se a sensores SECUND\u00c1RIOS. Se MONITORES.AMBIENTE = OFF, isso N\u00c3O se aplica \u00e0 Temperatura (TEMP).\n- MAX e MIN s\u00e3o registros hist\u00f3ricos di\u00e1rios. Se forem 'N/A', informe que n\u00e3o h\u00e1 hist\u00f3rico para hoje.\n- Use MAX e MIN apenas para curiosidade hist\u00f3rica.\n- Os outros monitoramentos (Tens\u00e3o, Bateria, Porta, Ambiente) s\u00e3o OPCIONAIS.\n- Se MONITORES.TENSAO = OFF, N\u00c3O mencione tens\u00e3o/voltagem no relat\u00f3rio.\n- Se MONITORES.BATERIA = OFF, N\u00c3O mencione bateria no relat\u00f3rio.\n- Se MONITORES.PORTA = OFF, N\u00c3O mencione porta no relat\u00f3rio.\n- Se MONITORES.AMBIENTE = OFF, N\u00c3O mencione ambiente/umidade no relat\u00f3rio.\n- S\u00f3 inclua no relat\u00f3rio os monitoramentos que est\u00e3o ON.\n\n---\nMONITORAMENTO DESATIVADO:\nSe TIPO = \"MONITORAMENTO_DESATIVADO\":\nResponda: \"Este monitoramento espec\u00edfico (ex: Porta/Tens\u00e3o) foi desativado com sucesso. A temperatura continua sendo monitorada.\"\n\n---\nCONFIGURAR MONITORAMENTO:\nQuando o usu\u00e1rio pedir para ativar/desativar monitoramentos, informe que a altera\u00e7\u00e3o foi recebida e processada.\nSe TIPO = \"feedback_monitoramento\":\nConfirme que o monitoramento foi configurado e mostre o novo status atual.\n\n---\nREGRAS DE RESPOSTA POR TIPO DE EVENTO:\n\n1. TIPO = \"periodico\" ou \"STATUS_SOLICITADO\":\n   Gere um relat\u00f3rio amig\u00e1vel com emojis:\n   \ud83c\udf21\ufe0f *Status Atual*\n   \ud83d\udcf1Dispositivo: [nome]\n   \ud83d\udcc5Data: [data]\n   \ud83d\udd70\ufe0fHora: [hora]\n   \ud83c\udf21\ufe0fTemp: [temp]\u00b0C\n   \ud83d\udcc9Picos Hoje: Min [min]\u00b0C / Max [max]\u00b0C\n   (Se MAX/MIN for 'N/A', diga \"Sem dados hoje\")\n   (S\u00f3 se MONITORES.BATERIA=ON) \ud83e\udeabBateria: [bat]V\n   (S\u00f3 se MONITORES.TENSAO=ON) \ud83d\udd0cTens\u00e3o: [volt]V\n   (S\u00f3 se MONITORES.PORTA=ON) \ud83d\udeaaPorta: [estado]\n\n   Depois, ANALISE os dados:\n   - Se MONITORES.TENSAO=ON e VOLTAGEM > 200V: \u2705 Energia est\u00e1vel\n   - Se MONITORES.TENSAO=ON e VOLTAGEM = 0V: \u26a0\ufe0f ALERTA: Sem energia!\n\n2. TIPO = \"relatorio_diario\":\n   Inicie com uma sauda\u00e7\u00e3o adequada ao hor\u00e1rio.\n   \"Aqui est\u00e1 o resumo di\u00e1rio do seu monitoramento:\"\n   Siga o mesmo formato do item 1 (Status Atual).\n   Adicione uma nota sobre o reset dos picos di\u00e1rios.\n\n3. TIPO come\u00e7a com \"ALERTA_\":\n   \ud83d\udea8 GERE UM ALERTA URGENTE! Use emojis de perigo.\n   ATEN\u00c7\u00c3O: Leia o TIPO exato para n\u00e3o dar a mensagem errada!\n   - Se TIPO for \"ALERTA_TEMP_BAIXA\", informe que a temperatura est\u00e1 MUITO BAIXA (abaixo da faixa ideal).\n   - Se TIPO for \"ALERTA_TEMP_ALTA\", informe que a temperatura est\u00e1 MUITO ALTA (acima da faixa ideal).\n   Informe o problema claramente e indique a temperatura atual.\n\n4. TIPO termina com \"_NORMALIZADA\" ou TIPO = \"PORTA_FECHADA\" ou TIPO = \"ENERGIA_RESTABELECIDA\":\n   \u2705 GERE UM AVISO DE NORMALIZA\u00c7\u00c3O. Use emojis de al\u00edvio ou sucesso (ex: \u2705, \ud83d\ude0c, \ud83d\udc4d).\n   Informe claramente que a m\u00e9trica (Temperatura, Energia, Porta, etc) voltou ao normal e informe o valor atual (ex: a temperatura atual).\n\n5. TIPO = \"feedback_monitoramento\" ou comandos de desativar/ativar:\n   Diga que a altera\u00e7\u00e3o foi feita com sucesso.\n   Liste brevemente os dados b\u00e1sicos (TEMP, MAX, MIN, energia, etc).\n\n6. Outros tipos mantenha o padr\u00e3o amig\u00e1vel anterior, sem mencionar limites configur\u00e1veis."
+          "systemMessage": "Você é um assistente técnico inteligente de monitoramento de Câmara Fria. Sua função é analisar dados de sensores IoT e gerar mensagens humanizadas para WhatsApp.\n\nVocê recebe dados no formato:\nDISPOSITIVO: nome\nTIPO: tipo_do_evento\nTEMP: temperatura_atual\nMAX: pico_maximo_hoje\nMIN: pico_minimo_hoje\nVOLTAGEM: tensao_rede (só presente se monitoramento ativo)\nBATERIA: tensao_bateria (só presente se monitoramento ativo)\nPORTA: estado da porta (só presente se monitoramento ativo)\nMONITORES: {TENSAO: ON/OFF, BATERIA: ON/OFF, PORTA: ON/OFF, AMBIENTE: ON/OFF}\nDATA: data\nHORA: hora\n\nIMPORTANTE:\n- O monitoramento de TEMPERATURA (TEMP) é o CORE do sistema e está SEMPRE ATIVO. NUNCA diga que a temperatura está desativada.\n- O monitoramento 'AMBIENTE' refere-se a sensores SECUNDÁRIOS. Se MONITORES.AMBIENTE = OFF, isso NÃO se aplica à Temperatura (TEMP).\n- MAX e MIN são registros históricos diários. Se forem 'N/A', informe que não há histórico para hoje.\n- Use MAX e MIN apenas para curiosidade histórica.\n- Os outros monitoramentos (Tensão, Bateria, Porta, Ambiente) são OPCIONAIS.\n- Se MONITORES.TENSAO = OFF, NÃO mencione tensão/voltagem no relatório.\n- Se MONITORES.BATERIA = OFF, NÃO mencione bateria no relatório.\n- Se MONITORES.PORTA = OFF, NÃO mencione porta no relatório.\n- Se MONITORES.AMBIENTE = OFF, NÃO mencione ambiente/umidade no relatório.\n- Só inclua no relatório os monitoramentos que estão ON.\n\n---\nMONITORAMENTO DESATIVADO:\nSe TIPO = \"MONITORAMENTO_DESATIVADO\":\nResponda: \"Este monitoramento específico (ex: Porta/Tensão) foi desativado com sucesso. A temperatura continua sendo monitorada.\"\n\n---\nCONFIGURAR MONITORAMENTO:\nQuando o usuário pedir para ativar/desativar monitoramentos, informe que a alteração foi recebida e processada.\nSe TIPO = \"feedback_monitoramento\":\nConfirme que o monitoramento foi configurado e mostre o novo status atual.\n\n---\nREGRAS DE RESPOSTA POR TIPO DE EVENTO:\n\n1. TIPO = \"periodico\" ou \"STATUS_SOLICITADO\":\n   Gere um relatório amigável com emojis:\n   🌡️ *Status Atual*\n   📱Dispositivo: [nome]\n   📅Data: [data]\n   🕰️Hora: [hora]\n   🌡️Temp: [temp]°C\n   📉Picos Hoje: Min [min]°C / Max [max]°C\n   (Se MAX/MIN for 'N/A', diga \"Sem dados hoje\")\n   (Só se MONITORES.BATERIA=ON) 🪫Bateria: [bat]V\n   (Só se MONITORES.TENSAO=ON) 🔌Tensão: [volt]V\n   (Só se MONITORES.PORTA=ON) 🚪Porta: [estado]\n\n   Depois, ANALISE os dados:\n   - Se MONITORES.TENSAO=ON e VOLTAGEM > 200V: ✅ Energia estável\n   - Se MONITORES.TENSAO=ON e VOLTAGEM = 0V: ⚠️ ALERTA: Sem energia!\n\n2. TIPO = \"relatorio_diario\":\n   Inicie com uma saudação adequada ao horário.\n   \"Aqui está o resumo diário do seu monitoramento:\"\n   Siga o mesmo formato do item 1 (Status Atual).\n   Adicione uma nota sobre o reset dos picos diários.\n\n3. TIPO começa com \"ALERTA_\":\n   🚨 GERE UM ALERTA URGENTE! Use emojis de perigo.\n   ATENÇÃO: Leia o TIPO exato para não dar a mensagem errada!\n   - Se TIPO for \"ALERTA_TEMP_BAIXA\", informe que a temperatura está MUITO BAIXA (abaixo da faixa ideal).\n   - Se TIPO for \"ALERTA_TEMP_ALTA\", informe que a temperatura está MUITO ALTA (acima da faixa ideal).\n   Informe o problema claramente e indique a temperatura atual.\n\n4. TIPO termina com \"_NORMALIZADA\" ou TIPO = \"PORTA_FECHADA\" ou TIPO = \"ENERGIA_RESTABELECIDA\":\n   ✅ GERE UM AVISO DE NORMALIZAÇÃO. Use emojis de alívio ou sucesso (ex: ✅, 😌, 👍).\n   Informe claramente que a métrica (Temperatura, Energia, Porta, etc) voltou ao normal e informe o valor atual (ex: a temperatura atual).\n\n5. TIPO = \"feedback_monitoramento\" ou comandos de desativar/ativar:\n   Diga que a alteração foi feita com sucesso.\n   Liste brevemente os dados básicos (TEMP, MAX, MIN, energia, etc).\n\n6. Outros tipos mantenha o padrão amigável anterior, sem mencionar limites configuráveis."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        52688,
-        21360
+        128208,
+        37920
       ],
-      "id": "420e7068-a994-4750-b8c6-1aa4657cbb1f",
+      "id": "4ac0cfe9-02fe-4596-8978-a406408dbd4b",
       "name": "AI Agent"
     },
     {
@@ -243,10 +210,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        52688,
-        21568
+        128208,
+        38128
       ],
-      "id": "a6c65c35-8b87-4dfe-8dd6-50891e5409b2",
+      "id": "fb210dc6-40fc-4ead-aa1e-93101ea5dec3",
       "name": "OpenRouter Chat Model",
       "credentials": {
         "openRouterApi": {
@@ -268,7 +235,7 @@
           "__rl": true,
           "value": "gid=0",
           "mode": "list",
-          "cachedResultName": "P\u00e1gina1",
+          "cachedResultName": "Página1",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4/edit#gid=0"
         },
         "options": {}
@@ -276,10 +243,10 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        53104,
-        21360
+        128544,
+        37920
       ],
-      "id": "3c48f9a3-8f4b-4986-b8e6-0ef9c14ed395",
+      "id": "cdbe8ada-6c96-4738-9c9b-f12d5f87d37e",
       "name": "Read Users for Broadcast",
       "credentials": {
         "googleSheetsOAuth2Api": {
@@ -295,10 +262,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        53472,
-        21360
+        128992,
+        37920
       ],
-      "id": "b5f9d75c-150e-430c-878f-f4d56e288e06",
+      "id": "371d1df1-926a-4988-9e11-2115483e8993",
       "name": "Split Users Broadcast"
     },
     {
@@ -312,10 +279,10 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        53648,
-        21456
+        129168,
+        38016
       ],
-      "id": "f2f1ad3c-4883-48a8-b619-7882e5d90b4d",
+      "id": "4d68c7d0-ab3c-4cff-b23c-d6ab399ca3f7",
       "name": "Enviar para Todos",
       "credentials": {
         "evolutionApi": {
@@ -331,24 +298,24 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        53824,
-        21456
+        129344,
+        38016
       ],
-      "id": "41c4813e-e05b-465a-a4f7-0ca6f2cf697b",
+      "id": "c3ad704f-a2e0-4b4a-bf67-f3a9b08850dd",
       "name": "Wait Anti-Spam",
       "webhookId": "b17a93cb-2e5d-4a88-bfe1-cc48fd7c1035"
     },
     {
       "parameters": {
-        "jsCode": "\nconst item = $input.first().json;\nconst tipo = (item.TIPO || '').toString();\nconst remoteJid = item.REMOTE_JID || item.REMOTE_jid || '';\n\n// \u2500\u2500 Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst fmt = (v, unit='') => (v !== undefined && v !== null && v !== '') ? `${v}${unit}` : '?';\n\n// \u2500\u2500 CATEGORY 1: COMANDO \u2013 preformatted static messages \u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst mensagensComando = {\n  'MANUTENCAO_ATIVADA':     '\ud83d\udd27 *Modo Manuten\u00e7\u00e3o ativado!*\\n\\nTodos alertas e relat\u00f3rios foram suspensos.\\nO dispositivo est\u00e1 em manuten\u00e7\u00e3o.',\n  'MANUTENCAO_DESATIVADA':  '\u2705 *Modo Operacional restaurado!*\\n\\nO sistema voltou ao monitoramento autom\u00e1tico.',\n  'EM_MANUTENCAO':          '\u26a0\ufe0f *Dispositivo em manuten\u00e7\u00e3o.*\\n\\nComandos bloqueados. Envie \"operacional\" para sair do modo manuten\u00e7\u00e3o.',\n  'ALARME_SILENCIADO':      '\ud83d\udd15 *Alarme silenciado.*\\n\\nOs alertas persistentes foram suspensos at\u00e9 normaliza\u00e7\u00e3o.',\n  'ERRO_NAO_AUTORIZADO':    '\ud83d\udeab *Acesso negado.*\\n\\nVoc\u00ea n\u00e3o tem permiss\u00e3o para executar este comando.',\n  'feedback_comando':        '\u2705 *Comando executado com sucesso.*',\n  'feedback_calibracao_sucesso':         '\ud83d\udccf *Calibra\u00e7\u00e3o de tens\u00e3o realizada com sucesso!*',\n  'feedback_calibracao_bateria':         '\ud83d\udd0b *Calibra\u00e7\u00e3o de bateria realizada com sucesso!*',\n  'ALERTA_ERRO_CALIBRACAO_FATOR':        '\u274c *Erro na calibra\u00e7\u00e3o:* fator inv\u00e1lido.',\n  'ALERTA_ERRO_CALIBRACAO_TENSAO_BAIXA': '\u274c *Erro na calibra\u00e7\u00e3o:* tens\u00e3o lida muito baixa.',\n};\n\n// \u2500\u2500 feedback_configuracao \u2500\u2500 DYNAMIC MESSAGE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// The ESP32 sends back the full set of limits after any config change.\n// We build a descriptive message showing what is configured NOW.\nif (tipo === 'feedback_configuracao') {\n  const alarmMax  = fmt(item.ALARM_MAX, '\u00b0C');\n  const alarmMin  = fmt(item.ALARM_MIN, '\u00b0C');\n  const voltMax   = fmt(item.VOLT_MAX_LIMIT, 'V');\n  const voltMin   = fmt(item.VOLT_MIN_LIMIT, 'V');\n  const batMin    = fmt(item.BAT_MIN_LIMIT, 'V');\n\n  let msg = '\u2699\ufe0f *Configura\u00e7\u00e3o atualizada!*\\n\\n';\n  msg += '\ud83d\udccb *Limites vigentes:*\\n';\n  msg += `\ud83c\udf21\ufe0f Temperatura: M\u00edn ${alarmMin} / M\u00e1x ${alarmMax}\\n`;\n  if (voltMax !== '?V' || voltMin !== '?V') {\n    msg += `\u26a1 Tens\u00e3o: ${voltMin} \u2013 ${voltMax}\\n`;\n  }\n  if (batMin !== '?V') {\n    msg += `\ud83d\udd0b Bateria m\u00edn: ${batMin}\\n`;\n  }\n\n  return [{ json: {\n    _tipo_resposta: 'COMANDO',\n    remoteJid,\n    msg\n  }}];\n}\n\nconst msgComando = mensagensComando[tipo];\n\n// Static COMANDO: requires REMOTE_JID\nif (msgComando && remoteJid) {\n  return [{ json: {\n    _tipo_resposta: 'COMANDO',\n    remoteJid,\n    msg: msgComando\n  }}];\n}\n\n// \u2500\u2500 CATEGORY 2: SOLICITACAO \u2013 response to user data request \u2500\u2500\nconst tiposSolicitacao = ['STATUS_SOLICITADO', 'DADOS_AMBIENTE'];\nif (tiposSolicitacao.includes(tipo)) {\n  return [{ json: { _tipo_resposta: 'SOLICITACAO', ...item }}];\n}\n\n// \u2500\u2500 CATEGORY 3: TELEMETRIA \u2013 spontaneous alerts / periodic \u2500\u2500\u2500\nreturn [{ json: { _tipo_resposta: 'TELEMETRIA', ...item }}];\n"
+        "jsCode": "\nconst item = $input.first().json;\nconst tipo = (item.TIPO || '').toString();\nconst remoteJid = item.REMOTE_JID || item.REMOTE_jid || '';\n\n// ── Helpers ──────────────────────────────────────────────────\nconst fmt = (v, unit='') => (v !== undefined && v !== null && v !== '') ? `${v}${unit}` : '?';\n\n// ── CATEGORY 1: COMANDO – preformatted static messages ───────\nconst mensagensComando = {\n  'MANUTENCAO_ATIVADA':     '🔧 *Modo Manutenção ativado!*\\n\\nTodos alertas e relatórios foram suspensos.\\nO dispositivo está em manutenção.',\n  'MANUTENCAO_DESATIVADA':  '✅ *Modo Operacional restaurado!*\\n\\nO sistema voltou ao monitoramento automático.',\n  'EM_MANUTENCAO':          '⚠️ *Dispositivo em manutenção.*\\n\\nComandos bloqueados. Envie \"operacional\" para sair do modo manutenção.',\n  'ALARME_SILENCIADO':      '🔕 *Alarme silenciado.*\\n\\nOs alertas persistentes foram suspensos até normalização.',\n  'ERRO_NAO_AUTORIZADO':    '🚫 *Acesso negado.*\\n\\nVocê não tem permissão para executar este comando.',\n  'feedback_comando':        '✅ *Comando executado com sucesso.*',\n  'feedback_calibracao_sucesso':         '📏 *Calibração de tensão realizada com sucesso!*',\n  'feedback_calibracao_bateria':         '🔋 *Calibração de bateria realizada com sucesso!*',\n  'ALERTA_ERRO_CALIBRACAO_FATOR':        '❌ *Erro na calibração:* fator inválido.',\n  'ALERTA_ERRO_CALIBRACAO_TENSAO_BAIXA': '❌ *Erro na calibração:* tensão lida muito baixa.',\n};\n\n// ── feedback_configuracao ── exibe APENAS o que foi alterado ──\nif (tipo === 'feedback_configuracao') {\n  const alarmMax = fmt(item.ALARM_MAX, '°C');\n  const alarmMin = fmt(item.ALARM_MIN, '°C');\n  const voltMax  = fmt(item.VOLT_MAX_LIMIT, 'V');\n  const voltMin  = fmt(item.VOLT_MIN_LIMIT, 'V');\n  const batMin   = fmt(item.BAT_MIN_LIMIT, 'V');\n  const doorTime = fmt(item.DOOR_TIME, 's');\n\n  const campos = (item.CAMPOS_ALTERADOS || '').split(',').filter(c => c);\n  const mostrarTudo   = campos.length === 0;\n  const alterouTemp   = mostrarTudo || campos.some(c => c === 'ALARM');\n  const alterouTensao = mostrarTudo || campos.some(c => c === 'VOLT');\n  const alterouBat    = mostrarTudo || campos.some(c => c === 'BAT');\n  const alterouPorta  = mostrarTudo || campos.some(c => c === 'DOOR');\n\n  let msg = '⚙️ *Configuração atualizada!*\\n\\n';\n  if (alterouTemp)   msg += `🌡️ Temperatura: Mín ${alarmMin} / Máx ${alarmMax}\\n`;\n  if (alterouTensao && (voltMax !== '?V' || voltMin !== '?V')) msg += `⚡ Tensão: ${voltMin} – ${voltMax}\\n`;\n  if (alterouBat    && batMin !== '?V')   msg += `🔋 Bateria mín: ${batMin}\\n`;\n  if (alterouPorta  && doorTime !== '?s') msg += `🚪 Porta máx: ${doorTime}\\n`;\n\n  return [{ json: { _tipo_resposta: 'COMANDO', remoteJid, msg } }];\n}\n\nconst msgComando = mensagensComando[tipo];\n\n// Static COMANDO: requires REMOTE_JID\nif (msgComando && remoteJid) {\n  return [{ json: {\n    _tipo_resposta: 'COMANDO',\n    remoteJid,\n    msg: msgComando\n  }}];\n}\n\n// ── CATEGORY 2: SOLICITACAO – response to user data request ──\nconst tiposSolicitacao = ['STATUS_SOLICITADO', 'DADOS_AMBIENTE'];\nif (tiposSolicitacao.includes(tipo)) {\n  return [{ json: { _tipo_resposta: 'SOLICITACAO', ...item }}];\n}\n\n// ── CATEGORY 3: TELEMETRIA – spontaneous alerts / periodic ───\nreturn [{ json: { _tipo_resposta: 'TELEMETRIA', ...item }}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        52256,
-        21344
+        127776,
+        37904
       ],
-      "id": "e0b0fdf4-5e62-49e2-90fc-1156508c15b4",
+      "id": "eb2374b0-96c2-49b7-8d44-df1fdc7c37bf",
       "name": "Roteador de Resposta"
     },
     {
@@ -434,10 +401,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        52448,
-        21328
+        127968,
+        37888
       ],
-      "id": "08217abe-989b-47e2-8214-d6fdd74c0b22",
+      "id": "2970ad08-f190-491e-9432-37a27dfbde20",
       "name": "Tipo de Resposta"
     },
     {
@@ -451,10 +418,10 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        52624,
-        21168
+        128144,
+        37728
       ],
-      "id": "c85dd988-d3e3-4cdd-bf56-620d60e93a83",
+      "id": "22db8ec3-d658-4978-86d1-0dad6c3d1eb7",
       "name": "Enviar Resposta Comando",
       "credentials": {
         "evolutionApi": {
@@ -474,10 +441,10 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        53216,
-        21168
+        128736,
+        37728
       ],
-      "id": "446f1770-829a-4e7c-9ca8-50caf375dbde",
+      "id": "99ece34d-9022-410b-81ad-4f54cb8fcccc",
       "name": "Enviar para Solicitante",
       "credentials": {
         "evolutionApi": {
@@ -488,29 +455,263 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst d = $json;\nconst remoteJid = d.REMOTE_JID || '';\nconst tipo = (d.TIPO || '').toString();\n\n// Build WhatsApp-formatted message from mapped Edit Fields data\nlet msg = '';\n\nif (tipo === 'STATUS_SOLICITADO') {\n  const temp    = d.temperatura ?? '?';\n  const max     = d.MAX || '?';\n  const min     = d.MIN || '?';\n  const volt    = d.VOLTAGEM || '';\n  const bat     = d.BATERIA || '';\n  const hora    = d.hora || '';\n  const dataStr = d.data || '';\n  const device  = d.device || 'Sensor';\n  const rssi    = d.RSSI || '';\n  const modo    = d.MODO || '';\n  const rele    = d.RELE;\n  const alMax   = d.ALARM_MAX || '';\n  const alMin   = d.ALARM_MIN || '';\n\n  msg  = `\ud83c\udf21\ufe0f *Status do Dispositivo*\\n`;\n  msg += `\ud83d\udcf1 *${device}*\\n`;\n  msg += `\ud83d\udcc5 ${dataStr}  \ud83d\udd70\ufe0f ${hora}\\n\\n`;\n  msg += `\ud83c\udf21\ufe0f Temperatura: *${temp}\u00b0C*\\n`;\n  msg += `\ud83d\udcca Hoje \u2014 Min: ${min}\u00b0C / Max: ${max}\u00b0C\\n\\n`;\n\n  if (volt && parseFloat(volt) > 0.1) msg += `\u26a1 Tens\u00e3o: *${volt}V*\\n`;\n  if (bat)  msg += `\ud83d\udd0b Bateria: *${bat}V*\\n`;\n  if (rele !== '' && rele !== undefined) msg += `\ud83d\udca1 Rel\u00e9: *${rele ? 'LIGADO' : 'DESLIGADO'}*\\n`;\n  if (modo) msg += `\u2699\ufe0f Modo: *${modo}*\\n`;\n  if (rssi) msg += `\ud83d\udcf6 Sinal WiFi: *${rssi} dBm*\\n`;\n\n} else if (tipo === 'DADOS_AMBIENTE') {\n  msg = d.msg || `\ud83c\udf0d *Dados Ambientais*\\n\ud83d\udcc5 ${d.data || ''} \u00e0s ${d.hora || ''}`;\n}\n\nif (!msg) return [];\n\n// If we have a specific REMOTE_JID, send directly to that person\nif (remoteJid) {\n  return [{ json: { _destino: 'DIRETO', remoteJid, msg } }];\n}\n\n// No REMOTE_JID (firmware not yet updated): broadcast to all registered users\n// Pass to the next node which handles the numeros array\nconst numeros = d.numeros || d.numeross || [];\nreturn numeros.map(n => ({\n  json: { _destino: 'BROADCAST_UNIT', remoteJid: n.phone, msg }\n}));\n"
+        "jsCode": "\nconst d = $json;\nconst remoteJid = d.REMOTE_JID || '';\nconst tipo = (d.TIPO || '').toString();\n\n// Build WhatsApp-formatted message from mapped Edit Fields data\nlet msg = '';\n\nif (tipo === 'STATUS_SOLICITADO') {\n  const temp    = d.temperatura ?? '?';\n  const max     = d.MAX || '?';\n  const min     = d.MIN || '?';\n  const volt    = d.VOLTAGEM || '';\n  const bat     = d.BATERIA || '';\n  const hora    = d.hora || '';\n  const dataStr = d.data || '';\n  const device  = d.device || 'Sensor';\n  const rssi    = d.RSSI || '';\n  const modo    = d.MODO || '';\n  const rele    = d.RELE;\n  const alMax   = d.ALARM_MAX || '';\n  const alMin   = d.ALARM_MIN || '';\n\n  msg  = `🌡️ *Status do Dispositivo*\\n`;\n  msg += `📱 *${device}*\\n`;\n  msg += `📅 ${dataStr}  🕰️ ${hora}\\n\\n`;\n  msg += `🌡️ Temperatura: *${temp}°C*\\n`;\n  msg += `📊 Hoje — Min: ${min}°C / Max: ${max}°C\\n\\n`;\n\n  if (volt && parseFloat(volt) > 0.1) msg += `⚡ Tensão: *${volt}V*\\n`;\n  if (bat)  msg += `🔋 Bateria: *${bat}V*\\n`;\n  if (rele !== '' && rele !== undefined) msg += `💡 Relé: *${rele ? 'LIGADO' : 'DESLIGADO'}*\\n`;\n  if (modo) msg += `⚙️ Modo: *${modo}*\\n`;\n  if (rssi) msg += `📶 Sinal WiFi: *${rssi} dBm*\\n`;\n\n} else if (tipo === 'DADOS_AMBIENTE') {\n  msg = d.msg || `🌍 *Dados Ambientais*\\n📅 ${d.data || ''} às ${d.hora || ''}`;\n}\n\nif (!msg) return [];\n\n// If we have a specific REMOTE_JID, send directly to that person\nif (remoteJid) {\n  return [{ json: { _destino: 'DIRETO', remoteJid, msg } }];\n}\n\n// No REMOTE_JID (firmware not yet updated): broadcast to all registered users\n// Pass to the next node which handles the numeros array\nconst numeros = d.numeros || d.numeross || [];\nreturn numeros.map(n => ({\n  json: { _destino: 'BROADCAST_UNIT', remoteJid: n.phone, msg }\n}));\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        52992,
-        21168
+        128512,
+        37728
       ],
-      "id": "a9280737-a28d-4f13-a231-0feac754a7b5",
+      "id": "42747b05-875a-4952-880c-4118cf33b443",
       "name": "Formatar Resposta Direta"
     },
     {
       "parameters": {
-        "jsCode": "\nconst raw = $('MQTT Trigger').item.json;\nconst d = raw['0'] || raw;\nconst tipo = (d.TIPO || '').toString();\n\n// TIPOs que devem ser salvos na planilha\nconst tiposPeriodicos   = ['relatorio_diario'];\nconst tiposAlertaTemp   = ['ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'];\nconst tiposAlertaTensao = ['ALERTA_TENSAO_ALTA', 'ALERTA_TENSAO_BAIXA',\n                           'ALERTA_FALTA_ENERGIA', 'ENERGIA_RESTABELECIDA',\n                           'ALERTA_BATERIA_BAIXA', 'BATERIA_NORMALIZADA'];\nconst tiposRede         = ['ALERTA_PORTA_ABERTA', 'PORTA_FECHADA'];\n\nconst tiposParaSalvar = [\n  ...tiposPeriodicos,\n  ...tiposAlertaTemp,\n  ...tiposAlertaTensao,\n  ...tiposRede\n];\n\nif (!tiposParaSalvar.includes(tipo)) {\n  return []; // Descarta silenciosamente\n}\n\n// Monta observa\u00e7\u00e3o baseada no tipo\nconst obsMap = {\n  'relatorio_diario':      'Relat\u00f3rio peri\u00f3dico autom\u00e1tico',\n  'ALERTA_TEMP_ALTA':      `\u26a0\ufe0f Temperatura ALTA ${d.TEMP_ATUAL}\u00b0C (limite: ${d.ALARM_MAX || '?'}\u00b0C)`,\n  'ALERTA_TEMP_BAIXA':     `\u26a0\ufe0f Temperatura BAIXA ${d.TEMP_ATUAL}\u00b0C (limite: ${d.ALARM_MIN || '?'}\u00b0C)`,\n  'TEMP_NORMALIZADA':      `\u2705 Temperatura normalizada ${d.TEMP_ATUAL}\u00b0C`,\n  'ALERTA_TENSAO_ALTA':    `\u26a1 Tens\u00e3o ALTA ${d.VOLTAGEM}V (limite: ${d.VOLT_MAX_LIMIT || '?'}V)`,\n  'ALERTA_TENSAO_BAIXA':   `\u26a1 Tens\u00e3o BAIXA ${d.VOLTAGEM}V (limite: ${d.VOLT_MIN_LIMIT || '?'}V)`,\n  'ALERTA_FALTA_ENERGIA':  '\ud83d\udd0c Falta de energia detectada',\n  'ENERGIA_RESTABELECIDA': '\u2705 Energia restabelecida',\n  'ALERTA_BATERIA_BAIXA':  `\ud83e\udeab Bateria baixa ${d.BATERIA}V (limite: ${d.BAT_MIN_LIMIT || '?'}V)`,\n  'BATERIA_NORMALIZADA':   `\u2705 Bateria normalizada ${d.BATERIA}V`,\n  'ALERTA_PORTA_ABERTA':   '\ud83d\udeaa Porta aberta detectada',\n  'PORTA_FECHADA':         '\u2705 Porta fechada',\n};\n\nconst obs = obsMap[tipo] || tipo;\n\nreturn [{\n  json: {\n    HORA:        d.HORA || '',\n    DATA:        d.DATA || '',\n    DISPOSITIVO: d.DISPOSITIVO || '',\n    TEMP:        d.TEMP_ATUAL || '',\n    MAX:         d.MAX || '',\n    MIN:         d.MIN || '',\n    VOLTAGEM:    d.VOLTAGEM || '',\n    BATERIA:     d.BATERIA || '',\n    TIPO:        tipo,\n    OBS:         obs\n  }\n}];\n"
+        "jsCode": "\nconst raw = $input.item.json;\nconst d = (raw['0'] && typeof raw['0'] === 'object') ? raw['0'] : raw;\nconst tipo = (d.TIPO || '').toString().trim();\n\n// ── Categorias de eventos ─────────────────────────────────────────────────────\n// Alertas que vão para AMBAS as sheets (SUPORTE + CLIENTE)\nconst alertasAmbos = [\n  'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA',\n  'ALERTA_TENSAO_ALTA', 'ALERTA_TENSAO_BAIXA'\n];\n// Alertas que vão APENAS para SUPORTE\nconst alertasSoSuporte = [\n  'ALERTA_FALTA_ENERGIA', 'ENERGIA_RESTABELECIDA',\n  'ALERTA_BATERIA_BAIXA', 'BATERIA_NORMALIZADA',\n  'ALERTA_PORTA_ABERTA', 'PORTA_FECHADA'\n];\n\nconst tipoValido = tipo === 'relatorio_diario'\n  || tipo === 'periodico_suporte'\n  || alertasAmbos.includes(tipo)\n  || alertasSoSuporte.includes(tipo);\n\nif (!tipoValido) return [];\n\n// ── Campos normalizados ───────────────────────────────────────────────────────\nconst temp     = d.TEMP_ATUAL || d.temperatura || d.TEMP || '';\nconst voltagem = d.VOLTAGEM   || d.voltagem    || '';\nconst bateria  = d.BATERIA    || d.bateria     || '';\nconst hora     = d.HORA       || d.hora        || '';\nconst data_    = d.DATA       || d.data        || '';\nconst disp     = d.DISPOSITIVO|| d.dispositivo || '';\nconst maxV     = d.MAX        || d.max         || '';\nconst minV     = d.MIN        || d.min         || '';\nconst alarmMax = d.ALARM_MAX  || '?';\nconst alarmMin = d.ALARM_MIN  || '?';\nconst voltMax  = d.VOLT_MAX_LIMIT || '?';\nconst voltMin  = d.VOLT_MIN_LIMIT || '?';\nconst batMin   = d.BAT_MIN_LIMIT  || '?';\n\n// ── Observação descritiva do evento ──────────────────────────────────────────\nconst obsMap = {\n  'relatorio_diario':      'Relatório automático',\n  'periodico_suporte':     'Monitoramento horário',\n  'ALERTA_TEMP_ALTA':      `⚠️ Temperatura ALTA ${temp}°C (limite: ${alarmMax}°C)`,\n  'ALERTA_TEMP_BAIXA':     `⚠️ Temperatura BAIXA ${temp}°C (limite: ${alarmMin}°C)`,\n  'TEMP_NORMALIZADA':      `✅ Temperatura normalizada ${temp}°C`,\n  'ALERTA_TENSAO_ALTA':    `⚡ Tensão ALTA ${voltagem}V (limite: ${voltMax}V)`,\n  'ALERTA_TENSAO_BAIXA':   `⚡ Tensão BAIXA ${voltagem}V (limite: ${voltMin}V)`,\n  'ALERTA_FALTA_ENERGIA':  '🔌 Falta de energia detectada',\n  'ENERGIA_RESTABELECIDA': '✅ Energia restabelecida',\n  'ALERTA_BATERIA_BAIXA':  `🪫 Bateria baixa ${bateria}V (limite: ${batMin}V)`,\n  'BATERIA_NORMALIZADA':   `✅ Bateria normalizada ${bateria}V`,\n  'ALERTA_PORTA_ABERTA':   '🚪 Porta aberta detectada',\n  'PORTA_FECHADA':         '✅ Porta fechada',\n};\nconst obs = obsMap[tipo] || tipo;\n\n// ── Linha para sheet SUPORTE (dados completos de todos os sensores) ───────────\nconst linhaSuporte = {\n  _destino_sheet: 'SUPORTE',\n  HORA: hora, DATA: data_, DISPOSITIVO: disp, TIPO: tipo,\n  TEMP: temp, TEMP_AMBIENTE: d.TEMP_EXTERNA || '',\n  MAX: maxV, MIN: minV,\n  VOLTAGEM: voltagem, BATERIA: bateria,\n  OBS: obs\n};\n\n// ── Linha para sheet CLIENTE (dados de temperatura e limites) ─────────────────\nconst linhaCliente = {\n  _destino_sheet: 'CLIENTE',\n  HORA: hora, DATA: data_, DISPOSITIVO: disp,\n  TEMP: temp, MAX: maxV, MIN: minV, OBS: obs\n};\n\n// ── Roteamento ────────────────────────────────────────────────────────────────\n\n// periodico_suporte → apenas SUPORTE (todos os dados horários)\nif (tipo === 'periodico_suporte') {\n  return [{ json: linhaSuporte }];\n}\n\n// relatorio_diario (8h e 16h) → apenas CLIENTE\nif (tipo === 'relatorio_diario') {\n  return [{ json: linhaCliente }];\n}\n\n// Alertas de temp/tensão → SUPORTE + CLIENTE\nif (alertasAmbos.includes(tipo)) {\n  return [\n    { json: linhaSuporte },\n    { json: linhaCliente }\n  ];\n}\n\n// Demais alertas (energia, bateria, porta) → apenas SUPORTE\nreturn [{ json: linhaSuporte }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        16128,
-        5736
+        128080,
+        38400
       ],
-      "id": "node-filtro-gravacao",
+      "id": "2069175d-6af9-4caa-a971-ba6fabc4d5f3",
       "name": "Filtro Gravacao"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._destino_sheet }}",
+                    "rightValue": "CLIENTE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "rule-cliente"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cliente"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._destino_sheet }}",
+                    "rightValue": "SUPORTE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "rule-suporte"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "suporte"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._destino_sheet }}",
+                    "rightValue": "LOG",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "rule-log"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "log"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        128288,
+        38400
+      ],
+      "id": "472ba99f-184b-4be2-bfc1-4f9fb246bea3",
+      "name": "Destino Sheet"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
+          "mode": "list",
+          "cachedResultName": "Temperaturas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "CLIENTE",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "HORA": "={{ $json.HORA }}",
+            "DATA": "={{ $json.DATA }}",
+            "DISPOSITIVO": "={{ $json.DISPOSITIVO }}",
+            "TEMP.": "={{ $json.TEMP }}",
+            "MAX": "={{ $json.MAX }}",
+            "MIN": "={{ $json.MIN }}",
+            "OBS": "={{ $json.OBS }}"
+          },
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128576,
+        38224
+      ],
+      "id": "c134850f-24b0-4802-936c-5218ea42c861",
+      "name": "salva CLIENTE",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
+          "mode": "list",
+          "cachedResultName": "Temperaturas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "SUPORTE",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "HORA": "={{ $json.HORA }}",
+            "DATA": "={{ $json.DATA }}",
+            "DISPOSITIVO": "={{ $json.DISPOSITIVO }}",
+            "TEMP_SENSOR": "={{ $json.TEMP }}",
+            "TEMP_AMBIENTE": "={{ $json.TEMP_AMBIENTE }}",
+            "BATERIA": "={{ $json.BATERIA }}",
+            "VOLTAGEM": "={{ $json.VOLTAGEM }}",
+            "OBS": "={{ $json.OBS }}"
+          },
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128576,
+        38416
+      ],
+      "id": "fa7200bc-869f-4982-af19-2d81d8ea4060",
+      "name": "salva SUPORTE",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI",
+          "mode": "list",
+          "cachedResultName": "Temperaturas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dZ60Zg9UxrpNUWpYBa_-IkHAw3YUtZQZ2PldAtj4PEI/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Página1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "HORA": "={{ $json.HORA }}",
+            "DATA": "={{ $json.DATA }}",
+            "DISPOSITIVO": "={{ $json.DISPOSITIVO }}",
+            "TEMP.": "={{ $json.TEMP }}",
+            "MAX": "={{ $json.MAX }}",
+            "MIN": "={{ $json.MIN }}",
+            "VOLTAGEM": "={{ $json.VOLTAGEM }}",
+            "BATERIA": "={{ $json.BATERIA }}",
+            "TIPO": "={{ $json.TIPO }}",
+            "OBS": "={{ $json.OBS }}"
+          },
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128576,
+        38544
+      ],
+      "id": "node-salva-log",
+      "name": "salva LOG",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YFl1SEKGi4NmAyDc",
+          "name": "Google Sheets account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -562,11 +763,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "Read Users for Broadcast": {
-      "main": [
-        []
       ]
     },
     "Split Users Broadcast": {
@@ -650,22 +846,47 @@
         ]
       ]
     },
-    "salva temperatura": {
+    "Filtro Gravacao": {
       "main": [
         [
           {
-            "node": "Split Users Broadcast",
+            "node": "Destino Sheet",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Filtro Gravacao": {
+    "Destino Sheet": {
       "main": [
         [
           {
-            "node": "salva temperatura",
+            "node": "salva CLIENTE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "salva SUPORTE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "salva LOG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Users for Broadcast": {
+      "main": [
+        [
+          {
+            "node": "Split Users Broadcast",
             "type": "main",
             "index": 0
           }
@@ -680,7 +901,7 @@
     "timeSavedMode": "fixed",
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "b1e7fffb-2c4a-47c6-9154-91afdd9e9f09",
+  "versionId": "3ae63f22-7522-4659-b923-afa9df0f38f5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "be63eec592610c4f78e7b17a812f5d022e962bcad508e6c20e665203393891ed"

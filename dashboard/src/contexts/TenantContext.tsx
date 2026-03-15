@@ -1,51 +1,126 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { tenants, users } from '../data/mockData';
-import type { Tenant, User } from '../data/mockData';
+import type { Tenant } from '../data/mockData';
+import { useAuth } from './AuthContext';
+import { db } from '../firebase/config';
+import { collection, query, where, documentId, onSnapshot } from 'firebase/firestore';
 
 interface TenantContextType {
-    currentTenant: Tenant;
-    currentUser: User;
+    currentTenant: Tenant | null;
     setTenantId: (id: string) => void;
     availableTenants: Tenant[];
+    loadingTenants: boolean;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
-// Default to first tenant and user for initial load
-const defaultTenant = tenants[0];
-const defaultUser = users[0];
-
 export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [currentTenantId, setCurrentTenantId] = useState<string>(defaultTenant.id);
-    const [currentTenant, setCurrentTenant] = useState<Tenant>(defaultTenant);
-    const [currentUser, setCurrentUser] = useState<User>(defaultUser);
+    const { currentUser, loading: authLoading } = useAuth();
+    const [currentTenantId, setCurrentTenantId] = useState<string | null>(null);
+    const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
+    const [availableTenants, setAvailableTenants] = useState<Tenant[]>([]);
+    const [loadingTenants, setLoadingTenants] = useState(true);
 
+    // Fetch user tenants based on their tenantIds in real-time
     useEffect(() => {
-        const foundTenant = tenants.find(t => t.id === currentTenantId) || defaultTenant;
-        setCurrentTenant(foundTenant);
+        if (authLoading) return;
 
-        // Simulating user switch based on tenant for demo purposes
-        // In real app, user would belong to one or more tenants
-        const foundUser = users.find(u => u.tenantId === currentTenantId) || users[0];
-        setCurrentUser(foundUser);
-
-        // Update CSS variables for dynamic theming (optional but cool)
-        if (foundTenant.colors?.primary) {
-            document.documentElement.style.setProperty('--color-primary', foundTenant.colors.primary);
+        if (!currentUser) {
+            setAvailableTenants([]);
+            setCurrentTenant(null);
+            setLoadingTenants(false);
+            return;
         }
 
-    }, [currentTenantId]);
+        setLoadingTenants(true);
+        let unsubscribe: () => void = () => { };
+
+        try {
+            if (currentUser.role === 'manager') {
+                // Manager vê todas as empresas em tempo real
+                unsubscribe = onSnapshot(collection(db, 'tenants'), (snapshot) => {
+                    const fetchedTenants: Tenant[] = [];
+                    snapshot.forEach((doc) => {
+                        fetchedTenants.push({ id: doc.id, ...doc.data() } as Tenant);
+                    });
+                    setAvailableTenants(fetchedTenants);
+                    if (!currentTenantId) setCurrentTenantId('all');
+                    setLoadingTenants(false);
+                }, (error) => {
+                    console.error("Firestore Manager Tenants Listener Error:", error);
+                    setAvailableTenants([]);
+                    setLoadingTenants(false);
+                });
+            } else if (currentUser.tenantIds && currentUser.tenantIds.length > 0) {
+                // Usuários normais ou admin escutam apenas seus ids
+                const q = query(collection(db, 'tenants'), where(documentId(), 'in', currentUser.tenantIds));
+                unsubscribe = onSnapshot(q, (snapshot) => {
+                    const fetchedTenants: Tenant[] = [];
+                    snapshot.forEach((doc) => {
+                        fetchedTenants.push({ id: doc.id, ...doc.data() } as Tenant);
+                    });
+                    setAvailableTenants(fetchedTenants);
+                    if (fetchedTenants.length > 0 && !currentTenantId) {
+                        setCurrentTenantId('all');
+                    }
+                    setLoadingTenants(false);
+                }, (error) => {
+                    console.error("Firestore Tenant Listener Error:", error);
+                    setAvailableTenants([]);
+                    setLoadingTenants(false);
+                });
+            } else {
+                setAvailableTenants([]);
+                if (!currentTenantId) setCurrentTenantId('all');
+                setLoadingTenants(false);
+            }
+        } catch (e: any) {
+            console.error("Firebase Firestore error setup listeners:", e.message);
+            setAvailableTenants([]);
+            setLoadingTenants(false);
+        }
+
+        return () => unsubscribe();
+    }, [currentUser, authLoading]);
+
+    // Update active tenant object and theme when ID changes
+    useEffect(() => {
+        if (!currentTenantId) return;
+
+        if (currentTenantId === 'all') {
+            setCurrentTenant({
+                id: 'all',
+                name: 'Todas as Empresas',
+                status: 'active',
+                plan: 'pro'
+            } as Tenant);
+            document.documentElement.style.setProperty('--color-primary', '#38bdf8'); // default sky
+        } else if (availableTenants.length === 0) {
+            setCurrentTenant({
+                id: 'none',
+                name: 'Sem Empresa Vinculada',
+                status: 'active',
+                plan: 'pro'
+            } as Tenant);
+        } else {
+            const found = availableTenants.find(t => t.id === currentTenantId) || availableTenants[0];
+            setCurrentTenant(found);
+
+            if (found?.colors?.primary) {
+                document.documentElement.style.setProperty('--color-primary', found.colors.primary);
+            }
+        }
+    }, [currentTenantId, availableTenants]);
 
     const setTenantId = (id: string) => {
-        if (tenants.some(t => t.id === id)) {
+        if (id === 'all' || availableTenants.some(t => t.id === id)) {
             setCurrentTenantId(id);
         }
     };
 
     return (
-        <TenantContext.Provider value={{ currentTenant, currentUser, setTenantId, availableTenants: tenants }}>
+        <TenantContext.Provider value={{ currentTenant, setTenantId, availableTenants, loadingTenants }}>
             {children}
         </TenantContext.Provider>
     );

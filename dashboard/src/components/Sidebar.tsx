@@ -1,17 +1,19 @@
 import React from 'react';
 import { useTenant } from '../contexts/TenantContext';
+import { useAuth } from '../contexts/AuthContext';
 import {
     Bell,
     FileBarChart,
     Settings,
     Moon,
     Cpu,
-    LayoutDashboard
+    LayoutDashboard,
+    Shield
 } from 'lucide-react';
 
 interface SidebarProps {
-    activeItem: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details';
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details') => void;
+    activeItem: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel';
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
 }
 
 // Map screen to Lucide icon components
@@ -21,45 +23,48 @@ const iconMap = {
     alerts: Bell,
     reports: FileBarChart,
     settings: Settings,
-    'device-details': Cpu
+    'device-details': Cpu,
+    'manager-panel': Shield
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate }) => {
     const { currentTenant } = useTenant();
+    const { currentUser } = useAuth();
     const getLinkClass = (item: string) => {
-        const baseClass = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer w-full text-left group";
+        const baseClass = "flex items-center justify-center lg:justify-start gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer w-full text-left group";
         if (activeItem === item) {
-            return `${baseClass} bg-primary/10 text-primary border border-primary/20 font-semibold`;
+            return `${baseClass} bg-primary/10 text-primary font-semibold`;
         }
-        return `${baseClass} text-slate-500 hover:bg-slate-100 dark:hover:bg-primary/5 hover:text-primary transition-all duration-300`;
+        return `${baseClass} text-text-primary hover:bg-white/5 hover:text-white transition-all duration-300`;
     };
 
     const renderIcon = (item: keyof typeof iconMap) => {
         const IconComponent = iconMap[item];
-        return <IconComponent size={20} className={activeItem === item ? "text-primary" : "text-slate-400 group-hover:text-primary transition-colors"} />;
+        return <IconComponent size={22} className={activeItem === item ? "text-primary" : "text-[#A5A4AB] group-hover:text-white transition-colors"} />;
     };
 
     return (
-        <aside className="w-64 flex-shrink-0 bg-background-light dark:bg-background-dark border-r border-slate-200 dark:border-slate-border flex flex-col hidden lg:flex">
-            <div className="p-8 flex items-center gap-3">
-                <div className="bg-primary shadow-lg shadow-primary/20 size-10 rounded-xl flex items-center justify-center text-white">
-                    <Moon size={22} strokeWidth={2.5} />
+        <aside className="w-20 lg:w-64 flex-shrink-0 bg-background-dark border-r border-[#2A2E24] flex flex-col hidden sm:flex">
+            <div className="p-4 lg:p-6 flex items-center justify-center lg:justify-start gap-3">
+                <div className="bg-primary/20 p-2 rounded-xl flex items-center justify-center text-primary border border-primary/30">
+                    <Moon size={24} strokeWidth={2} />
                 </div>
-                <div className="flex flex-col">
-                    <h1 className="text-slate-900 dark:text-white text-base font-bold tracking-tight">{currentTenant.name}</h1>
-                    <p className="text-primary text-[10px] uppercase font-bold tracking-widest mt-0.5">Nikaotec Sensor</p>
+                <div className="hidden lg:flex flex-col">
+                    <h1 className="text-white text-sm font-bold tracking-tight">{currentTenant?.name || "Monitoramento"}</h1>
+                    <p className="text-[#A5A4AB] text-[10px] uppercase font-bold tracking-widest mt-0.5">Vacinas</p>
                 </div>
             </div>
 
-            <nav className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto custom-scrollbar">
-                {(['dashboard', 'device-list', 'alerts', 'reports', 'settings'] as const).map((item) => (
-                    <button key={item} onClick={() => onNavigate(item)} className={getLinkClass(item)}>
-                        {renderIcon(item)}
-                        <span className="text-sm font-medium capitalize">
+            <nav className="flex-1 px-3 space-y-3 mt-6 overflow-y-auto custom-scrollbar">
+                {(['dashboard', 'device-list', 'alerts', 'reports', 'settings', ...(currentUser?.role === 'manager' ? ['manager-panel'] : [])] as const).map((item) => (
+                    <button key={item} onClick={() => onNavigate(item as any)} className={getLinkClass(item)} title={item}>
+                        {renderIcon(item as keyof typeof iconMap)}
+                        <span className="hidden lg:inline text-sm font-medium capitalize">
                             {item === 'device-list' ? 'Dispositivos' :
                                 item === 'reports' ? 'Relatórios' :
                                     item === 'alerts' ? 'Alertas' :
-                                        item === 'settings' ? 'Configurações' : item}
+                                        item === 'settings' ? 'Configurações' :
+                                            item === 'manager-panel' ? 'Administração' : item}
                         </span>
                     </button>
                 ))}
