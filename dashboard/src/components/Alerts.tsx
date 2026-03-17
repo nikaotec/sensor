@@ -5,7 +5,7 @@ import { alerts as allAlerts } from '../data/mockData';
 import { BellRing, ShieldAlert, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface AlertsProps {
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
 }
 
 const Alerts: React.FC<AlertsProps> = ({ onNavigate }) => {

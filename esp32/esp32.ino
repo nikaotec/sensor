@@ -47,9 +47,10 @@ String ultimosCamposAlterados = ""; // Campos alterados na ultima configuracao
 
 // ---------- TIMERS ----------
 unsigned long lastTempCheck = 0;
-unsigned long lastReportTime = 0;    // Novo Timer
-unsigned long lastWebReport = 0;     // Timer para Dashboard Web
-unsigned long lastSupportReport = 0; // Timer relatorio suporte (1h)
+unsigned long lastReportTime = 0;      // Novo Timer
+unsigned long lastWebReport = 0;       // Timer para Dashboard Web
+unsigned long lastDashboardReport = 0; // Timer para Dashboard Especial (1 min)
+unsigned long lastSupportReport = 0;   // Timer relatorio suporte (1h)
 int lastReportDay = -1;
 
 // ...
@@ -57,6 +58,16 @@ int lastReportDay = -1;
 // ---------- PROTÓTIPOS ----------
 void processarMensagemMqtt(String topic, String payload);
 void enviarDadosMqtt(String evento);
+void enviarDadosDashboard();
+
+// ---------- ID ÚNICO ----------
+String getIdDispositivo() {
+  uint64_t chipId = ESP.getEfuseMac();
+  char idUnico[13];
+  snprintf(idUnico, sizeof(idUnico), "%04X%08X", (uint16_t)(chipId >> 32),
+           (uint32_t)chipId);
+  return String(idUnico);
+}
 
 // ---------- SETUP ----------
 void setup() {
@@ -107,6 +118,12 @@ void loop() {
   if (now - lastWebReport >= 2000) {
     lastWebReport = now;
     enviarDadosWeb();
+  }
+
+  // 1.2 Atualizar Dashboard (A cada 1 minuto)
+  if (now - lastDashboardReport >= 60000) {
+    lastDashboardReport = now;
+    enviarDadosDashboard();
   }
 
   // 2. Ler Sensores (a cada 2s)
@@ -607,7 +624,9 @@ void enviarDadosWeb() {
     return;
 
   StaticJsonDocument<512> doc;
+  doc["ID_DISPOSITIVO"] = getIdDispositivo();
   doc["DISPOSITIVO"] = DEVICE_NAME;
+  doc["EMPRESA"] = COMPANY_NAME;
   doc["TIPO"] = "REALTIME";
   doc["TEMP_ATUAL"] = serialized(String(temperaturaAtual, 1));
   doc["MAX"] =
@@ -644,7 +663,9 @@ void enviarDadosMqtt(String evento) {
   }
 
   StaticJsonDocument<1024> doc;
-  doc["DISPOSITIVO"] = "02 CENTRO";
+  doc["ID_DISPOSITIVO"] = getIdDispositivo();
+  doc["DISPOSITIVO"] = DEVICE_NAME;
+  doc["EMPRESA"] = COMPANY_NAME;
   doc["TIPO"] = evento;
 
   // Dados de Sensores Formatados
@@ -717,4 +738,36 @@ void enviarDadosMqtt(String evento) {
 
   // Broadcast para o Dashboard Web (Real-time)
   network.publish(MSG_TOPIC_WEB_STATUS, payload);
+}
+
+// ---------- ENVIA DADOS PARA O DASHBOARD (PERIÓDICO 1 MIN) ----------
+void enviarDadosDashboard() {
+  if (!network.isConnected())
+    return;
+
+  StaticJsonDocument<512> doc;
+  doc["ID_DISPOSITIVO"] = getIdDispositivo();
+  doc["DISPOSITIVO"] = DEVICE_NAME;
+  doc["EMPRESA"] = COMPANY_NAME;
+  doc["TIPO"] = "DASHBOARD_PERIODIC";
+  doc["TEMP_ATUAL"] = serialized(String(temperaturaAtual, 1));
+  doc["MAX"] = serialized(String(storage.data.tempMaxRec, 1));
+  doc["MIN"] = serialized(String(storage.data.tempMinRec, 1));
+  doc["VOLTAGEM"] = serialized(String(voltSensor.getVoltage(), 1));
+  doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
+  doc["RELE"] = releLigado;
+  doc["MODO"] = modoManual ? "MANUAL" : "AUTO";
+  doc["RSSI"] = network.getRSSI();
+
+  // Timestamp
+  struct tm ti;
+  if (getLocalTime(&ti)) {
+    char h[10];
+    strftime(h, sizeof(h), "%H:%M:%S", &ti);
+    doc["HORA"] = h;
+  }
+
+  String payload;
+  serializeJson(doc, payload);
+  network.publish(MSG_TOPIC_DASHBOARD, payload);
 }

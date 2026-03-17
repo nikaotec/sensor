@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "topics": "sensor/data",
+        "topics": "esp32c3/data,esp32c3/dashboard",
         "options": {}
       },
       "id": "e3b0c442-989b-464c-8b8d-2a1d3fdef451",
@@ -65,9 +65,9 @@
     {
       "parameters": {
         "operation": "upsert",
-        "projectId": "smartrf-iot-dashboard",
+        "projectId": "smartrf-f9962",
         "collection": "devices_status",
-        "documentId": "={{ $json.DISPOSITIVO.replace(/\\s+/g, '_').toLowerCase() }}",
+        "documentId": "={{ $json.ID_DISPOSITIVO }}",
         "fieldsUi": {
           "fieldValues": [
             {
@@ -100,24 +100,24 @@
             },
             {
               "fieldId": "tenantId",
-              "fieldValue": "empresa_default"
+              "fieldValue": "={{ $json.EMPRESA || 'Unknown' }}"
             }
           ]
         }
       },
       "id": "b960b7b1-213c-4a33-8b77-3e1b0d2d34a4",
       "name": "Upsert Firestore Device Status",
-      "type": "n8n-nodes-base.googleFirestore",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
       "typeVersion": 1,
       "position": [
         900,
-        200
+        150
       ]
     },
     {
       "parameters": {
         "operation": "insert",
-        "projectId": "smartrf-iot-dashboard",
+        "projectId": "smartrf-f9962",
         "collection": "telemetry",
         "fieldsUi": {
           "fieldValues": [
@@ -154,11 +154,41 @@
       },
       "id": "da5d5904-6f4e-4f01-9a74-d4d03e9ff7da",
       "name": "Insert Telemetry Log",
-      "type": "n8n-nodes-base.googleFirestore",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
       "typeVersion": 1,
       "position": [
         900,
-        400
+        350
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "return {\n  json: {\n    id: $input.item.json.ID_DISPOSITIVO,\n    company: $input.item.json.EMPRESA || \"empresa_default\",\n    ala: \"Setor Principal\",\n    device_name: $input.item.json.DISPOSITIVO || $input.item.json.ID_DISPOSITIVO,\n    temp: parseFloat($input.item.json.TEMP_ATUAL),\n    tempMax: parseFloat($input.item.json.MAX || $input.item.json.TEMP_ATUAL),\n    tempMin: parseFloat($input.item.json.MIN || $input.item.json.TEMP_ATUAL),\n    batteryVoltage: parseFloat($input.item.json.BATERIA || 0),\n    inputVoltage: parseFloat($input.item.json.VOLTAGEM || 0),\n    signal: parseInt($input.item.json.RSSI || 0)\n  }\n};"
+      },
+      "id": "format-dash-1234",
+      "name": "Format for Dashboard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        550
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "publish",
+        "topic": "sensor/telemetry/data",
+        "message": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "mqtt-pub-dash-54321",
+      "name": "Publish to Dashboard",
+      "type": "n8n-nodes-base.mqtt",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        550
       ]
     }
   ],
@@ -195,6 +225,22 @@
           },
           {
             "node": "Insert Telemetry Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format for Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format for Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Publish to Dashboard",
             "type": "main",
             "index": 0
           }

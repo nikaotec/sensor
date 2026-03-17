@@ -18,7 +18,7 @@ import {
 import { CalendarRange, Download, Zap, TrendingUp, Timer, AlertOctagon, Lightbulb } from 'lucide-react';
 
 interface ReportsProps {
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
 }
 
 const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {

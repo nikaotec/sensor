@@ -30,12 +30,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
     const { devices: firebaseDevices } = useFirebaseData(currentTenant?.id || '');
     const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData(currentTenant?.id || null, currentUser?.role, firebaseDevices);
 
-    // Filtro para garantir que administradores/usuários só vejam os dispositivos de empresas vinculadas na aba "Todos"
+    // Filtro refinado para respeitar a aba selecionada e permissões de role
     const displayDevices = React.useMemo(() => {
-        if (currentUser?.role === 'manager') return tenantDevices;
         const allowedTenantIds = availableTenants.map(t => t.id);
+
+        // Se estiver em uma aba de empresa específica (não "all"), filtra apenas por ela
+        if (currentTenant && currentTenant.id !== 'all') {
+            return tenantDevices.filter(d => d.tenantId === currentTenant.id);
+        }
+
+        // Se estiver na aba "Todos" (currentTenant.id === 'all')
+        // Gestores vêem todas as empresas em availableTenants; Admins vêem apenas as suas
         return tenantDevices.filter(d => allowedTenantIds.includes(d.tenantId));
-    }, [tenantDevices, currentUser?.role, availableTenants]);
+    }, [tenantDevices, currentTenant, availableTenants]);
 
     // No longer needing primaryDevice or mocks
 
@@ -189,7 +196,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                         <div className="mb-4 flex flex-col z-10">
                                             <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-loose font-heading">Monitoramento em Tempo Real</h3>
                                             <div className="flex justify-between items-center mt-1">
-                                                <h4 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{device.name}</h4>
+                                                <div>
+                                                    <h4 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{device.name}</h4>
+                                                    {device.location && (
+                                                        <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                                                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                                            {device.location}
+                                                        </p>
+                                                    )}
+                                                     {currentTenant?.id === 'all' && (
+                                                         <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md mt-1.5 inline-block font-medium">
+                                                             {availableTenants.find(t => t.id === device.tenantId)?.name || device.tenantId}
+                                                         </span>
+                                                     )}
+                                                </div>
                                             </div>
                                         </div>
 

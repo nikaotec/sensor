@@ -6,11 +6,13 @@
 
 // ---------- DEVICE ----------
 #define DEVICE_NAME "02 CENTRO" // Added Device Name
+#define COMPANY_NAME "Nikaotec" // Added Company Name
 
 // ---------- REDE ----------
 #define WIFI_SSID "VENANCIO"
 #define WIFI_PASS "liza1980"
-#define MQTT_SERVER "173.249.10.19"
+// #define MQTT_SERVER "173.249.10.19"
+#define MQTT_SERVER "192.168.3.197"
 #define MQTT_PORT 1883
 #define MQTT_USER "n8nuser"
 #define MQTT_PASS "123456"
@@ -20,6 +22,7 @@
 #define MSG_TOPIC_STATUS "esp32c3/status/action"
 #define MSG_TOPIC_WEB "esp32c3/web/action"
 #define MSG_TOPIC_WEB_STATUS "esp32c3/web_status/action"
+#define MSG_TOPIC_DASHBOARD "esp32c3/dashboard"
 
 // ---------- PINOS ----------
 #define DS18B20_PIN 5

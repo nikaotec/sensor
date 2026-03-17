@@ -17,7 +17,7 @@ import { ArrowLeft, Settings as SettingsIcon, AlertTriangle, BatteryCharging, Za
 
 interface DeviceDetailsProps {
     deviceId: string;
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
 }
 
 const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) => {

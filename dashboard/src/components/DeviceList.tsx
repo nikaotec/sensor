@@ -119,7 +119,20 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
                                             <div className="mb-4 flex flex-col z-10">
                                                 <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-loose font-heading">Monitoramento em Tempo Real</h3>
                                                 <div className="flex justify-between items-center mt-1">
-                                                    <h4 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{device.name}</h4>
+                                                    <div>
+                                                        <h4 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{device.name}</h4>
+                                                        {device.location && (
+                                                            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                                                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                                                {device.location}
+                                                            </p>
+                                                        )}
+                                                         {currentTenant?.id === 'all' && (
+                                                             <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md mt-1.5 inline-block font-medium">
+                                                                 {availableTenants.find(t => t.id === device.tenantId)?.name || device.tenantId}
+                                                             </span>
+                                                         )}
+                                                    </div>
                                                 </div>
                                             </div>
 
