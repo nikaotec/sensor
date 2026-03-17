@@ -6,7 +6,7 @@ import type { Device } from '../data/mockData';
 const MQTT_BROKER_URL = import.meta.env.VITE_MQTT_BROKER_URL || 'ws://broker.emqx.io:8083/mqtt';
 
 export const useMqttData = (tenantId: string | null, currentUserRole: string | undefined, initialDevices: Device[] = []) => {
-    const [devices, setDevices] = useState<Device[]>(initialDevices);
+    const [devices, setDevices] = useState<any[]>(initialDevices.map(d => ({ ...d, mqttUpdated: false })));
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
@@ -23,10 +23,11 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                             location: existing.location || initD.location,
                             status: existing.status || initD.status,
                             lastSeen: existing.lastSeen || initD.lastSeen,
-                            telemetry: existing.telemetry || initD.telemetry
+                            telemetry: existing.telemetry || initD.telemetry,
+                            mqttUpdated: Object.hasOwn(existing, 'mqttUpdated') ? existing.mqttUpdated : false
                         };
                     }
-                    return initD;
+                    return { ...initD, mqttUpdated: false };
                 });
             });
         }
@@ -80,7 +81,6 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                 payload = normalizedPayload;
 
                 // Filter logic based on Role and Tenant
-                const isManager = currentUserRole === 'manager';
 
                 setDevices((prevDevices) => {
                     const existingDeviceIndex = prevDevices.findIndex(d =>
@@ -114,12 +114,13 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                                 batteryVoltage: payload.batteryVoltage ?? existing.telemetry.batteryVoltage,
                                 inputVoltage: payload.inputVoltage ?? existing.telemetry.inputVoltage,
                                 signal: payload.signal ?? existing.telemetry.signal,
-                            }
+                            },
+                            mqttUpdated: true
                         };
                         return newDevices;
                     } else {
                         // Dynamically add new device observed in MQTT stream if it belongs to current view
-                        const newDevice: Device = {
+                        const newDevice: any = {
                             id: payload.id || `mqtt-${Math.random().toString(36).substr(2, 9)}`,
                             tenantId: payload.company || 'Unknown',
                             name: payload.device_name || 'Desconhecido',
@@ -135,6 +136,7 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                                 inputVoltage: payload.inputVoltage,
                                 signal: payload.signal,
                             },
+                            mqttUpdated: true
                         };
                         return [...prevDevices, newDevice];
                     }

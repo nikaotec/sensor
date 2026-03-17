@@ -19,19 +19,29 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline' | 'warning'>('all');
 
-    // Dados base do Firebase + sobreposição ao vivo do MQTT (igual ao Dashboard)
+    // Dados base do Firebase + sobreposição ao vivo do MQTT
+    // Escuta todos os dados para que a lógica lide mesmo quando a aba não estiver em "Todos".
     const { devices: firebaseDevices } = useFirebaseData(currentTenant.id);
-    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData(currentTenant.id, currentUser?.role, firebaseDevices);
+    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData('all', currentUser?.role, firebaseDevices);
 
-    // Filtro para garantir que administradores/usuários só vejam os dispositivos de empresas vinculadas
+    // Filtro para garantir que administradores/usuários só vejam os dispositivos de empresas vinculadas / selecionadas
     const authFilteredDevices = React.useMemo(() => {
-        if (currentUser?.role === 'manager') return tenantDevices;
         const allowedTenantIds = availableTenants.map(t => t.id);
-        return tenantDevices.filter(d => allowedTenantIds.includes(d.tenantId));
-    }, [tenantDevices, currentUser?.role, availableTenants]);
+        const allowedTenantNames = availableTenants.map(t => t.name);
 
-    // Filter by search and status
+        if (currentTenant && currentTenant.id !== 'all') {
+            return tenantDevices.filter(d => d.tenantId === currentTenant.id || d.tenantId === currentTenant.name);
+        }
+
+        if (currentUser?.role === 'manager') return tenantDevices;
+
+        return tenantDevices.filter(d => allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId));
+    }, [tenantDevices, currentUser?.role, availableTenants, currentTenant]);
+
+    // Filter by search, status AND require mqttUpdated to be true
     const filteredDevices = authFilteredDevices.filter(device => {
+        if (!(device as any).mqttUpdated) return false;
+
         const matchesSearch = device.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             device.location.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || device.status === statusFilter;

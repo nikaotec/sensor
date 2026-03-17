@@ -28,21 +28,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
 
     // Fetch initial devices from Firebase and update with live MQTT stream
     const { devices: firebaseDevices } = useFirebaseData(currentTenant?.id || '');
-    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData(currentTenant?.id || null, currentUser?.role, firebaseDevices);
+    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData('all', currentUser?.role, firebaseDevices);
 
     // Filtro refinado para respeitar a aba selecionada e permissões de role
     const displayDevices = React.useMemo(() => {
         const allowedTenantIds = availableTenants.map(t => t.id);
+        const allowedTenantNames = availableTenants.map(t => t.name);
 
         // Se estiver em uma aba de empresa específica (não "all"), filtra apenas por ela
         if (currentTenant && currentTenant.id !== 'all') {
-            return tenantDevices.filter(d => d.tenantId === currentTenant.id);
+            return tenantDevices.filter(d => d.tenantId === currentTenant.id || d.tenantId === currentTenant.name);
         }
 
         // Se estiver na aba "Todos" (currentTenant.id === 'all')
-        // Gestores vêem todas as empresas em availableTenants; Admins vêem apenas as suas
-        return tenantDevices.filter(d => allowedTenantIds.includes(d.tenantId));
-    }, [tenantDevices, currentTenant, availableTenants]);
+        if (currentUser?.role === 'manager') return tenantDevices;
+
+        // Admins vêem apenas as empresas que têm acesso (availableTenants)
+        return tenantDevices.filter(d => allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId));
+    }, [tenantDevices, currentTenant, availableTenants, currentUser?.role]);
 
     // No longer needing primaryDevice or mocks
 
@@ -155,6 +158,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                             </div>
                         ) : (
                             displayDevices.map((device) => {
+                                if (!(device as any).mqttUpdated) {
+                                    return (
+                                        <div
+                                            key={device.id}
+                                            className="bg-[#1A1D17] rounded-2xl border border-[#2A2E24] shadow-lg p-6 relative flex flex-col items-center justify-center min-h-[300px] overflow-hidden"
+                                        >
+                                            <div className="flex flex-col items-center opacity-50">
+                                                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-4" />
+                                                <p className="text-center text-slate-400">Aguardando dados em tempo real de<br /><strong className="text-white">{device.name}</strong>...</p>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
                                 const getStatusLabel = (status: string) => {
                                     switch (status) {
                                         case 'online': return 'ESTÁVEL';
@@ -204,11 +221,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                                             {device.location}
                                                         </p>
                                                     )}
-                                                     {currentTenant?.id === 'all' && (
-                                                         <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md mt-1.5 inline-block font-medium">
-                                                             {availableTenants.find(t => t.id === device.tenantId)?.name || device.tenantId}
-                                                         </span>
-                                                     )}
+                                                    {currentTenant?.id === 'all' && (
+                                                        <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md mt-1.5 inline-block font-medium">
+                                                            {availableTenants.find(t => t.id === device.tenantId)?.name || device.tenantId}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
