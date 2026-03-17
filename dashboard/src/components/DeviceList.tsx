@@ -3,6 +3,7 @@ import Sidebar from './Sidebar';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirebaseData } from '../hooks/useFirebaseData';
+import { useMqttData } from '../hooks/useMqttData';
 import { Search, AlertTriangle, BatteryCharging, Zap, Wifi, ServerCrash } from 'lucide-react';
 
 interface DeviceListProps {
@@ -18,8 +19,9 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline' | 'warning'>('all');
 
-    // Filter by tenant using useFirebaseData
-    const { devices: tenantDevices } = useFirebaseData(currentTenant.id);
+    // Dados base do Firebase + sobreposição ao vivo do MQTT (igual ao Dashboard)
+    const { devices: firebaseDevices } = useFirebaseData(currentTenant.id);
+    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData(currentTenant.id, currentUser?.role, firebaseDevices);
 
     // Filtro para garantir que administradores/usuários só vejam os dispositivos de empresas vinculadas
     const authFilteredDevices = React.useMemo(() => {
@@ -52,7 +54,14 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
 
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background-dark">
                 <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-[#1A1D17]/80 backdrop-blur-md border-b border-[#2A2E24] sticky top-0 z-30 shadow-sm">
-                    <h2 className="text-xl font-bold text-white tracking-tight">Dispositivos de {currentTenant.name}</h2>
+                    <div className="flex items-center gap-3">
+                        <h2 className="text-xl font-bold text-white tracking-tight">Dispositivos de {currentTenant.name}</h2>
+                        {mqttConnected && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-bold border border-emerald-500/20">
+                                <Wifi size={10} /> MQTT Live
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-center gap-4">
                         <div className="hidden lg:flex items-center bg-[#0F110D] px-4 py-2 rounded-xl border border-[#2A2E24] w-64 lg:w-96 group focus-within:border-primary/50 transition-all">
                             <Search size={18} className="text-slate-400 group-focus-within:text-primary transition-colors" />
@@ -127,11 +136,11 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
                                                                 {device.location}
                                                             </p>
                                                         )}
-                                                         {currentTenant?.id === 'all' && (
-                                                             <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md mt-1.5 inline-block font-medium">
-                                                                 {availableTenants.find(t => t.id === device.tenantId)?.name || device.tenantId}
-                                                             </span>
-                                                         )}
+                                                        {currentTenant?.id === 'all' && (
+                                                            <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md mt-1.5 inline-block font-medium">
+                                                                {availableTenants.find(t => t.id === device.tenantId)?.name || device.tenantId}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
