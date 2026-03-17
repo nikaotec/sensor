@@ -15,20 +15,31 @@ export const useFirebaseData = (tenantId: string) => {
             const freshDevices: Device[] = [];
             snapshot.forEach((doc) => {
                 const data = doc.data();
+
+                // Mapeia dailyStats caso o n8n grave em subcampo
+                const dailyStats = data.dailyStats || {};
+
                 freshDevices.push({
                     id: doc.id,
-                    name: data.name || 'Dispositivo',
+                    name: data.name || data.deviceName || doc.id,
                     tenantId: data.tenantId,
                     type: 'sensor_temp',
                     status: data.status || 'offline',
-                    location: data.location || '',
+                    location: data.location || data.locationId || '',
+                    lastSeen: data.lastSeen || data.updatedAt || '',
                     telemetry: {
-                        temp: data.temperature !== undefined ? data.temperature : 22.5,
-                        humidity: data.humidity !== undefined ? data.humidity : 55,
-                        batteryVoltage: data.battery !== undefined ? data.battery : 3.6,
-                        inputVoltage: data.voltage !== undefined ? data.voltage : 5.0,
-                        signal: data.signal !== undefined ? data.signal : -65,
-                        doorOpen: data.doorOpen !== undefined ? data.doorOpen : false
+                        // Usa undefined quando o campo não existe (sem fallback hardcoded)
+                        temp: data.temperature !== undefined ? data.temperature : undefined,
+                        humidity: data.humidity !== undefined ? data.humidity : undefined,
+                        batteryVoltage: data.battery !== undefined ? data.battery : undefined,
+                        inputVoltage: data.voltage !== undefined ? data.voltage : undefined,
+                        signal: data.signal !== undefined ? data.signal : (data.signalStrength !== undefined ? data.signalStrength : undefined),
+                        doorOpen: data.doorOpen !== undefined ? data.doorOpen : undefined,
+                        // Máxima e mínima diárias (gravadas pelo n8n em dailyStats)
+                        tempMax: data.tempMax !== undefined ? data.tempMax
+                            : (dailyStats.maxTemp !== undefined ? dailyStats.maxTemp : undefined),
+                        tempMin: data.tempMin !== undefined ? data.tempMin
+                            : (dailyStats.minTemp !== undefined ? dailyStats.minTemp : undefined),
                     }
                 } as Device);
             });
@@ -42,7 +53,7 @@ export const useFirebaseData = (tenantId: string) => {
             console.error("Firebase Snapshot Error (devices):", error);
         });
 
-        // Listen to historical telemetry for charts (limit 20 for example)
+        // Listen to historical telemetry for charts (limit 20)
         const qHistory = query(collection(db, "telemetry"), orderBy("timestamp", "desc"), limit(20));
 
         const unsubscribeHistory = onSnapshot(qHistory, (snapshot) => {
@@ -57,7 +68,7 @@ export const useFirebaseData = (tenantId: string) => {
                 timestamp: h.timestamp
             })));
         }, (error) => {
-            console.error("Firebase Snapshot Error (history):", error)
+            console.error("Firebase Snapshot Error (history):", error);
         });
 
         return () => {
