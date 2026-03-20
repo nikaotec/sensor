@@ -3,10 +3,9 @@
   "nodes": [
     {
       "parameters": {
-        "topics": "esp32c3/data,esp32c3/dashboard",
-        "options": {}
+        "topics": "esp32c3/data,esp32c3/dashboard"
       },
-      "id": "e3b0c442-989b-464c-8b8d-2a1d3fdef451",
+      "id": "mqtt-trigger-main",
       "name": "MQTT Trigger",
       "type": "n8n-nodes-base.mqttTrigger",
       "typeVersion": 1,
@@ -20,7 +19,7 @@
         "mode": "runOnceForEachItem",
         "jsCode": "const payloadString = $input.item.json.message;\ntry {\n  const payload = JSON.parse(payloadString);\n  return { json: payload };\n} catch(e) {\n  return { json: { error: 'Invalid JSON', payload: payloadString } };\n}"
       },
-      "id": "164e2229-bfda-4b10-85f9-2c7020d1c810",
+      "id": "parse-payload-main",
       "name": "Parse Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -32,31 +31,18 @@
     {
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
+          "string": [
             {
-              "id": "4540c497-2a44-4822-ba35-c33583ae139c",
-              "leftValue": "={{ $json.DISPOSITIVO }}",
-              "rightValue": "",
-              "operator": {
-                "type": "string",
-                "operation": "isNotEmpty",
-                "singleValue": true
-              }
+              "value1": "={{ $json.DISPOSITIVO }}",
+              "operation": "isNotEmpty"
             }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
+          ]
+        }
       },
-      "id": "c1f7aab5-25df-4d6b-bd85-e3d6bfbb4f3b",
+      "id": "validate-data-main",
       "name": "Validate Data",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 3,
+      "typeVersion": 1,
       "position": [
         680,
         300
@@ -64,7 +50,7 @@
     },
     {
       "parameters": {
-        "operation": "upsert",
+        "operation": "insert",
         "projectId": "smartrf-f9962",
         "collection": "devices_status",
         "documentId": "={{ $json.ID_DISPOSITIVO }}",
@@ -105,7 +91,7 @@
           ]
         }
       },
-      "id": "b960b7b1-213c-4a33-8b77-3e1b0d2d34a4",
+      "id": "upsert-status-main",
       "name": "Upsert Firestore Device Status",
       "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
       "typeVersion": 1,
@@ -146,19 +132,23 @@
               "fieldValue": "={{ new Date().toISOString() }}"
             },
             {
+              "fieldId": "expireAt",
+              "fieldValue": "={{ new Date(new Date().getTime() + (24 * 60 * 60 * 1000)) }}"
+            },
+            {
               "fieldId": "tenantId",
               "fieldValue": "empresa_default"
             }
           ]
         }
       },
-      "id": "da5d5904-6f4e-4f01-9a74-d4d03e9ff7da",
+      "id": "insert-telemetry-main",
       "name": "Insert Telemetry Log",
       "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
       "typeVersion": 1,
       "position": [
-        900,
-        350
+        1120,
+        300
       ]
     },
     {
@@ -166,29 +156,55 @@
         "mode": "runOnceForEachItem",
         "jsCode": "return {\n  json: {\n    id: $input.item.json.ID_DISPOSITIVO,\n    company: $input.item.json.EMPRESA || \"empresa_default\",\n    ala: \"Setor Principal\",\n    device_name: $input.item.json.DISPOSITIVO || $input.item.json.ID_DISPOSITIVO,\n    temp: parseFloat($input.item.json.TEMP_ATUAL),\n    tempMax: parseFloat($input.item.json.MAX || $input.item.json.TEMP_ATUAL),\n    tempMin: parseFloat($input.item.json.MIN || $input.item.json.TEMP_ATUAL),\n    batteryVoltage: parseFloat($input.item.json.BATERIA || 0),\n    inputVoltage: parseFloat($input.item.json.VOLTAGEM || 0),\n    signal: parseInt($input.item.json.RSSI || 0)\n  }\n};"
       },
-      "id": "format-dash-1234",
+      "id": "format-dash-main",
       "name": "Format for Dashboard",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         900,
-        550
+        500
       ]
     },
     {
       "parameters": {
         "operation": "publish",
         "topic": "sensor/telemetry/data",
-        "message": "={{ JSON.stringify($json) }}",
-        "options": {}
+        "message": "={{ JSON.stringify($json) }}"
       },
-      "id": "mqtt-pub-dash-54321",
+      "id": "mqtt-pub-main",
       "name": "Publish to Dashboard",
       "type": "n8n-nodes-base.mqtt",
       "typeVersion": 1,
       "position": [
         1120,
-        550
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.TIPO }}",
+              "operation": "equals",
+              "value2": "DASHBOARD_PERIODIC"
+            },
+            {
+              "value1": "={{ $json.TIPO }}",
+              "operation": "equals",
+              "value2": "periodico"
+            }
+          ],
+          "combinator": "or"
+        }
+      },
+      "id": "filter-telemetry-main",
+      "name": "Filter Telemetry",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
       ]
     }
   ],
@@ -224,7 +240,7 @@
             "index": 0
           },
           {
-            "node": "Insert Telemetry Log",
+            "node": "Filter Telemetry",
             "type": "main",
             "index": 0
           },
@@ -233,7 +249,8 @@
             "type": "main",
             "index": 0
           }
-        ]
+        ],
+        []
       ]
     },
     "Format for Dashboard": {
@@ -245,6 +262,18 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Filter Telemetry": {
+      "main": [
+        [
+          {
+            "node": "Insert Telemetry Log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   },

@@ -1,0 +1,189 @@
+{
+    "name": "IoT Sensor - Events Logger",
+    "nodes": [
+        {
+            "parameters": {
+                "topics": "esp32c3/data,esp32c3/dashboard"
+            },
+            "id": "mqtt-trigger-events",
+            "name": "MQTT Trigger",
+            "type": "n8n-nodes-base.mqttTrigger",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const payloadString = $input.item.json.message;\ntry {\n  const payload = JSON.parse(payloadString);\n  return { json: payload };\n} catch(e) {\n  return { json: { error: 'Invalid JSON', payload: payloadString } };\n}"
+            },
+            "id": "parse-payload-events",
+            "name": "Parse Payload",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.DISPOSITIVO }}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            },
+            "id": "validate-data-events",
+            "name": "Validate Data",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "startsWith",
+                            "value2": "ALERTA_"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "contains",
+                            "value2": "RELE"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "contains",
+                            "value2": "MANUTENCAO"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "TEMP_NORMALIZADA"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "feedback_configuracao"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "RESET_MAX_MIN_MANUAL"
+                        }
+                    ],
+                    "combinator": "or"
+                }
+            },
+            "id": "is-event-if-events",
+            "name": "Is Event?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "insert",
+                "projectId": "smartrf-f9962",
+                "collection": "events",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "deviceId",
+                            "fieldValue": "={{ $json.ID_DISPOSITIVO }}"
+                        },
+                        {
+                            "fieldId": "type",
+                            "fieldValue": "={{ $json.TIPO }}"
+                        },
+                        {
+                            "fieldId": "msg",
+                            "fieldValue": "={{ $json.CAMPOS_ALTERADOS ? 'Configuração alterada: ' + $json.CAMPOS_ALTERADOS : ($json.TIPO.replace(/_/g, ' ').toLowerCase()) }}"
+                        },
+                        {
+                            "fieldId": "timestamp",
+                            "fieldValue": "={{ new Date().toISOString() }}"
+                        },
+                        {
+                            "fieldId": "tenantId",
+                            "fieldValue": "={{ $json.EMPRESA || 'empresa_default' }}"
+                        }
+                    ]
+                }
+            },
+            "id": "insert-firestore-events",
+            "name": "Insert Event to Firestore",
+            "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+            "typeVersion": 1,
+            "position": [
+                1120,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "MQTT Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Payload",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Payload": {
+            "main": [
+                [
+                    {
+                        "node": "Validate Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Validate Data": {
+            "main": [
+                [
+                    {
+                        "node": "Is Event?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Is Event?": {
+            "main": [
+                [
+                    {
+                        "node": "Insert Event to Firestore",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

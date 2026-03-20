@@ -55,3 +55,16 @@
 - [x] Implement Validation Logic in n8n <!-- id: 31 -->
     - [x] Update `Code in JavaScript1` to return `destination: mqtt` or `whatsapp` <!-- id: 32 -->
     - [x] Add Switch/Reply Logic for missing values <!-- id: 33 -->
+# Task: Hourly Logging to Firestore
+
+- [x] Implement Hourly Logging <!-- id: 34 -->
+    - [x] Update `esp32.ino` to send hourly periodic data <!-- id: 35 -->
+    - [x] Create and fix `n8n_hourly_telemetry.json` for periodic logging and TTL <!-- id: 36 -->
+    - [x] Standardize and fix `n8n_mqtt_to_firestore.json` node types and logic <!-- id: 38 -->
+    - [/] Verification of TTL logic and workflow imports <!-- id: 37 -->
+
+# Task: Resolve Firebase OAuth2 Error
+
+- [x] Fix n8n Firebase OAuth2 Authorization <!-- id: 39 -->
+    - [x] Configure n8n to use Service Account instead of OAuth2 <!-- id: 40 -->
+    - [x] Verify Google Cloud Console redirect URIs are no longer a blocker <!-- id: 41 -->

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { useTenant } from '../contexts/TenantContext';
+import { useAuth } from '../contexts/AuthContext';
 import { useFirebaseData } from '../hooks/useFirebaseData';
+import { useMqttData } from '../hooks/useMqttData';
 import { metrics } from '../data/mockData';
 import {
     XAxis,
@@ -21,11 +23,13 @@ interface DeviceDetailsProps {
 }
 
 const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) => {
-    const { currentTenant } = useTenant();
+    const { currentTenant, availableTenants } = useTenant();
+    const { currentUser } = useAuth();
     if (!currentTenant) return <div className="flex h-screen items-center justify-center bg-background-dark text-white">Carregando dados...</div>;
     const [remoteSync, setRemoteSync] = useState(true);
 
-    const { devices: tenantDevices, history } = useFirebaseData(currentTenant.id);
+    const { devices: firebaseDevices, history, events } = useFirebaseData(currentTenant.id, deviceId);
+    const { devices: tenantDevices } = useMqttData('all', currentUser?.role, firebaseDevices);
 
     // Filter by tenant and deviceId
     const device = tenantDevices.find(d => d.id === deviceId) || tenantDevices[0];
@@ -51,19 +55,46 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
         }
     };
 
+    const getEventIcon = (type: string) => {
+        if (type.includes('ALERTA')) return <AlertTriangle size={16} />;
+        if (type.includes('CONFIG')) return <RefreshCw size={16} />;
+        if (type.includes('RELE')) return <Zap size={16} />;
+        if (type.includes('PORTA')) return <RefreshCw size={16} />;
+        return <RotateCw size={16} />;
+    };
+
+    const formatEventTime = (timestamp: string) => {
+        try {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+
+            if (diffMins < 1) return 'Agora mesmo';
+            if (diffMins < 60) return `${diffMins}m atrás`;
+            if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h atrás`;
+            return date.toLocaleDateString('pt-BR');
+        } catch (e) {
+            return timestamp;
+        }
+    };
+
     return (
-        <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+        <div className="flex h-screen overflow-hidden bg-background-dark text-slate-100 font-display">
             <Sidebar activeItem="device-list" onNavigate={onNavigate} />
 
-            <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden relative bg-background-light text-text-dark">
-                <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+            <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden relative bg-background-dark text-slate-100">
+                <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-[#1A1D17]/80 backdrop-blur-md border-b border-[#2A2E24] sticky top-0 z-30 shadow-sm">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => onNavigate('dashboard')} className="p-2 hover:bg-[#2A2E24]/50 rounded-xl transition-colors text-white">
+                        <button onClick={() => onNavigate('dashboard')} className="p-2 hover:bg-[#2A2E24]/50 rounded-xl transition-colors text-slate-400 hover:text-white">
                             <ArrowLeft size={20} />
                         </button>
                         <div>
-                            <h2 className="text-xl font-bold leading-none text-white tracking-tight">{device?.name || 'Device'}</h2>
-                            <p className="text-xs text-slate-400 mt-1">{device?.location} • ID: {device?.id}</p>
+                            <h2 className="text-xl font-bold leading-none text-white tracking-tight">{device?.name || 'Dispositivo'}</h2>
+                            <p className="text-xs text-slate-400 mt-1">
+                                {availableTenants?.find(t => t.id === device?.tenantId)?.name || device?.tenantId || 'Empresa Desconhecida'}
+                                {device?.location ? ` • ${device.location}` : ''}
+                            </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -99,7 +130,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                         <div className="col-span-2 flex items-end justify-between bg-[#0F110D] p-5 rounded-2xl border border-[#2A2E24]">
                                             <div>
                                                 <p className="text-xs text-slate-500 mb-1 font-medium">Temperatura Atual</p>
-                                                <h4 className="text-4xl font-black text-primary tracking-tight">{(device?.telemetry?.temp || 0).toFixed(1)}°C</h4>
+                                                <h4 className="text-4xl font-black text-primary tracking-tight">{device?.telemetry?.temp !== undefined ? `${device.telemetry.temp.toFixed(1)}°C` : '--'}</h4>
                                             </div>
                                             <div className="text-right">
                                                 <span className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase border ${getStatusStyle(device?.status || 'offline')}`}>{getStatusLabel(device?.status || 'offline')}</span>
@@ -107,11 +138,11 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                         </div>
                                         <div className="bg-[#0F110D] p-4 rounded-2xl border border-[#2A2E24] text-center flex flex-col items-center justify-center">
                                             <p className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Máxima</p>
-                                            <p className="text-lg font-bold text-[#E63946]">{(device?.telemetry?.tempMax || 0).toFixed(1)}°C</p>
+                                            <p className="text-lg font-bold text-[#E63946]">{device?.telemetry?.tempMax !== undefined ? `${device.telemetry.tempMax.toFixed(1)}°C` : '--'}</p>
                                         </div>
                                         <div className="bg-[#0F110D] p-4 rounded-2xl border border-[#2A2E24] text-center flex flex-col items-center justify-center">
                                             <p className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-widest">Mínima</p>
-                                            <p className="text-lg font-bold text-primary">{(device?.telemetry?.tempMin || 0).toFixed(1)}°C</p>
+                                            <p className="text-lg font-bold text-primary">{device?.telemetry?.tempMin !== undefined ? `${device.telemetry.tempMin.toFixed(1)}°C` : '--'}</p>
                                         </div>
                                     </div>
 
@@ -122,7 +153,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                             </div>
                                             <div>
                                                 <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Bateria</p>
-                                                <p className="text-md font-bold text-white">{(device?.telemetry?.batteryVoltage || 0).toFixed(2)}V</p>
+                                                <p className="text-md font-bold text-white">{device?.telemetry?.batteryVoltage !== undefined ? `${device.telemetry.batteryVoltage.toFixed(2)}V` : '--'}</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3 p-4 bg-[#0F110D] rounded-2xl border border-[#2A2E24]">
@@ -131,7 +162,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                             </div>
                                             <div>
                                                 <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Tensão</p>
-                                                <p className="text-md font-bold text-white">{device?.telemetry?.inputVoltage || 0}V</p>
+                                                <p className="text-md font-bold text-white">{device?.telemetry?.inputVoltage !== undefined ? `${device.telemetry.inputVoltage}V` : '--'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -139,7 +170,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                     <div className="flex items-center justify-between text-xs pt-2">
                                         <div className="flex items-center gap-2 text-slate-500 font-bold tracking-wide">
                                             <Wifi size={16} />
-                                            <span>Sinal RSSI: {device?.telemetry?.signal || '--'} dBm</span>
+                                            <span>Sinal RSSI: {device?.telemetry?.signal !== undefined ? `${device.telemetry.signal} dBm` : '--'}</span>
                                         </div>
                                         {(() => {
                                             const rssi = device?.telemetry?.signal;
@@ -156,16 +187,39 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                 <h3 className="text-xs font-medium text-slate-400 uppercase mb-4 tracking-wider font-heading">Informações do Sistema</h3>
                                 <div className="space-y-4">
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-slate-400">Versão FW</span>
-                                        <span className="font-mono text-white font-medium">v2.4.1-stable</span>
+                                        <span className="text-slate-400">Última Atividade</span>
+                                        <span className="font-mono text-white font-medium">{device?.lastSeen ? new Date(device.lastSeen).toLocaleString('pt-BR') : '--'}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-400">Endereço MAC</span>
+                                        <span className="font-mono text-white font-medium">{device?.id || '--'}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-400">Saúde dos Sensores</span>
+                                        <span className={`font-mono font-medium ${!device?.telemetry?.saude ? 'text-slate-500' :
+                                            (Object.values(device.telemetry.saude).every(v => v === true) ? 'text-emerald-400' : 'text-red-400')
+                                            }`}>
+                                            {!device?.telemetry?.saude ? '--' :
+                                                Object.values(device.telemetry.saude).every(v => v === true) ? '100% Saudável' : 'Falha Parcial'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-400">Modo de Operação</span>
+                                        <span className="font-mono text-white font-medium">{device?.telemetry?.modo || '--'}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-slate-400">Tempo Ligado (Uptime)</span>
+                                        <span className="font-mono text-white font-medium">
+                                            {device?.telemetry?.uptime ? `${Math.floor(device.telemetry.uptime / 3600)}h ${Math.floor((device.telemetry.uptime % 3600) / 60)}m` : '--'}
+                                        </span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-slate-400">Endereço IP</span>
-                                        <span className="font-mono text-white font-medium">192.168.1.145</span>
+                                        <span className="font-mono text-white font-medium">{device?.telemetry?.ip || '--'}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
-                                        <span className="text-slate-400">Protocolo</span>
-                                        <span className="font-mono text-white font-medium">MQTT / TLS 1.3</span>
+                                        <span className="text-slate-400">Protocolo de Rede</span>
+                                        <span className="font-mono text-white font-medium">{device?.telemetry?.protocolo || '--'}</span>
                                     </div>
                                     <div className="pt-5 mt-5 border-t border-[#2A2E24] flex items-center justify-between">
                                         <span className="text-sm font-bold text-white">Monitoramento Ativo</span>
@@ -251,19 +305,21 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                 <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg">
                                     <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-5 font-heading">Eventos Recentes</h4>
                                     <div className="space-y-4">
-                                        {[
-                                            { msg: 'Configuração atualizada remotamente', time: '1h atrás', icon: <RefreshCw size={16} /> },
-                                            { msg: 'Conexão WiFi restabelecida', time: '4h atrás', icon: <Wifi size={16} /> },
-                                            { msg: 'Sistema reiniciado por Watchdog', time: 'Ontem', icon: <RotateCw size={16} /> },
-                                        ].map((e, i) => (
-                                            <div key={i} className="flex gap-4 p-3 rounded-xl border border-[#2A2E24] bg-[#0F110D] hover:border-primary/30 transition-colors group cursor-pointer">
-                                                <div className="text-slate-500 group-hover:text-primary transition-colors mt-0.5">{e.icon}</div>
-                                                <div>
-                                                    <p className="text-white text-sm font-medium leading-snug">{e.msg}</p>
-                                                    <p className="text-slate-400 text-[10px] mt-1 uppercase tracking-widest font-bold">{e.time}</p>
+                                        {events && events.length > 0 ? (
+                                            events.map((e, i) => (
+                                                <div key={i} className="flex gap-4 p-3 rounded-xl border border-[#2A2E24] bg-[#0F110D] hover:border-primary/30 transition-colors group cursor-pointer">
+                                                    <div className="text-slate-500 group-hover:text-primary transition-colors mt-0.5">
+                                                        {getEventIcon(e.type)}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white text-sm font-medium leading-snug">{e.msg.charAt(0).toUpperCase() + e.msg.slice(1)}</p>
+                                                        <p className="text-slate-400 text-[10px] mt-1 uppercase tracking-widest font-bold">{formatEventTime(e.timestamp)}</p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            ))
+                                        ) : (
+                                            <div className="py-4 text-center text-slate-500 text-xs italic">Nenhum evento registrado recentemente.</div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg flex flex-col justify-center items-center text-center">

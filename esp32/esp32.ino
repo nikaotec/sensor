@@ -9,6 +9,7 @@
 #include <Arduino.h>
 #include <DallasTemperature.h>
 #include <OneWire.h>
+#include <WiFi.h>
 #include <Wire.h>
 
 // ---------- OBJETOS GLOBAIS ----------
@@ -120,8 +121,8 @@ void loop() {
     enviarDadosWeb();
   }
 
-  // 1.2 Atualizar Dashboard (A cada 1 minuto)
-  if (now - lastDashboardReport >= 60000) {
+  // 1.2 Atualizar Dashboard via n8n (A cada 15 segundos)
+  if (now - lastDashboardReport >= 15000) {
     lastDashboardReport = now;
     enviarDadosDashboard();
   }
@@ -273,7 +274,13 @@ void loop() {
       }
     }
 
-    // 3.1. Relatorio de suporte (hora em hora)
+    // 3.1. Relatório Periódico de Telemetria (hora em hora para log histórico)
+    if (!modoManual && (now - lastReportTime >= 3600000UL)) {
+      lastReportTime = now;
+      enviarDadosMqtt("periodico");
+    }
+
+    // 3.2. Relatorio de suporte (hora em hora)
     if (!modoManual && (now - lastSupportReport >= 3600000UL)) {
       lastSupportReport = now;
       enviarDadosMqtt("periodico_suporte");
@@ -558,18 +565,18 @@ void processarMensagemMqtt(String topic, String payload) {
     manualTimeout = millis();
     digitalWrite(RELAY_PIN, HIGH);
     notificarUsuario("Rele LIGADO Manual", 5000);
-    enviarDadosMqtt("feedback_comando");
+    enviarDadosMqtt("RELE_LIGADO_MANUAL");
   } else if (intencao == "desligar_rele") {
     modoManual = true;
     releLigado = false;
     manualTimeout = millis();
     digitalWrite(RELAY_PIN, LOW);
     notificarUsuario("Rele DESLIGADO Man.", 5000);
-    enviarDadosMqtt("feedback_comando");
+    enviarDadosMqtt("RELE_DESDILIGADO_MANUAL");
   } else if (intencao == "ativar_automatico") {
     modoManual = false;
     notificarUsuario("Modo AUTOMATICO", 5000);
-    enviarDadosMqtt("feedback_comando");
+    enviarDadosMqtt("MODO_AUTOMATICO_ATIVADO");
   } else if (intencao == "habilitar_tensao") {
     storage.data.chkVolt = true;
     storage.save();
@@ -603,14 +610,14 @@ void processarMensagemMqtt(String topic, String payload) {
   } else if (intencao == "reset_manual") {
     storage.resetMinMax(temperaturaAtual);
     notificarUsuario("Reset Max/Min", 5000);
-    enviarDadosMqtt("feedback_comando");
+    enviarDadosMqtt("RESET_MAX_MIN_MANUAL");
   } else {
     // Feedback Genérico para Debug Visual
     if (intencao.length() > 0) {
       String msgRef = "CMD: " + intencao;
       notificarUsuario(msgRef, 4000);
     }
-    enviarDadosMqtt("feedback_comando");
+    enviarDadosMqtt("FEEDBACK_COMANDO_GENERICO");
   }
 
   // Os outros comandos (habilitar/desabilitar/calibrar) já enviam seu próprio
@@ -638,6 +645,16 @@ void enviarDadosWeb() {
   doc["RELE"] = releLigado;
   doc["MODO"] = modoManual ? "MANUAL" : "AUTO";
   doc["RSSI"] = network.getRSSI();
+  doc["IP_LOCAL"] = WiFi.localIP().toString();
+  doc["UPTIME"] = millis() / 1000;
+  doc["PROTOCOLO"] = "MQTT/WSS";
+
+  JsonObject saude = doc.createNestedObject("SAUDE_SENSORES");
+  saude["DS18B20"] = (temperaturaAtual > -50 && temperaturaAtual < 80);
+  saude["DHT11"] = ambientSensor.isValid();
+  saude["ZMPT"] = true;
+  saude["BATERIA"] = (voltSensor.getBatteryVoltage() > 0);
+  saude["PORTA"] = true;
 
   // Timestamp
   struct tm ti;
@@ -758,6 +775,16 @@ void enviarDadosDashboard() {
   doc["RELE"] = releLigado;
   doc["MODO"] = modoManual ? "MANUAL" : "AUTO";
   doc["RSSI"] = network.getRSSI();
+  doc["IP_LOCAL"] = WiFi.localIP().toString();
+  doc["UPTIME"] = millis() / 1000;
+  doc["PROTOCOLO"] = "MQTT/WSS";
+
+  JsonObject saude = doc.createNestedObject("SAUDE_SENSORES");
+  saude["DS18B20"] = (temperaturaAtual > -50 && temperaturaAtual < 80);
+  saude["DHT11"] = ambientSensor.isValid();
+  saude["ZMPT"] = true;
+  saude["BATERIA"] = (voltSensor.getBatteryVoltage() > 0);
+  saude["PORTA"] = true;
 
   // Timestamp
   struct tm ti;

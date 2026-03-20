@@ -114,6 +114,11 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                                 batteryVoltage: payload.batteryVoltage ?? existing.telemetry.batteryVoltage,
                                 inputVoltage: payload.inputVoltage ?? existing.telemetry.inputVoltage,
                                 signal: payload.signal ?? existing.telemetry.signal,
+                                ip: payload.IP_LOCAL ?? existing.telemetry.ip,
+                                uptime: payload.UPTIME ?? existing.telemetry.uptime,
+                                protocolo: payload.PROTOCOLO ?? existing.telemetry.protocolo,
+                                modo: payload.MODO ?? existing.telemetry.modo,
+                                saude: payload.SAUDE_SENSORES ?? existing.telemetry.saude,
                             },
                             mqttUpdated: true
                         };
@@ -135,6 +140,11 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                                 batteryVoltage: payload.batteryVoltage,
                                 inputVoltage: payload.inputVoltage,
                                 signal: payload.signal,
+                                ip: payload.IP_LOCAL,
+                                uptime: payload.UPTIME,
+                                protocolo: payload.PROTOCOLO,
+                                modo: payload.MODO,
+                                saude: payload.SAUDE_SENSORES,
                             },
                             mqttUpdated: true
                         };

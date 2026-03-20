@@ -1,11 +1,21 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, limit, where } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import type { Device } from '../data/mockData';
 
-export const useFirebaseData = (tenantId: string) => {
+export interface DeviceEvent {
+    id: string;
+    deviceId: string;
+    type: string;
+    msg: string;
+    timestamp: string;
+    tenantId: string;
+}
+
+export const useFirebaseData = (tenantId: string, deviceId?: string) => {
     const [devices, setDevices] = useState<Device[]>([]);
     const [history, setHistory] = useState<{ time: string, value: number, timestamp?: number }[]>([]);
+    const [events, setEvents] = useState<DeviceEvent[]>([]);
 
     useEffect(() => {
         // Listen to "devices_status" collection for registered devices in real-time
@@ -53,10 +63,12 @@ export const useFirebaseData = (tenantId: string) => {
             console.error("Firebase Snapshot Error (devices):", error);
         });
 
-        // Listen to historical telemetry for charts (limit 20)
-        const qHistory = query(collection(db, "telemetry"), orderBy("timestamp", "desc"), limit(20));
+        // Listen to historical telemetry for charts (limit 24)
+        const __qHistory = deviceId
+            ? query(collection(db, "telemetry"), where("deviceId", "==", deviceId), orderBy("timestamp", "desc"), limit(24))
+            : query(collection(db, "telemetry"), orderBy("timestamp", "desc"), limit(24));
 
-        const unsubscribeHistory = onSnapshot(qHistory, (snapshot) => {
+        const unsubscribeHistory = onSnapshot(__qHistory, (snapshot) => {
             const hist: any[] = [];
             snapshot.forEach((doc) => {
                 hist.push({ id: doc.id, ...doc.data() });
@@ -71,11 +83,27 @@ export const useFirebaseData = (tenantId: string) => {
             console.error("Firebase Snapshot Error (history):", error);
         });
 
+        // Listen to events
+        const qEvents = deviceId
+            ? query(collection(db, "events"), where("deviceId", "==", deviceId), orderBy("timestamp", "desc"), limit(10))
+            : query(collection(db, "events"), orderBy("timestamp", "desc"), limit(10));
+
+        const unsubscribeEvents = onSnapshot(qEvents, (snapshot) => {
+            const freshEvents: DeviceEvent[] = [];
+            snapshot.forEach((doc) => {
+                freshEvents.push({ id: doc.id, ...doc.data() } as DeviceEvent);
+            });
+            setEvents(freshEvents);
+        }, (error) => {
+            console.error("Firebase Snapshot Error (events):", error);
+        });
+
         return () => {
             unsubscribeDevices();
             unsubscribeHistory();
+            unsubscribeEvents();
         };
-    }, [tenantId]);
+    }, [tenantId, deviceId]);
 
-    return { devices, history };
+    return { devices, history, events };
 };
