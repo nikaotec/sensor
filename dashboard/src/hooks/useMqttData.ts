@@ -3,7 +3,7 @@ import mqtt from 'mqtt';
 import type { Device } from '../data/mockData';
 
 // Default broker URL for WebSockets (can be passed via env variables)
-const MQTT_BROKER_URL = import.meta.env.VITE_MQTT_BROKER_URL || 'ws://broker.emqx.io:8083/mqtt';
+const MQTT_BROKER_URL = import.meta.env.VITE_MQTT_BROKER_URL || 'wss://broker.emqx.io:8084/mqtt';
 
 export const useMqttData = (tenantId: string | null, currentUserRole: string | undefined, initialDevices: Device[] = []) => {
     const [devices, setDevices] = useState<any[]>(initialDevices.map(d => ({ ...d, mqttUpdated: false })));

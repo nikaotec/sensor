@@ -194,8 +194,7 @@
               "operation": "equals",
               "value2": "periodico"
             }
-          ],
-          "combinator": "or"
+          ]
         }
       },
       "id": "filter-telemetry-main",

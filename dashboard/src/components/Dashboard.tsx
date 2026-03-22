@@ -32,19 +32,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
 
     // Filtro refinado para respeitar a aba selecionada e permissões de role
     const displayDevices = React.useMemo(() => {
+        if (!availableTenants) return [];
         const allowedTenantIds = availableTenants.map(t => t.id);
         const allowedTenantNames = availableTenants.map(t => t.name);
 
         // Se estiver em uma aba de empresa específica (não "all"), filtra apenas por ela
         if (currentTenant && currentTenant.id !== 'all') {
-            return tenantDevices.filter(d => d.tenantId === currentTenant.id || d.tenantId === currentTenant.name);
+            return tenantDevices.filter(d => d && (d.tenantId === currentTenant.id || d.tenantId === currentTenant.name));
         }
 
         // Se estiver na aba "Todos" (currentTenant.id === 'all')
         if (currentUser?.role === 'manager') return tenantDevices;
 
         // Admins vêem apenas as empresas que têm acesso (availableTenants)
-        return tenantDevices.filter(d => allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId));
+        return tenantDevices.filter(d => d && (allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId)));
     }, [tenantDevices, currentTenant, availableTenants, currentUser?.role]);
 
     // No longer needing primaryDevice or mocks
@@ -244,12 +245,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                             <div>
                                                 <div className="text-xs text-slate-500 font-medium mb-1 font-heading uppercase tracking-wider">Temperatura Atual</div>
                                                 <div className="text-4xl font-bold text-white tracking-tight">
-                                                    {device.telemetry.temp !== undefined ? `${device.telemetry.temp.toFixed(1)}` : '--'}
+                                                    {device.telemetry?.temp !== undefined ? `${device.telemetry.temp.toFixed(1)}` : '--'}
                                                     <span className="text-lg text-slate-400 font-medium ml-1">°C</span>
                                                 </div>
                                             </div>
-                                            <div className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border ${getStatusStyle(device.status)} ${device.status === 'offline' ? 'opacity-50' : ''}`}>
-                                                {getStatusLabel(device.status)}
+                                            <div className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border ${getStatusStyle(device.status || 'offline')} ${device.status === 'offline' ? 'opacity-50' : ''}`}>
+                                                {getStatusLabel(device.status || 'offline')}
                                             </div>
                                         </div>
 

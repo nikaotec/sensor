@@ -43,7 +43,8 @@ export const useSettings = (tenantId: string) => {
 
         try {
             // Webhook do n8n para enviar o comando via MQTT
-            const response = await fetch('http://localhost:5678/webhook/iot-command-webhook', {
+            const n8nUrl = import.meta.env.VITE_N8N_WEBHOOK_URL || 'http://localhost:5678';
+            const response = await fetch(`${n8nUrl}/webhook/iot-command-webhook`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

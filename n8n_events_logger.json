@@ -54,18 +54,38 @@
                     "string": [
                         {
                             "value1": "={{ $json.TIPO }}",
-                            "operation": "startsWith",
-                            "value2": "ALERTA_"
+                            "operation": "equals",
+                            "value2": "ALERTA_TEMPERATURA"
                         },
                         {
                             "value1": "={{ $json.TIPO }}",
-                            "operation": "contains",
-                            "value2": "RELE"
+                            "operation": "equals",
+                            "value2": "ALERTA_TENSAO"
                         },
                         {
                             "value1": "={{ $json.TIPO }}",
-                            "operation": "contains",
-                            "value2": "MANUTENCAO"
+                            "operation": "equals",
+                            "value2": "ALERTA_BATERIA"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "RELE_LIGADO_MANUAL"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "RELE_DESLIGADO_MANUAL"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "MODO_MANUTENCAO_ATIVADO"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "MODO_MANUTENCAO_DESATIVADO"
                         },
                         {
                             "value1": "={{ $json.TIPO }}",
@@ -82,8 +102,7 @@
                             "operation": "equals",
                             "value2": "RESET_MAX_MIN_MANUAL"
                         }
-                    ],
-                    "combinator": "or"
+                    ]
                 }
             },
             "id": "is-event-if-events",

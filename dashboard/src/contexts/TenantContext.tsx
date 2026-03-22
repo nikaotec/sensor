@@ -37,7 +37,10 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         let unsubscribe: () => void = () => { };
 
         try {
-            if (currentUser.role === 'manager') {
+            const userRole = currentUser?.role || 'admin';
+            const userTenants = currentUser?.tenantIds || [];
+
+            if (userRole === 'manager') {
                 // Manager vê todas as empresas em tempo real
                 unsubscribe = onSnapshot(collection(db, 'tenants'), (snapshot) => {
                     const fetchedTenants: Tenant[] = [];
@@ -52,9 +55,9 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                     setAvailableTenants([]);
                     setLoadingTenants(false);
                 });
-            } else if (currentUser.tenantIds && currentUser.tenantIds.length > 0) {
+            } else if (userTenants && userTenants.length > 0) {
                 // Usuários normais ou admin escutam apenas seus ids
-                const q = query(collection(db, 'tenants'), where(documentId(), 'in', currentUser.tenantIds));
+                const q = query(collection(db, 'tenants'), where(documentId(), 'in', userTenants));
                 unsubscribe = onSnapshot(q, (snapshot) => {
                     const fetchedTenants: Tenant[] = [];
                     snapshot.forEach((doc) => {

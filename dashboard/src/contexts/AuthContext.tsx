@@ -11,7 +11,6 @@ import {
 import type { User as FirebaseUser } from 'firebase/auth';
 import { auth, db } from '../firebase/config';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
-import { users as mockUsers } from '../data/mockData';
 
 export interface AppUser {
     id: string;
@@ -41,9 +40,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            console.log("🔥 Auth State Changed:", user ? `Logado (${user.email})` : "Deslogado");
             setFirebaseUser(user);
             if (user) {
                 try {
+                    console.log("🔍 Buscando perfil no Firestore para:", user.uid);
                     const userDocRef = doc(db, 'users', user.uid);
                     const userDoc = await getDoc(userDocRef);
                     const emailDocRef = doc(db, 'users', user.email || 'no-email');
@@ -99,20 +100,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                             setCurrentUser(newUser);
                         }
                     }
+                    console.log("✅ Perfil carregado com sucesso.");
                 } catch (error: any) {
-                    console.error("Error fetching user data from Firestore (using mock fallback):", error.message);
-                    // Fallback for UI visualization without real Firebase creds
+                    console.error("❌ Erro ao buscar dados do Firestore:", error.message);
+                    // Fallback para não travar a UI
                     setCurrentUser({
                         id: user.uid,
-                        name: user.displayName || mockUsers[0].name,
-                        email: user.email || mockUsers[0].email,
-                        role: user.email === 'antoniovenancio10@gmail.com' ? 'manager' : mockUsers[0].role,
-                        tenantIds: ['t1', 't2']
+                        name: user.displayName || 'Usuário (Offline/Mock)',
+                        email: user.email || '',
+                        role: user.email === 'antoniovenancio10@gmail.com' ? 'manager' : 'admin',
+                        tenantIds: []
                     });
                 }
             } else {
                 setCurrentUser(null);
             }
+            console.log("🏁 Finalizando estado de carregamento.");
             setLoading(false);
         });
 
@@ -125,7 +128,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const loginWithGoogle = async () => {
         const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        try {
+            await signInWithPopup(auth, provider);
+        } catch (error: any) {
+            console.error("Erro detalhado no Login Google:", error.code, error.message);
+            if (error.code === 'auth/unauthorized-domain') {
+                alert("Domínio não autorizado no Firebase. Por favor, adicione a URL do ngrok no Console do Firebase.");
+            }
+            throw error;
+        }
     };
 
     const signup = async (email: string, pass: string, name: string) => {

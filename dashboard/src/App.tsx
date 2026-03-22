@@ -11,6 +11,7 @@ import Settings from './components/Settings'
 import ManagerPanel from './components/ManagerPanel'
 import { TenantProvider, useTenant } from './contexts/TenantContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import ErrorBoundary from './components/ErrorBoundary'
 
 type Screen = 'login' | 'signup' | 'dashboard' | 'device-list' | 'device-details' | 'alerts' | 'reports' | 'settings' | 'manager-panel'
 
@@ -66,6 +67,15 @@ const AppContent = () => {
     );
   }
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="animate-pulse text-slate-400 font-medium">Iniciando sistema...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark">
       <TenantSwitcher />
@@ -86,7 +96,9 @@ function App() {
   return (
     <AuthProvider>
       <TenantProvider>
-        <AppContent />
+        <ErrorBoundary>
+          <AppContent />
+        </ErrorBoundary>
       </TenantProvider>
     </AuthProvider>
   )
