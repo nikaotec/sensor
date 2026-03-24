@@ -5,14 +5,15 @@
 #include <Arduino.h>
 
 // ---------- DEVICE ----------
-#define DEVICE_NAME "02 CENTRO" // Added Device Name
-#define COMPANY_NAME "Nikaotec" // Added Company Name
+#define DEVICE_NAME "02 CENTRO"   // Added Device Name
+#define COMPANY_NAME "Nikaotec"   // Added Company Name
+#define DEVICE_LOCATION "ALA SUL" // Added Location (ALA)
 
 // ---------- REDE ----------
 #define WIFI_SSID "VENANCIO"
 #define WIFI_PASS "liza1980"
 // #define MQTT_SERVER "173.249.10.19"
-#define MQTT_SERVER "nikaotech.com"
+#define MQTT_SERVER "n8n.nikaotech.com"
 #define MQTT_PORT 1883
 #define MQTT_USER ""
 #define MQTT_PASS ""

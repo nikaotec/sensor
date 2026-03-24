@@ -634,6 +634,7 @@ void enviarDadosWeb() {
   doc["ID_DISPOSITIVO"] = getIdDispositivo();
   doc["DISPOSITIVO"] = DEVICE_NAME;
   doc["EMPRESA"] = COMPANY_NAME;
+  doc["ALA"] = DEVICE_LOCATION;
   doc["TIPO"] = "REALTIME";
   doc["TEMP_ATUAL"] = serialized(String(temperaturaAtual, 1));
   doc["MAX"] =
@@ -683,6 +684,7 @@ void enviarDadosMqtt(String evento) {
   doc["ID_DISPOSITIVO"] = getIdDispositivo();
   doc["DISPOSITIVO"] = DEVICE_NAME;
   doc["EMPRESA"] = COMPANY_NAME;
+  doc["ALA"] = DEVICE_LOCATION;
   doc["TIPO"] = evento;
 
   // Dados de Sensores Formatados

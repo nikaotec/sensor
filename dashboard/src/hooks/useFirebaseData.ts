@@ -63,22 +63,33 @@ export const useFirebaseData = (tenantId: string, deviceId?: string) => {
             console.error("Firebase Snapshot Error (devices):", error);
         });
 
-        // Listen to historical telemetry for charts (limit 24)
-        const __qHistory = deviceId
-            ? query(collection(db, "telemetry"), where("deviceId", "==", deviceId), orderBy("timestamp", "desc"), limit(24))
-            : query(collection(db, "telemetry"), orderBy("timestamp", "desc"), limit(24));
+        // Listen to historical telemetry for charts (last 24 hours)
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-        const unsubscribeHistory = onSnapshot(__qHistory, (snapshot) => {
+        const qHistory = deviceId
+            ? query(
+                collection(db, "telemetry"),
+                where("deviceId", "==", deviceId),
+                where("timestamp", ">=", twentyFourHoursAgo),
+                orderBy("timestamp", "asc")
+            )
+            : query(
+                collection(db, "telemetry"),
+                where("timestamp", ">=", twentyFourHoursAgo),
+                orderBy("timestamp", "asc")
+            );
+
+        const unsubscribeHistory = onSnapshot(qHistory, (snapshot) => {
             const hist: any[] = [];
             snapshot.forEach((doc) => {
-                hist.push({ id: doc.id, ...doc.data() });
+                const data = doc.data();
+                hist.push({
+                    time: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    value: data.temperature !== undefined ? data.temperature : (data.temp !== undefined ? data.temp : 0),
+                    timestamp: data.timestamp
+                });
             });
-            // Reverse so oldest is first
-            setHistory(hist.reverse().map(h => ({
-                time: new Date(h.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                value: h.temperature || 0,
-                timestamp: h.timestamp
-            })));
+            setHistory(hist);
         }, (error) => {
             console.error("Firebase Snapshot Error (history):", error);
         });

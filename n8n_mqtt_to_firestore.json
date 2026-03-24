@@ -35,6 +35,10 @@
             {
               "value1": "={{ $json.DISPOSITIVO }}",
               "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{ $json.ID_DISPOSITIVO }}",
+              "operation": "isNotEmpty"
             }
           ]
         }
@@ -50,31 +54,31 @@
     },
     {
       "parameters": {
-        "operation": "insert",
+        "operation": "create",
         "projectId": "smartrf-f9962",
         "collection": "devices_status",
-        "documentId": "={{ $json.ID_DISPOSITIVO }}",
+        "documentId": "={{$json.ID_DISPOSITIVO}}",
         "fieldsUi": {
           "fieldValues": [
             {
               "fieldId": "name",
-              "fieldValue": "={{ $json.DISPOSITIVO }}"
+              "fieldValue": "={{$json.DISPOSITIVO}}"
             },
             {
               "fieldId": "temperature",
-              "fieldValue": "={{ parseFloat($json.TEMP_ATUAL) }}"
+              "fieldValue": "={{parseFloat($json.TEMP_ATUAL)}}"
             },
             {
               "fieldId": "voltage",
-              "fieldValue": "={{ parseFloat($json.VOLTAGEM) }}"
+              "fieldValue": "={{parseFloat($json.VOLTAGEM)}}"
             },
             {
               "fieldId": "humidity",
-              "fieldValue": "={{ parseFloat($json.UMIDADE || 0) }}"
+              "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}"
             },
             {
               "fieldId": "battery",
-              "fieldValue": "={{ parseFloat($json.BATERIA || 0) }}"
+              "fieldValue": "={{parseFloat($json.BATERIA || 0)}}"
             },
             {
               "fieldId": "status",
@@ -82,11 +86,11 @@
             },
             {
               "fieldId": "lastSeen",
-              "fieldValue": "={{ new Date().toISOString() }}"
+              "fieldValue": "={{new Date().toISOString()}}"
             },
             {
               "fieldId": "tenantId",
-              "fieldValue": "={{ $json.EMPRESA || 'Unknown' }}"
+              "fieldValue": "={{$json.EMPRESA || 'Unknown'}}"
             }
           ]
         }
@@ -102,42 +106,42 @@
     },
     {
       "parameters": {
-        "operation": "insert",
+        "operation": "create",
         "projectId": "smartrf-f9962",
         "collection": "telemetry",
         "fieldsUi": {
           "fieldValues": [
             {
               "fieldId": "deviceId",
-              "fieldValue": "={{ $json.DISPOSITIVO.replace(/\\s+/g, '_').toLowerCase() }}"
+              "fieldValue": "={{$json.ID_DISPOSITIVO}}"
             },
             {
               "fieldId": "temperature",
-              "fieldValue": "={{ parseFloat($json.TEMP_ATUAL) }}"
+              "fieldValue": "={{parseFloat($json.TEMP_ATUAL)}}"
             },
             {
               "fieldId": "voltage",
-              "fieldValue": "={{ parseFloat($json.VOLTAGEM) }}"
+              "fieldValue": "={{parseFloat($json.VOLTAGEM)}}"
             },
             {
               "fieldId": "humidity",
-              "fieldValue": "={{ parseFloat($json.UMIDADE || 0) }}"
+              "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}"
             },
             {
               "fieldId": "battery",
-              "fieldValue": "={{ parseFloat($json.BATERIA || 0) }}"
+              "fieldValue": "={{parseFloat($json.BATERIA || 0)}}"
             },
             {
               "fieldId": "timestamp",
-              "fieldValue": "={{ new Date().toISOString() }}"
+              "fieldValue": "={{new Date().toISOString()}}"
             },
             {
               "fieldId": "expireAt",
-              "fieldValue": "={{ new Date(new Date().getTime() + (24 * 60 * 60 * 1000)) }}"
+              "fieldValue": "={{new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()}}"
             },
             {
               "fieldId": "tenantId",
-              "fieldValue": "empresa_default"
+              "fieldValue": "={{ $json.EMPRESA || 'Unknown' }}"
             }
           ]
         }
@@ -154,7 +158,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "return {\n  json: {\n    id: $input.item.json.ID_DISPOSITIVO,\n    company: $input.item.json.EMPRESA || \"empresa_default\",\n    ala: \"Setor Principal\",\n    device_name: $input.item.json.DISPOSITIVO || $input.item.json.ID_DISPOSITIVO,\n    temp: parseFloat($input.item.json.TEMP_ATUAL),\n    tempMax: parseFloat($input.item.json.MAX || $input.item.json.TEMP_ATUAL),\n    tempMin: parseFloat($input.item.json.MIN || $input.item.json.TEMP_ATUAL),\n    batteryVoltage: parseFloat($input.item.json.BATERIA || 0),\n    inputVoltage: parseFloat($input.item.json.VOLTAGEM || 0),\n    signal: parseInt($input.item.json.RSSI || 0)\n  }\n};"
+        "jsCode": "return {\n  json: {\n    id: $input.item.json.ID_DISPOSITIVO,\n    company: $input.item.json.EMPRESA || \"empresa_default\",\n    ala: \"Setor Principal\",\n    device_name: $input.item.json.DISPOSITIVO || $input.item.json.ID_DISPOSITIVO,\n    temp: parseFloat($input.item.json.TEMP_ATUAL || 0),\n    tempMax: parseFloat($input.item.json.MAX || $input.item.json.TEMP_ATUAL || 0),\n    tempMin: parseFloat($input.item.json.MIN || $input.item.json.TEMP_ATUAL || 0),\n    batteryVoltage: parseFloat($input.item.json.BATERIA || 0),\n    inputVoltage: parseFloat($input.item.json.VOLTAGEM || 0),\n    signal: parseInt($input.item.json.RSSI || 0)\n  }\n};"
       },
       "id": "format-dash-main",
       "name": "Format for Dashboard",
@@ -248,8 +252,7 @@
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
     "Format for Dashboard": {
@@ -271,8 +274,7 @@
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     }
   },

@@ -2,17 +2,34 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import http from 'http';
 import { fileURLToPath } from 'url';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-// Default to 4000 for VPS to avoid conflict with Gotenberg on 3000
-const PORT = process.env.PORT || 4000;
+// Default to 80 for VPS (Cloudflare compatible)
+const PORT = process.env.PORT || 80;
 
 app.use(cors());
 app.use(express.json());
+
+// =============================================
+// Proxy WebSocket: /mqtt -> Mosquitto (porta 9001)
+// =============================================
+const MOSQUITTO_WS_TARGET = process.env.MOSQUITTO_WS_URL || 'http://localhost:9001';
+
+const mqttProxy = createProxyMiddleware({
+  target: MOSQUITTO_WS_TARGET,
+  ws: true,
+  changeOrigin: true,
+  pathRewrite: { '^/mqtt': '/' },
+  logger: console,
+});
+
+app.use('/mqtt', mqttProxy);
 
 // Serve production build files
 app.use(express.static(path.join(__dirname, 'dist')));
@@ -73,11 +90,22 @@ app.post('/api/sensors', (req, res) => {
   }
 });
 
-// React Router SPA fallback
-app.get('*', (req, res) => {
+// React Router SPA fallback - catch-all middleware
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 VPS Servidor rodando. Acesse: http://localhost:${PORT}`);
+// Criar HTTP server para suportar WebSocket upgrade
+const server = http.createServer(app);
+
+// Habilitar proxy de WebSocket upgrade no /mqtt
+server.on('upgrade', (req, socket, head) => {
+  if (req.url && req.url.startsWith('/mqtt')) {
+    mqttProxy.upgrade(req, socket, head);
+  }
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 VPS Servidor rodando na porta ${PORT}`);
+  console.log(`📡 MQTT WebSocket proxy: /mqtt -> ${MOSQUITTO_WS_TARGET}`);
 });

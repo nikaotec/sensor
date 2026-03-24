@@ -61,9 +61,11 @@ void AppNetworkManager::verifyMqtt() {
   if (WiFi.status() == WL_CONNECTED && !client.connected()) {
     if (millis() - lastMqttReconnectAttempt > 15000) {
       lastMqttReconnectAttempt = millis();
+      String clientId = "ESP32_" + getIdDispositivo();
       Serial.println("[MQTT] Tentando conectar ao broker " +
-                     String(MQTT_SERVER) + ":" + String(MQTT_PORT) + "...");
-      if (client.connect("ESP32_Monitor", MQTT_USER, MQTT_PASS)) {
+                     String(MQTT_SERVER) + ":" + String(MQTT_PORT) +
+                     " com ID: " + clientId + "...");
+      if (client.connect(clientId.c_str(), MQTT_USER, MQTT_PASS)) {
         client.subscribe(MSG_TOPIC_STATUS);
         client.subscribe(MSG_TOPIC_WEB);
         Serial.println(
@@ -107,4 +109,12 @@ String AppNetworkManager::getCurrentTime() {
   char timeStringBuff[20];
   strftime(timeStringBuff, sizeof(timeStringBuff), "%H:%M:%S", &timeinfo);
   return String(timeStringBuff);
+}
+
+String AppNetworkManager::getIdDispositivo() {
+  uint64_t chipId = ESP.getEfuseMac();
+  char idUnico[13];
+  snprintf(idUnico, sizeof(idUnico), "%04X%08X", (uint16_t)(chipId >> 32),
+           (uint32_t)chipId);
+  return String(idUnico);
 }

@@ -25,6 +25,7 @@ private:
 
   void verifyWifi();
   void verifyMqtt();
+  String getIdDispositivo();
 
 public:
   AppNetworkManager();

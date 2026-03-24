@@ -3,7 +3,7 @@ import mqtt from 'mqtt';
 import type { Device } from '../data/mockData';
 
 // Default broker URL for WebSockets (can be passed via env variables)
-const MQTT_BROKER_URL = import.meta.env.VITE_MQTT_BROKER_URL || 'wss://broker.emqx.io:8084/mqtt';
+const MQTT_BROKER_URL = import.meta.env.VITE_MQTT_BROKER_URL || 'wss://nikaotech.com/mqtt';
 
 export const useMqttData = (tenantId: string | null, currentUserRole: string | undefined, initialDevices: Device[] = []) => {
     const [devices, setDevices] = useState<any[]>(initialDevices.map(d => ({ ...d, mqttUpdated: false })));
@@ -42,8 +42,9 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
         const client = mqtt.connect(MQTT_BROKER_URL, {
             clientId,
             clean: true,
-            connectTimeout: 4000,
+            connectTimeout: 20000,
             reconnectPeriod: 1000,
+            // path removido para sincronizar com a barra final do Nginx
         });
 
         client.on('connect', () => {
@@ -66,7 +67,9 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                 let payload = JSON.parse(message.toString());
 
                 // Normalize payload from general streams (Capital vs lowercase formats)
+                // Merge raw payload with normalized fields to avoid losing tech data (IP, Uptime, etc)
                 const normalizedPayload = {
+                    ...payload,
                     id: payload.id || payload.ID_DISPOSITIVO,
                     company: payload.company || payload.EMPRESA || 'Unknown',
                     device_name: payload.device_name || payload.DISPOSITIVO,
@@ -89,8 +92,11 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                     );
 
                     const existing = existingDeviceIndex >= 0 ? prevDevices[existingDeviceIndex] : null;
-                    const resolvedCompany = existing ? existing.tenantId : payload.company;
-                    const belongsToCurrentView = tenantId === 'all' || resolvedCompany === tenantId;
+                    const resolvedCompany = (existing ? existing.tenantId : payload.company) || 'Unknown';
+
+                    // Case-insensitive comparison for company filtering
+                    const belongsToCurrentView = tenantId === 'all' ||
+                        resolvedCompany.toLowerCase() === tenantId.toLowerCase();
 
                     if (!belongsToCurrentView) {
                         return prevDevices; // Ignore data not belonging to the current allowed view
