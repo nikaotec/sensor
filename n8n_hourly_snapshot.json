@@ -1,0 +1,116 @@
+{
+  "name": "IoT Sensor - Hourly Snapshot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-hourly",
+      "name": "Schedule Hourly",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "projectId": "smartrf-f9962",
+        "collection": "devices_status",
+        "limit": 500
+      },
+      "id": "get-devices",
+      "name": "Get Devices",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const device = $input.item.json;\n\nconst docId = $input.item.id;\n\nreturn [{\n  json: {\n    deviceId: docId,\n    deviceName: device.name || docId,\n    temperature: device.temperature || device.temp || 0,\n    humidity: device.humidity || 0,\n    voltage: device.voltage || 0,\n    battery: device.battery || 0,\n    timestamp: new Date().toISOString(),\n    expireAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),\n    tenantId: device.tenantId || 'Unknown',\n    source: 'hourly_snapshot'\n  }\n}];"
+      },
+      "id": "format-telemetry",
+      "name": "Format Telemetry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "projectId": "smartrf-f9962",
+        "collection": "telemetry",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "deviceId",
+              "fieldValue": "={{ $json.deviceId }}"
+            },
+            {
+              "fieldId": "deviceName",
+              "fieldValue": "={{ $json.deviceName }}"
+            },
+            {
+              "fieldId": "temperature",
+              "fieldValue": "={{ $json.temperature }}"
+            },
+            {
+              "fieldId": "humidity",
+              "fieldValue": "={{ $json.humidity }}"
+            },
+            {
+              "fieldId": "voltage",
+              "fieldValue": "={{ $json.voltage }}"
+            },
+            {
+              "fieldId": "battery",
+              "fieldValue": "={{ $json.battery }}"
+            },
+            {
+              "fieldId": "timestamp",
+              "fieldValue": "={{ $json.timestamp }}"
+            },
+            {
+              "fieldId": "expireAt",
+              "fieldValue": "={{ $json.expireAt }}"
+            },
+            {
+              "fieldId": "tenantId",
+              "fieldValue": "={{ $json.tenantId }}"
+            },
+            {
+              "fieldId": "source",
+              "fieldValue": "={{ $json.source }}"
+            }
+          ]
+        }
+      },
+      "id": "save-telemetry",
+      "name": "Save Telemetry",
+      "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Hourly": {
+      "main": [[{ "node": "Get Devices", "type": "main", "index": 0 }]]
+    },
+    "Get Devices": {
+      "main": [[{ "node": "Format Telemetry", "type": "main", "index": 0 }]]
+    },
+    "Format Telemetry": {
+      "main": [[{ "node": "Save Telemetry", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

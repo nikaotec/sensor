@@ -8,6 +8,7 @@ const MQTT_BROKER_URL = import.meta.env.VITE_MQTT_BROKER_URL || 'wss://nikaotech
 export const useMqttData = (tenantId: string | null, currentUserRole: string | undefined, initialDevices: Device[] = []) => {
     const [devices, setDevices] = useState<any[]>(initialDevices.map(d => ({ ...d, mqttUpdated: false })));
     const [isConnected, setIsConnected] = useState(false);
+    const [mqttClient, setMqttClient] = useState<mqtt.MqttClient | null>(null);
 
     useEffect(() => {
         if (initialDevices.length > 0) {
@@ -50,6 +51,7 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
         client.on('connect', () => {
             console.log('Connected to MQTT Broker via WebSockets');
             setIsConnected(true);
+            setMqttClient(client);
 
             // Subscribe to all device telemetries
             // In a real scenario, you might scope this to `tenantId/devices/#`
@@ -125,6 +127,7 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                                 protocolo: payload.PROTOCOLO ?? existing.telemetry.protocolo,
                                 modo: payload.MODO ?? existing.telemetry.modo,
                                 saude: payload.SAUDE_SENSORES ?? existing.telemetry.saude,
+                                rele: payload.RELE ?? existing.telemetry.rele,
                             },
                             mqttUpdated: true
                         };
@@ -151,6 +154,7 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                                 protocolo: payload.PROTOCOLO,
                                 modo: payload.MODO,
                                 saude: payload.SAUDE_SENSORES,
+                                rele: payload.RELE,
                             },
                             mqttUpdated: true
                         };
@@ -177,8 +181,18 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
             if (client.connected) {
                 client.end();
             }
+            setMqttClient(null);
         };
     }, [tenantId, currentUserRole]);
 
-    return { devices, isConnected };
+    const publish = (topic: string, message: string) => {
+        if (mqttClient && isConnected) {
+            mqttClient.publish(topic, message);
+            console.log(`Published to ${topic}:`, message);
+        } else {
+            console.error('Cannot publish, MQTT client not connected');
+        }
+    };
+
+    return { devices, isConnected, publish };
 };

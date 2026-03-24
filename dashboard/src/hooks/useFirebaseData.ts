@@ -7,7 +7,8 @@ export interface DeviceEvent {
     id: string;
     deviceId: string;
     type: string;
-    msg: string;
+    msg?: string;
+    message?: string;
     timestamp: string;
     tenantId: string;
 }

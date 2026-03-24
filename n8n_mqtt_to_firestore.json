@@ -197,6 +197,16 @@
               "value1": "={{ $json.TIPO }}",
               "operation": "equals",
               "value2": "periodico"
+            },
+            {
+              "value1": "={{ $json.TIPO }}",
+              "operation": "equals",
+              "value2": "horario"
+            },
+            {
+              "value1": "={{ $json.TIPO }}",
+              "operation": "equals",
+              "value2": "historico"
             }
           ]
         }
