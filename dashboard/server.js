@@ -16,6 +16,20 @@ const PORT = process.env.PORT || 80;
 app.use(cors());
 app.use(express.json());
 
+// CSP headers for fonts and resources
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data: blob:; " +
+    "font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com data:; " +
+    "img-src 'self' data: blob: https:; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:; " +
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+    "connect-src 'self' wss: ws: https:;"
+  );
+  next();
+});
+
 // =============================================
 // Proxy WebSocket: /mqtt -> Mosquitto (porta 9001)
 // =============================================

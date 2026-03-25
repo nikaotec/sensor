@@ -4,7 +4,7 @@ import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useMqttData } from '../hooks/useMqttData';
-
+import { metrics } from '../data/mockData';
 import {
     XAxis,
     YAxis,
@@ -15,7 +15,7 @@ import {
     AreaChart,
     ReferenceLine
 } from 'recharts';
-import { ArrowLeft, Settings as SettingsIcon, AlertTriangle, BatteryCharging, Zap, Wifi, RefreshCw, RotateCw, Download, Sliders, Power, ShieldAlert, Play, Target } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, AlertTriangle, BatteryCharging, Zap, Wifi, RefreshCw, RotateCw, Download } from 'lucide-react';
 
 interface DeviceDetailsProps {
     deviceId: string;
@@ -29,54 +29,11 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const [remoteSync, setRemoteSync] = useState(true);
 
     const { devices: firebaseDevices, history, events } = useFirebaseData(currentTenant.id, deviceId);
-    const { devices: tenantDevices, publish } = useMqttData('all', currentUser?.role, firebaseDevices);
-
-    const [showConfig, setShowConfig] = useState(false);
-    const [configData, setConfigData] = useState({
-        temp_max: 25,
-        temp_min: 15,
-        volt_max: 240,
-        volt_min: 190,
-        bat_min: 11.5,
-        tempo_porta: 60
-    });
-
-    const handleCommand = (intencao: string, extraArgs: any = {}) => {
-        const targetId = deviceId; // Pegamos do id recebido da URL
-        if (!targetId) return;
-
-        const payload = {
-            intencao,
-            is_admin: currentUser?.role === 'admin' || currentUser?.role === 'manager',
-            remoteJid: "dashboard@web",
-            source: "dashboard",
-            id: targetId,
-            user: {
-                name: currentUser?.name || 'Usuário Desconhecido',
-                email: currentUser?.email || 'Sem Email'
-            },
-            ...extraArgs
-        };
-
-        publish('esp32c3/status/action', JSON.stringify(payload));
-        alert(`Comando '${intencao}' enviado com sucesso!`);
-    };
-
-    const submitConfig = () => {
-        handleCommand('configurar_limites', {
-            temp_max: Number(configData.temp_max),
-            temp_min: Number(configData.temp_min),
-            volt_max: Number(configData.volt_max),
-            volt_min: Number(configData.volt_min),
-            bat_min: Number(configData.bat_min),
-            tempo_porta: Number(configData.tempo_porta)
-        });
-        setShowConfig(false);
-    };
+    const { devices: tenantDevices } = useMqttData('all', currentUser?.role, firebaseDevices);
 
     // Filter by tenant and deviceId
     const device = tenantDevices.find(d => d.id === deviceId) || tenantDevices[0];
-
+    const tenantMetrics = metrics[currentTenant.id] || metrics['t1'];
 
     const getStatusStyle = (status: string) => {
         switch (status) {
@@ -152,7 +109,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                 </header>
 
                 <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 py-6 custom-scrollbar">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Left Column: Stats and Overview */}
                         <div className="lg:col-span-1 space-y-6">
                             <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg">
@@ -275,249 +232,110 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Middle Column: Control Panel */}
-                            <div className="lg:col-span-1 space-y-6">
-                                {/* PAINEL DE CONTROLE (NOVO) */}
-                                <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider font-heading flex items-center gap-2">
-                                            <Sliders size={14} /> Painel de Controle Remoto
-                                        </h3>
-                                        <button
-                                            onClick={() => setShowConfig(!showConfig)}
-                                            className="text-xs text-primary hover:text-primary/80 transition-colors underline"
-                                        >
-                                            Parâmetros
-                                        </button>
+                        {/* Right Column: Historical Charts */}
+                        <div className="lg:col-span-2 space-y-6">
+                            <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h3 className="text-lg font-bold text-white">Histórico de Temperatura (24h)</h3>
+                                    <div className="flex gap-2">
+                                        {device?.status === 'online' ? (
+                                            <button className="text-[10px] font-bold px-3 py-1.5 bg-primary text-background-dark rounded-lg uppercase tracking-widest shadow-lg shadow-primary/20">Ao Vivo</button>
+                                        ) : (
+                                            <span className="text-[10px] font-bold px-3 py-1.5 bg-slate-500/10 border border-slate-500/20 text-slate-400 rounded-lg uppercase tracking-widest">Último Conhecido</span>
+                                        )}
                                     </div>
-
-                                    {showConfig ? (
-                                        <div className="bg-[#0F110D] p-4 rounded-xl border border-[#2A2E24] space-y-4 mb-4">
-                                            <div className="grid grid-cols-2 gap-3 text-xs">
-                                                <div>
-                                                    <label className="text-slate-500 mb-1 block">T. Max (°C)</label>
-                                                    <input type="number" value={configData.temp_max} onChange={e => setConfigData({ ...configData, temp_max: e.target.valueAsNumber })} className="w-full bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-white" />
-                                                </div>
-                                                <div>
-                                                    <label className="text-slate-500 mb-1 block">T. Min (°C)</label>
-                                                    <input type="number" value={configData.temp_min} onChange={e => setConfigData({ ...configData, temp_min: e.target.valueAsNumber })} className="w-full bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-white" />
-                                                </div>
-                                                <div>
-                                                    <label className="text-slate-500 mb-1 block">V. Max (V)</label>
-                                                    <input type="number" value={configData.volt_max} onChange={e => setConfigData({ ...configData, volt_max: e.target.valueAsNumber })} className="w-full bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-white" />
-                                                </div>
-                                                <div>
-                                                    <label className="text-slate-500 mb-1 block">V. Min (V)</label>
-                                                    <input type="number" value={configData.volt_min} onChange={e => setConfigData({ ...configData, volt_min: e.target.valueAsNumber })} className="w-full bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-white" />
-                                                </div>
-                                                <div>
-                                                    <label className="text-slate-500 mb-1 block">Bat. Min (V)</label>
-                                                    <input type="number" value={configData.bat_min} onChange={e => setConfigData({ ...configData, bat_min: e.target.valueAsNumber })} className="w-full bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-white" />
-                                                </div>
-                                                <div>
-                                                    <label className="text-slate-500 mb-1 block">T. Porta (s)</label>
-                                                    <input type="number" value={configData.tempo_porta} onChange={e => setConfigData({ ...configData, tempo_porta: e.target.valueAsNumber })} className="w-full bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-white" />
-                                                </div>
-                                            </div>
-                                            <button onClick={submitConfig} className="w-full py-2 bg-primary text-background-dark font-bold rounded-lg text-xs hover:bg-primary/90 transition-colors">
-                                                Salvar Limites
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <button
-                                                onClick={() => handleCommand('ligar_rele')}
-                                                disabled={device?.telemetry?.rele === true}
-                                                className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl transition-all duration-300 ${device?.telemetry?.rele === true
-                                                    ? 'bg-emerald-500/20 border border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-default'
-                                                    : 'bg-[#0F110D] border border-emerald-500/20 hover:bg-emerald-500/10 text-emerald-500 cursor-pointer'
-                                                    }`}
-                                            >
-                                                <Power size={18} />
-                                                <span className="text-[10px] font-bold uppercase tracking-wider">
-                                                    {device?.telemetry?.rele === true ? 'Relé Ligado' : 'Ligar Relé'}
-                                                </span>
-                                            </button>
-                                            <button
-                                                onClick={() => handleCommand('desligar_rele')}
-                                                disabled={device?.telemetry?.rele === false}
-                                                className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl transition-all duration-300 ${device?.telemetry?.rele === false
-                                                    ? 'bg-red-500/20 border border-red-500 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.3)] cursor-default'
-                                                    : 'bg-[#0F110D] border border-red-500/20 hover:bg-red-500/10 text-red-500 cursor-pointer'
-                                                    }`}
-                                            >
-                                                <Power size={18} />
-                                                <span className="text-[10px] font-bold uppercase tracking-wider">
-                                                    {device?.telemetry?.rele === false ? 'Relé Desligado' : 'Desligar Relé'}
-                                                </span>
-                                            </button>
-
-                                            <button
-                                                onClick={() => handleCommand('modo_manutencao')}
-                                                disabled={String(device?.telemetry?.modo || '').toUpperCase().includes('MANUT')}
-                                                className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl transition-all duration-300 ${String(device?.telemetry?.modo || '').toUpperCase().includes('MANUT')
-                                                    ? 'bg-amber-500/20 border border-amber-500 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)] cursor-default'
-                                                    : 'bg-[#0F110D] border border-amber-500/20 hover:bg-amber-500/10 text-amber-500 cursor-pointer'
-                                                    }`}
-                                            >
-                                                <SettingsIcon size={18} />
-                                                <span className="text-[10px] font-bold uppercase tracking-wider text-center">Modo<br />Manutenção</span>
-                                            </button>
-                                            <button
-                                                onClick={() => handleCommand('modo_operacional')}
-                                                disabled={String(device?.telemetry?.modo || '').toUpperCase().includes('OPER') || String(device?.telemetry?.modo || '').toUpperCase().includes('NORMAL')}
-                                                className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl transition-all duration-300 ${String(device?.telemetry?.modo || '').toUpperCase().includes('OPER') || String(device?.telemetry?.modo || '').toUpperCase().includes('NORMAL')
-                                                    ? 'bg-primary/20 border border-primary text-primary shadow-[0_0_15px_var(--color-primary-rgb)] cursor-default'
-                                                    : 'bg-[#0F110D] border border-primary/20 hover:bg-primary/10 text-primary cursor-pointer'
-                                                    }`}
-                                            >
-                                                <Play size={18} />
-                                                <span className="text-[10px] font-bold uppercase tracking-wider text-center">Modo<br />Operacional</span>
-                                            </button>
-
-                                            <button
-                                                onClick={() => handleCommand('silenciar_alarme')}
-                                                className="col-span-2 flex flex-row items-center justify-center gap-3 bg-[#0F110D] border border-slate-600/30 hover:bg-slate-600/20 text-slate-300 p-3 rounded-xl transition-colors mt-1"
-                                            >
-                                                <ShieldAlert size={16} />
-                                                <span className="text-[10px] font-bold uppercase tracking-widest">Silenciar Alarme</span>
-                                            </button>
-
-                                            <div className="col-span-2 pt-3 border-t border-[#2A2E24] mt-2 grid grid-cols-2 gap-3">
-                                                <button
-                                                    onClick={() => {
-                                                        const tensao = prompt("Digite o valor para calibrar a tensão principal (V):");
-                                                        if (tensao) handleCommand('calibrar_tensao', { nova_tensao: parseFloat(tensao) });
-                                                    }}
-                                                    className="flex flex-col items-center justify-center gap-1 bg-[#0F110D] border border-[#2A2E24] hover:bg-slate-800/50 text-slate-400 hover:text-white p-2 rounded-lg transition-colors"
-                                                >
-                                                    <Target size={14} />
-                                                    <span className="text-[9px] font-bold uppercase tracking-wider">Calibrar AC</span>
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        const tensao = prompt("Digite o valor para calibrar a bateria (V):");
-                                                        if (tensao) handleCommand('calibrar_bateria', { nova_tensao: parseFloat(tensao) });
-                                                    }}
-                                                    className="flex flex-col items-center justify-center gap-1 bg-[#0F110D] border border-[#2A2E24] hover:bg-slate-800/50 text-slate-400 hover:text-white p-2 rounded-lg transition-colors"
-                                                >
-                                                    <Target size={14} />
-                                                    <span className="text-[9px] font-bold uppercase tracking-wider">Calibrar Bat</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
+                                </div>
+                                <div className="h-[400px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={history && history.length > 0 ? history : tenantMetrics.historicalData}>
+                                            <defs>
+                                                <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2A2E24" />
+                                            <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} dy={10} />
+                                            <YAxis
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#94a3b8', fontSize: 10 }}
+                                                dx={-10}
+                                                domain={[
+                                                    (dataMin: number) => Math.floor(Math.min(dataMin, device?.config?.minTempInfo ?? dataMin) - 2),
+                                                    (dataMax: number) => Math.ceil(Math.max(dataMax, device?.config?.maxTempInfo ?? dataMax) + 2)
+                                                ]}
+                                            />
+                                            <Tooltip
+                                                contentStyle={{ backgroundColor: '#0F110D', border: '1px solid #2A2E24', borderRadius: '12px' }}
+                                                itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
+                                            />
+                                            {device?.config?.minTempInfo !== undefined && (
+                                                <ReferenceLine
+                                                    y={device.config.minTempInfo}
+                                                    stroke="#ef4444"
+                                                    strokeDasharray="4 4"
+                                                    label={{ position: 'insideBottomRight', value: 'Min', fill: '#ef4444', fontSize: 10, fontWeight: 'bold' }}
+                                                />
+                                            )}
+                                            {device?.config?.maxTempInfo !== undefined && (
+                                                <ReferenceLine
+                                                    y={device.config.maxTempInfo}
+                                                    stroke="#ef4444"
+                                                    strokeDasharray="4 4"
+                                                    label={{ position: 'insideTopRight', value: 'Max', fill: '#ef4444', fontSize: 10, fontWeight: 'bold' }}
+                                                />
+                                            )}
+                                            <Area
+                                                type="monotone"
+                                                dataKey="value"
+                                                stroke="var(--color-primary)"
+                                                strokeWidth={3}
+                                                fillOpacity={1}
+                                                fill="url(#colorTemp)"
+                                            />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
                                 </div>
                             </div>
 
-                            {/* Right Column: Historical Charts */}
-                            <div className="lg:col-span-1 xl:col-span-2 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg">
-                                    <div className="flex items-center justify-between mb-8">
-                                        <h3 className="text-lg font-bold text-white">Histórico de Temperatura (24h)</h3>
-                                        <div className="flex gap-2">
-                                            {device?.status === 'online' ? (
-                                                <button className="text-[10px] font-bold px-3 py-1.5 bg-primary text-background-dark rounded-lg uppercase tracking-widest shadow-lg shadow-primary/20">Ao Vivo</button>
-                                            ) : (
-                                                <span className="text-[10px] font-bold px-3 py-1.5 bg-slate-500/10 border border-slate-500/20 text-slate-400 rounded-lg uppercase tracking-widest">Último Conhecido</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="h-[400px]">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={history || []}>
-                                                <defs>
-                                                    <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
-                                                        <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2A2E24" />
-                                                <XAxis dataKey="time" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} dy={10} />
-                                                <YAxis
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fill: '#94a3b8', fontSize: 10 }}
-                                                    dx={-10}
-                                                    domain={[
-                                                        (dataMin: number) => Math.floor(Math.min(dataMin, device?.config?.minTempInfo ?? dataMin) - 2),
-                                                        (dataMax: number) => Math.ceil(Math.max(dataMax, device?.config?.maxTempInfo ?? dataMax) + 2)
-                                                    ]}
-                                                />
-                                                <Tooltip
-                                                    contentStyle={{ backgroundColor: '#0F110D', border: '1px solid #2A2E24', borderRadius: '12px' }}
-                                                    itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
-                                                />
-                                                {device?.config?.minTempInfo !== undefined && (
-                                                    <ReferenceLine
-                                                        y={device.config.minTempInfo}
-                                                        stroke="#ef4444"
-                                                        strokeDasharray="4 4"
-                                                        label={{ position: 'insideBottomRight', value: 'Min', fill: '#ef4444', fontSize: 10, fontWeight: 'bold' }}
-                                                    />
-                                                )}
-                                                {device?.config?.maxTempInfo !== undefined && (
-                                                    <ReferenceLine
-                                                        y={device.config.maxTempInfo}
-                                                        stroke="#ef4444"
-                                                        strokeDasharray="4 4"
-                                                        label={{ position: 'insideTopRight', value: 'Max', fill: '#ef4444', fontSize: 10, fontWeight: 'bold' }}
-                                                    />
-                                                )}
-                                                <Area
-                                                    type="monotone"
-                                                    dataKey="value"
-                                                    stroke="var(--color-primary)"
-                                                    strokeWidth={3}
-                                                    fillOpacity={1}
-                                                    fill="url(#colorTemp)"
-                                                />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
+                                    <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-5 font-heading">Eventos Recentes</h4>
+                                    <div className="space-y-4">
+                                        {events && events.length > 0 ? (
+                                            events.map((e, i) => (
+                                                <div key={i} className="flex gap-4 p-3 rounded-xl border border-[#2A2E24] bg-[#0F110D] hover:border-primary/30 transition-colors group cursor-pointer">
+                                                    <div className="text-slate-500 group-hover:text-primary transition-colors mt-0.5">
+                                                        {getEventIcon(e.type)}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-white text-sm font-medium leading-snug">{String(e.msg || e.message || 'Evento').charAt(0).toUpperCase() + String(e.msg || e.message || 'Evento').slice(1)}</p>
+                                                        <p className="text-slate-400 text-[10px] mt-1 uppercase tracking-widest font-bold">{formatEventTime(e.timestamp)}</p>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="py-4 text-center text-slate-500 text-xs italic">Nenhum evento registrado recentemente.</div>
+                                        )}
                                     </div>
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg">
-                                        <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-5 font-heading">Eventos Recentes</h4>
-                                        <div className="space-y-4">
-                                            {events && events.length > 0 ? (
-                                                events.map((e, i) => (
-                                                    <div key={i} className="flex gap-4 p-3 rounded-xl border border-[#2A2E24] bg-[#0F110D] hover:border-primary/30 transition-colors group cursor-pointer">
-                                                        <div className="text-slate-500 group-hover:text-primary transition-colors mt-0.5">
-                                                            {getEventIcon(e.type)}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-white text-sm font-medium leading-snug">
-                                                                {(() => {
-                                                                    const txt = e.msg || e.message || 'Evento desconhecido';
-                                                                    return txt.charAt(0).toUpperCase() + txt.slice(1);
-                                                                })()}
-                                                            </p>
-                                                            <p className="text-slate-400 text-[10px] mt-1 uppercase tracking-widest font-bold">{formatEventTime(e.timestamp)}</p>
-                                                        </div>
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                <div className="py-4 text-center text-slate-500 text-xs italic">Nenhum evento registrado recentemente.</div>
-                                            )}
-                                        </div>
+                                <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg flex flex-col justify-center items-center text-center">
+                                    <div className="size-16 bg-primary/10 rounded-full border border-primary/20 flex items-center justify-center text-primary mb-5 shadow-[0_0_20px_rgba(56,189,248,0.2)]">
+                                        <Download size={28} />
                                     </div>
-                                    <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg flex flex-col justify-center items-center text-center">
-                                        <div className="size-16 bg-primary/10 rounded-full border border-primary/20 flex items-center justify-center text-primary mb-5 shadow-[0_0_20px_rgba(56,189,248,0.2)]">
-                                            <Download size={28} />
-                                        </div>
-                                        <h4 className="text-base font-bold mb-2 text-white">Relatório Completo</h4>
-                                        <p className="text-xs text-slate-400 mb-6 max-w-[200px] leading-relaxed">Baixe o histórico completo em CSV para este dispositivo.</p>
-                                        <button className="w-full py-3 bg-[#0F110D] border border-[#2A2E24] rounded-xl text-xs font-bold text-white uppercase tracking-widest hover:border-primary/50 hover:text-primary transition-colors">
-                                            EXPORTAR DADOS
-                                        </button>
-                                    </div>
+                                    <h4 className="text-base font-bold mb-2 text-white">Relatório Completo</h4>
+                                    <p className="text-xs text-slate-400 mb-6 max-w-[200px] leading-relaxed">Baixe o histórico completo em CSV para este dispositivo.</p>
+                                    <button className="w-full py-3 bg-[#0F110D] border border-[#2A2E24] rounded-xl text-xs font-bold text-white uppercase tracking-widest hover:border-primary/50 hover:text-primary transition-colors">
+                                        EXPORTAR DADOS
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
             </main>
         </div>
     );

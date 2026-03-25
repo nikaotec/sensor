@@ -13,7 +13,7 @@
 #define WIFI_SSID "VENANCIO"
 #define WIFI_PASS "liza1980"
 // #define MQTT_SERVER "173.249.10.19"
-#define MQTT_SERVER "n8n.nikaotech.com"
+#define MQTT_SERVER "mqtt.nikaotech.com"//"n8n.nikaotech.com"
 #define MQTT_PORT 1883
 #define MQTT_USER ""
 #define MQTT_PASS ""
