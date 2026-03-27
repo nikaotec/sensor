@@ -5,7 +5,12 @@ import type { Device } from '../data/mockData';
 // Default broker URL for WebSockets (can be passed via env variables)
 const MQTT_BROKER_URL = import.meta.env.VITE_MQTT_BROKER_URL || 'wss://nikaotech.com/mqtt';
 
-export const useMqttData = (tenantId: string | null, currentUserRole: string | undefined, initialDevices: Device[] = []) => {
+export const useMqttData = (
+    tenantId: string | null,
+    currentUserRole: string | undefined,
+    initialDevices: Device[] = [],
+    onAlert?: (payload: any) => void
+) => {
     const [devices, setDevices] = useState<any[]>(initialDevices.map(d => ({ ...d, mqttUpdated: false })));
     const [isConnected, setIsConnected] = useState(false);
     const [mqttClient, setMqttClient] = useState<mqtt.MqttClient | null>(null);
@@ -81,9 +86,25 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                     tempMin: payload.tempMin !== undefined ? payload.tempMin : (payload.MIN !== undefined ? parseFloat(payload.MIN) : undefined),
                     batteryVoltage: payload.batteryVoltage !== undefined ? payload.batteryVoltage : (payload.BATERIA !== undefined ? parseFloat(payload.BATERIA) : undefined),
                     inputVoltage: payload.inputVoltage !== undefined ? payload.inputVoltage : (payload.VOLTAGEM !== undefined ? parseFloat(payload.VOLTAGEM) : undefined),
-                    signal: payload.signal !== undefined ? payload.signal : (payload.RSSI !== undefined ? parseInt(payload.RSSI) : undefined)
+                    signal: payload.signal !== undefined ? payload.signal : (payload.RSSI !== undefined ? parseInt(payload.RSSI) : undefined),
+                    // New Alert Limits from ESP32
+                    alarmMax: payload.ALARM_MAX !== undefined ? parseFloat(payload.ALARM_MAX) : undefined,
+                    alarmMin: payload.ALARM_MIN !== undefined ? parseFloat(payload.ALARM_MIN) : undefined,
+                    voltMaxLimit: payload.VOLT_MAX_LIMIT !== undefined ? parseFloat(payload.VOLT_MAX_LIMIT) : undefined,
+                    voltMinLimit: payload.VOLT_MIN_LIMIT !== undefined ? parseFloat(payload.VOLT_MIN_LIMIT) : undefined,
+                    batMinLimit: payload.BAT_MIN_LIMIT !== undefined ? parseFloat(payload.BAT_MIN_LIMIT) : undefined,
+                    doorMaxTime: payload.TEMPO_PORTA !== undefined ? parseInt(payload.TEMPO_PORTA) : undefined,
+                    tempExt: payload.TEMP_EXTERNA !== undefined ? parseFloat(payload.TEMP_EXTERNA) : undefined,
+                    humidity: payload.UMIDADE !== undefined ? parseFloat(payload.UMIDADE) : undefined,
+                    doorOpen: payload.PORTA_ABERTA !== undefined ? payload.PORTA_ABERTA : undefined,
+                    secondsOpen: payload.SEC_ABERTA !== undefined ? parseInt(payload.SEC_ABERTA) : undefined,
                 };
                 payload = normalizedPayload;
+
+                // Trigger alert callback if it's an alert
+                if (payload.TIPO && payload.TIPO.startsWith('ALERTA_')) {
+                    onAlert?.(payload);
+                }
 
                 // Filter logic based on Role and Tenant
 
@@ -128,6 +149,16 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                                 modo: payload.MODO ?? existing.telemetry.modo,
                                 saude: payload.SAUDE_SENSORES ?? existing.telemetry.saude,
                                 rele: payload.RELE ?? existing.telemetry.rele,
+                                alarmMax: payload.alarmMax ?? existing.telemetry.alarmMax,
+                                alarmMin: payload.alarmMin ?? existing.telemetry.alarmMin,
+                                voltMaxLimit: payload.voltMaxLimit ?? existing.telemetry.voltMaxLimit,
+                                voltMinLimit: payload.voltMinLimit ?? existing.telemetry.voltMinLimit,
+                                batMinLimit: payload.batMinLimit ?? existing.telemetry.batMinLimit,
+                                doorMaxTime: payload.doorMaxTime ?? existing.telemetry.doorMaxTime,
+                                tempExt: payload.tempExt ?? existing.telemetry.tempExt,
+                                humidity: payload.humidity ?? existing.telemetry.humidity,
+                                doorOpen: payload.doorOpen ?? existing.telemetry.doorOpen,
+                                secondsOpen: payload.secondsOpen ?? existing.telemetry.secondsOpen,
                             },
                             mqttUpdated: true
                         };
@@ -155,6 +186,16 @@ export const useMqttData = (tenantId: string | null, currentUserRole: string | u
                                 modo: payload.MODO,
                                 saude: payload.SAUDE_SENSORES,
                                 rele: payload.RELE,
+                                alarmMax: payload.alarmMax,
+                                alarmMin: payload.alarmMin,
+                                voltMaxLimit: payload.voltMaxLimit,
+                                voltMinLimit: payload.voltMinLimit,
+                                batMinLimit: payload.batMinLimit,
+                                doorMaxTime: payload.doorMaxTime,
+                                tempExt: payload.tempExt,
+                                humidity: payload.humidity,
+                                doorOpen: payload.doorOpen,
+                                secondsOpen: payload.secondsOpen,
                             },
                             mqttUpdated: true
                         };

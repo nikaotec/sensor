@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotifications } from '../contexts/NotificationContext';
 import {
     Bell,
     FileBarChart,
@@ -30,6 +31,7 @@ const iconMap = {
 const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate }) => {
     const { currentTenant } = useTenant();
     const { currentUser } = useAuth();
+    const { hasAlerts } = useNotifications();
     const getLinkClass = (item: string) => {
         const baseClass = "flex items-center justify-center lg:justify-start gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer w-full text-left group";
         if (activeItem === item) {
@@ -58,7 +60,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate }) => {
             <nav className="flex-1 px-3 space-y-3 mt-6 overflow-y-auto custom-scrollbar">
                 {(['dashboard', 'device-list', 'alerts', 'reports', 'settings', ...(currentUser?.role === 'manager' ? ['manager-panel'] : [])] as const).map((item) => (
                     <button key={item} onClick={() => onNavigate(item as any)} className={getLinkClass(item)} title={item}>
-                        {renderIcon(item as keyof typeof iconMap)}
+                        <div className="relative">
+                            {renderIcon(item as keyof typeof iconMap)}
+                            {item === 'alerts' && hasAlerts && (
+                                <span className="absolute -top-1 -right-1 size-2 bg-red-500 rounded-full border border-background-dark animate-pulse"></span>
+                            )}
+                        </div>
                         <span className="hidden lg:inline text-sm font-medium capitalize">
                             {item === 'device-list' ? 'Dispositivos' :
                                 item === 'reports' ? 'Relatórios' :

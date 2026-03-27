@@ -52,7 +52,8 @@ unsigned long lastReportTime = 0;      // Novo Timer
 unsigned long lastWebReport = 0;       // Timer para Dashboard Web
 unsigned long lastDashboardReport = 0; // Timer para Dashboard Especial (1 min)
 unsigned long lastSupportReport = 0;   // Timer relatorio suporte (1h)
-int lastReportDay = -1;
+unsigned long lastReportDay = -1;
+unsigned long doorOpenStart = 0; // Início do tempo de porta aberta
 
 // ...
 
@@ -136,8 +137,13 @@ void loop() {
     float tVoltagem = voltSensor.getVoltage();
     float tBateria = voltSensor.getBatteryVoltage();
     ambientSensor.read();
-    bool isDoorOpen =
-        digitalRead(PIN_DOOR) == HIGH; // HIGH = Aberto (se pullup interno)
+    bool isDoorOpen = digitalRead(PIN_DOOR) == HIGH;
+    if (isDoorOpen) {
+      if (doorOpenStart == 0)
+        doorOpenStart = now;
+    } else {
+      doorOpenStart = 0;
+    }
 
     // 2.1 Envio Periódico de Alerta (Sincronização de timers)
     bool foraDaFaixa =
@@ -643,12 +649,29 @@ void enviarDadosWeb() {
       serialized(String(storage.data.tempMinRec, 1)); // ADICIONADO PICO MIN
   doc["VOLTAGEM"] = serialized(String(voltSensor.getVoltage(), 1));
   doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
+  doc["ALARM_MAX"] = serialized(String(storage.data.alarmMax, 1));
+  doc["ALARM_MIN"] = serialized(String(storage.data.alarmMin, 1));
+  doc["VOLT_MAX_LIMIT"] = serialized(String(storage.data.voltMax, 1));
+  doc["VOLT_MIN_LIMIT"] = serialized(String(storage.data.voltMin, 1));
+  doc["BAT_MIN_LIMIT"] = serialized(String(storage.data.batMinLimit, 1));
+  doc["TEMPO_PORTA"] = storage.data.doorMaxTime;
+
+  // Dados do Sensor Ambiente (DHT11)
+  doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
+  doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
+
   doc["RELE"] = releLigado;
   doc["MODO"] = modoManual ? "MANUAL" : "AUTO";
   doc["RSSI"] = network.getRSSI();
   doc["IP_LOCAL"] = WiFi.localIP().toString();
   doc["UPTIME"] = millis() / 1000;
   doc["PROTOCOLO"] = "MQTT/WSS";
+
+  // Status da Porta
+  bool portaAberta = (digitalRead(PIN_DOOR) == HIGH);
+  doc["PORTA_ABERTA"] = portaAberta;
+  doc["SEC_ABERTA"] =
+      (doorOpenStart > 0) ? (uint32_t)((millis() - doorOpenStart) / 1000) : 0;
 
   JsonObject saude = doc.createNestedObject("SAUDE_SENSORES");
   saude["DS18B20"] = (temperaturaAtual > -50 && temperaturaAtual < 80);
