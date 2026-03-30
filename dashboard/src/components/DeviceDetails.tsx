@@ -18,7 +18,22 @@ import {
     AreaChart,
     ReferenceLine
 } from 'recharts';
-import { ArrowLeft, Settings as SettingsIcon, AlertTriangle, BatteryCharging, Zap, Wifi, RefreshCw, RotateCw, Download, Thermometer, Droplets } from 'lucide-react';
+import {
+    Settings as SettingsIcon,
+    RefreshCw,
+    AlertTriangle,
+    Zap,
+    Thermometer,
+    ArrowLeft,
+    Wrench,
+    Droplets,
+    RotateCw,
+    BatteryCharging,
+    Wifi,
+    Download,
+    VolumeX,
+    Volume2
+} from 'lucide-react';
 
 interface DeviceDetailsProps {
     deviceId: string;
@@ -211,6 +226,16 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                     </div>
                                 )}
 
+                                {device?.telemetry?.modo === 'MANUAL' && (
+                                    <div className="mb-4 bg-blue-500/10 text-blue-400 text-xs px-4 py-3 rounded-xl border border-blue-500/20 flex items-start gap-3 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                                        <Wrench className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                                        <span className="leading-snug">
+                                            <strong className="text-blue-500 font-bold block mb-1">Modo Manutenção Ativo</strong>
+                                            Os alertas automáticos estão suspensos para este dispositivo.
+                                        </span>
+                                    </div>
+                                )}
+
                                 <div className="space-y-6">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="col-span-2 flex items-end justify-between bg-[#0F110D] p-5 rounded-2xl border border-[#2A2E24]">
@@ -394,11 +419,14 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                                     {device?.telemetry?.modo === 'MANUAL' ? 'SAIR MANUTENÇÃO' : 'ENTRAR MANUTENÇÃO'}
                                                 </button>
                                                 <button
-                                                    onClick={() => handleAction('silenciar_alarme', {}, 'Alarme silenciado via dashboard')}
+                                                    onClick={() => handleAction(device?.telemetry?.silenced ? 'reativar_alarme' : 'silenciar_alarme', {}, device?.telemetry?.silenced ? 'Alarme reativado via dashboard' : 'Alarme silenciado via dashboard')}
                                                     disabled={isUpdating || !isConnected}
-                                                    className="py-2 rounded-lg text-[9px] font-bold uppercase transition-all bg-[#0F110D] border border-[#2A2E24] text-slate-400 hover:text-white hover:border-blue-500/50"
+                                                    className={`py-2 rounded-lg text-[9px] font-bold uppercase transition-all border ${device?.telemetry?.silenced ? 'bg-amber-500/20 border-amber-500/40 text-amber-500' : 'bg-[#0F110D] border border-[#2A2E24] text-slate-400 hover:text-white'}`}
                                                 >
-                                                    SILENCIAR ALARME
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        {device?.telemetry?.silenced ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                                                        {device?.telemetry?.silenced ? 'ALARMES SILENCIADOS' : 'SILENCIAR ALARME'}
+                                                    </div>
                                                 </button>
                                             </div>
                                         </div>

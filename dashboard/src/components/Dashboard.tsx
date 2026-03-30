@@ -13,7 +13,9 @@ import {
     ServerCrash,
     AlertTriangle,
     ArrowUp,
-    ArrowDown
+    ArrowDown,
+    Thermometer,
+    Droplets
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -27,7 +29,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
     const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
 
     // Fetch initial devices from Firebase and update with live MQTT stream
-    const { devices: firebaseDevices } = useFirebaseData(currentTenant?.id || '');
+    const { devices: firebaseDevices } = useFirebaseData(currentTenant?.id || '', undefined, currentUser?.role);
     const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData('all', currentUser?.role, firebaseDevices);
 
     // Filtro refinado para respeitar a aba selecionada e permissões de role
@@ -251,6 +253,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                             </div>
                                             <div className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border ${getStatusStyle(device.status || 'offline')} ${device.status === 'offline' ? 'opacity-50' : ''}`}>
                                                 {getStatusLabel(device.status || 'offline')}
+                                            </div>
+                                        </div>
+
+                                        {/* Telemetria Secundária: Ambiente e Umidade */}
+                                        <div className="flex items-center justify-between px-4 py-2 bg-[#0F110D]/50 rounded-xl border border-[#2A2E24] mb-4 z-10">
+                                            <div className="flex items-center gap-2">
+                                                <Thermometer size={12} className="text-slate-500" />
+                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Ext:</span>
+                                                <span className="text-[10px] text-slate-200 font-bold">{device.telemetry?.tempExt !== undefined ? `${device.telemetry.tempExt.toFixed(1)}°C` : '--'}</span>
+                                            </div>
+                                            <div className="w-px h-3 bg-[#2A2E24]"></div>
+                                            <div className="flex items-center gap-2">
+                                                <Droplets size={12} className="text-slate-500" />
+                                                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Umid:</span>
+                                                <span className="text-[10px] text-slate-200 font-bold">{device.telemetry?.humidity !== undefined ? `${device.telemetry.humidity.toFixed(0)}%` : '--'}</span>
                                             </div>
                                         </div>
 

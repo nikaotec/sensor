@@ -15,6 +15,8 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { useMqttData } from './hooks/useMqttData'
 import { X, AlertOctagon } from 'lucide-react'
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext'
+import { db } from './firebase/config'
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
 
 type Screen = 'login' | 'signup' | 'dashboard' | 'device-list' | 'device-details' | 'alerts' | 'reports' | 'settings' | 'manager-panel'
 
@@ -50,6 +52,35 @@ const AppContent = () => {
     }
   };
 
+  // Função para salvar alerta no Firestore (Auditoria)
+  const logAlertToFirestore = async (alert: any) => {
+    try {
+      // Tentar encontrar o tenantId real baseado no nome da empresa vindo do MQTT
+      let realTenantId = 'unknown';
+      const foundTenant = availableTenants.find(t => t.name.toLowerCase() === alert.EMPRESA?.toLowerCase());
+      if (foundTenant) {
+        realTenantId = foundTenant.id;
+      } else if (currentTenant && currentTenant.id !== 'all') {
+        realTenantId = currentTenant.id;
+      }
+
+      await addDoc(collection(db, "events"), {
+        deviceId: alert.ID_DISPOSITIVO || 'unknown',
+        deviceName: alert.DISPOSITIVO || 'Desconhecido',
+        tenantId: realTenantId,
+        type: 'alert',
+        severity: 'critical',
+        message: `${alert.TIPO?.replace('ALERTA_', '').replace('_', ' ')} detectado`,
+        value: getAlertValue(alert),
+        details: alert,
+        timestamp: serverTimestamp(),
+        createdAt: new Date().toISOString()
+      });
+    } catch (e) {
+      console.error("Erro ao salvar log de alerta no Firestore:", e);
+    }
+  };
+
   // Monitorar Alertas MQTT Globalmente
   useMqttData(
     currentTenant?.id || 'all',
@@ -58,8 +89,17 @@ const AppContent = () => {
     (alertPayload) => {
       playAlertSound();
       addAlert(alertPayload);
+      logAlertToFirestore(alertPayload);
     }
   );
+
+  const getAlertValue = (alert: any) => {
+    if (alert.TIPO?.includes('BATERIA')) return `${alert.BATERIA}V`;
+    if (alert.TIPO?.includes('TENSAO') || alert.TIPO?.includes('ENERGIA')) return `${alert.VOLTAGEM}V`;
+    if (alert.TIPO?.includes('TEMP')) return `${alert.TEMP_ATUAL}°C`;
+    if (alert.TIPO?.includes('PORTA')) return alert.PORTA;
+    return alert.TEMP_ATUAL || alert.VOLTAGEM || alert.BATERIA || 'N/A';
+  };
 
   // Efeito para sincronizar a tela com o estado de autenticação (Logout automático)
   useEffect(() => {
@@ -130,7 +170,9 @@ const AppContent = () => {
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Alerta Crítico</p>
               <h5 className="text-white text-xs font-bold leading-tight mb-1 truncate">{alert.DISPOSITIVO || 'Dispositivo'}</h5>
-              <p className="text-slate-400 text-[10px] leading-snug">{alert.TIPO?.replace('ALERTA_', '').replace('_', ' ')}: {alert.TEMP_ATUAL || alert.VOLTAGEM || ''}</p>
+              <p className="text-slate-400 text-[10px] leading-snug">
+                {alert.TIPO?.replace('ALERTA_', '').replace('_', ' ')}: <span className="text-red-400 font-bold">{getAlertValue(alert)}</span>
+              </p>
             </div>
             <button
               onClick={() => clearAlert(idx)}

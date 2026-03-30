@@ -4,7 +4,7 @@ import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useFirebaseData } from '../hooks/useFirebaseData';
 import { useMqttData } from '../hooks/useMqttData';
-import { Search, AlertTriangle, BatteryCharging, Zap, Wifi, ServerCrash } from 'lucide-react';
+import { Search, AlertTriangle, BatteryCharging, Zap, Wifi, ServerCrash, Thermometer, Droplets } from 'lucide-react';
 
 interface DeviceListProps {
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
@@ -175,6 +175,21 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
                                                 </div>
                                                 <div className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border ${getStatusStyle(device.status)} ${device.status === 'offline' ? 'opacity-50' : ''}`}>
                                                     {getStatusLabel(device.status)}
+                                                </div>
+                                            </div>
+
+                                            {/* Telemetria Secundária: Ambiente e Umidade */}
+                                            <div className="flex items-center justify-between px-4 py-2 bg-[#0F110D]/50 rounded-xl border border-[#2A2E24] mb-4 z-10">
+                                                <div className="flex items-center gap-2">
+                                                    <Thermometer size={12} className="text-slate-500" />
+                                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Ext:</span>
+                                                    <span className="text-[10px] text-slate-200 font-bold">{device.telemetry?.tempExt !== undefined ? `${device.telemetry.tempExt.toFixed(1)}°C` : '--'}</span>
+                                                </div>
+                                                <div className="w-px h-3 bg-[#2A2E24]"></div>
+                                                <div className="flex items-center gap-2">
+                                                    <Droplets size={12} className="text-slate-500" />
+                                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">Umid:</span>
+                                                    <span className="text-[10px] text-slate-200 font-bold">{device.telemetry?.humidity !== undefined ? `${device.telemetry.humidity.toFixed(0)}%` : '--'}</span>
                                                 </div>
                                             </div>
 

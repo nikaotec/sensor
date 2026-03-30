@@ -16,7 +16,7 @@ export interface AppUser {
     id: string;
     name: string;
     email: string;
-    role: 'manager' | 'admin' | 'user' | 'viewer'; // Global role or active tenant role
+    role: 'manager' | 'gestor' | 'admin' | 'user' | 'viewer'; // Global role or active tenant role
     avatarUrl?: string;
     tenantIds: string[]; // List of companies the user has access to (managers ignore this)
 }

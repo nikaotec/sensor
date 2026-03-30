@@ -12,13 +12,14 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [activeAlerts, setActiveAlerts] = useState<any[]>([]);
 
-    const addAlert = (alert: any) => {
+    const addAlert = (payload: any) => {
         setActiveAlerts(prev => {
-            const isNew = !prev.some(a => a.TIPO === alert.TIPO && a.ID_DISPOSITIVO === alert.ID_DISPOSITIVO);
+            const isNew = !prev.some(a => a.TIPO === payload.TIPO && a.ID_DISPOSITIVO === payload.ID_DISPOSITIVO);
             if (isNew) {
-                return [{ ...alert, timestamp: new Date() }, ...prev];
+                // Add new alert, ensuring the total number of alerts does not exceed 10
+                return [{ ...payload, timestamp: new Date() }, ...prev].slice(0, 10);
             }
-            return prev;
+            return prev; // If not new, return previous state without adding
         });
     };
 

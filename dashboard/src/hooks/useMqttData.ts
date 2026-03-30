@@ -98,6 +98,7 @@ export const useMqttData = (
                     humidity: payload.UMIDADE !== undefined ? parseFloat(payload.UMIDADE) : undefined,
                     doorOpen: payload.PORTA_ABERTA !== undefined ? payload.PORTA_ABERTA : undefined,
                     secondsOpen: payload.SEC_ABERTA !== undefined ? parseInt(payload.SEC_ABERTA) : undefined,
+                    silenced: payload.SILENCIADO !== undefined ? payload.SILENCIADO : undefined,
                 };
                 payload = normalizedPayload;
 

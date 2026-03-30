@@ -54,18 +54,23 @@
                     "string": [
                         {
                             "value1": "={{ $json.TIPO }}",
-                            "operation": "equals",
-                            "value2": "ALERTA_TEMPERATURA"
+                            "operation": "startsWith",
+                            "value2": "ALERTA_"
                         },
                         {
                             "value1": "={{ $json.TIPO }}",
-                            "operation": "equals",
-                            "value2": "ALERTA_TENSAO"
+                            "operation": "contains",
+                            "value2": "NORMALIZADA"
                         },
                         {
                             "value1": "={{ $json.TIPO }}",
-                            "operation": "equals",
-                            "value2": "ALERTA_BATERIA"
+                            "operation": "contains",
+                            "value2": "RESTABELECIDA"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "contains",
+                            "value2": "FECHADA"
                         },
                         {
                             "value1": "={{ $json.TIPO }}",
@@ -90,17 +95,12 @@
                         {
                             "value1": "={{ $json.TIPO }}",
                             "operation": "equals",
-                            "value2": "TEMP_NORMALIZADA"
+                            "value2": "RESET_MAX_MIN_MANUAL"
                         },
                         {
                             "value1": "={{ $json.TIPO }}",
                             "operation": "equals",
                             "value2": "feedback_configuracao"
-                        },
-                        {
-                            "value1": "={{ $json.TIPO }}",
-                            "operation": "equals",
-                            "value2": "RESET_MAX_MIN_MANUAL"
                         }
                     ]
                 }
@@ -134,8 +134,12 @@
                             "fieldValue": "={{ $json.CAMPOS_ALTERADOS ? 'Configuração alterada: ' + $json.CAMPOS_ALTERADOS : ($json.TIPO.replace(/_/g, ' ').toLowerCase()) }}"
                         },
                         {
+                            "fieldId": "severity",
+                            "fieldValue": "={{ $json.TIPO.startsWith('ALERTA_') ? 'critical' : 'info' }}"
+                        },
+                        {
                             "fieldId": "timestamp",
-                            "fieldValue": "={{ new Date().toISOString() }}"
+                            "fieldValue": "={{ new Date() }}"
                         },
                         {
                             "fieldId": "tenantId",

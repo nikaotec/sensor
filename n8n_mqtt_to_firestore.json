@@ -133,11 +133,11 @@
             },
             {
               "fieldId": "timestamp",
-              "fieldValue": "={{new Date().toISOString()}}"
+              "fieldValue": "={{ new Date() }}"
             },
             {
               "fieldId": "expireAt",
-              "fieldValue": "={{new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()}}"
+              "fieldValue": "={{ new Date(Date.now() + 24 * 60 * 60 * 1000) }}"
             },
             {
               "fieldId": "tenantId",

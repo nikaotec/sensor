@@ -24,10 +24,8 @@ VoltageSensor voltSensor(PIN_ZMPT, VOLTAGE_CALIBRATION_DEFAULT);
 // ADC1) BatterySensor batterySensor(PIN_BATTERY, BATTERY_CALIBRATION_DEFAULT);
 AmbientSensor ambientSensor(PIN_DHT11);
 
-AlertManager alertTempMax("TEMPERATURA_ALTA", ALERT_DEBOUNCE,
-                          300000); // Repete a cada 5 min
-AlertManager alertTempMin("TEMPERATURA_BAIXA", ALERT_DEBOUNCE,
-                          300000); // Repete a cada 5 min
+AlertManager alertTempMax("TEMPERATURA_ALTA", ALERT_DEBOUNCE, ALERT_REPEAT);
+AlertManager alertTempMin("TEMPERATURA_BAIXA", ALERT_DEBOUNCE, ALERT_REPEAT);
 AlertManager alertVoltMax("TENSAO_ALTA", ALERT_DEBOUNCE, ALERT_REPEAT);
 AlertManager alertVoltMin("TENSAO_BAIXA", ALERT_DEBOUNCE, ALERT_REPEAT);
 AlertManager alertBatLow("BATERIA_BAIXA", ALERT_DEBOUNCE, ALERT_REPEAT);
@@ -195,27 +193,32 @@ void loop() {
       // 2. Falta de Energia
       // 2. Falta de Energia
       if (storage.data.chkVolt) {
-        if (alertPower.check(tVoltagem < VOLT_OUTAGE_THR) == ALERT_STARTED)
+        AlertStatus stPower = alertPower.check(tVoltagem < VOLT_OUTAGE_THR);
+        if (stPower == ALERT_STARTED ||
+            (stPower == ALERT_REPEATED && !alertasSilenciados))
           enviarDadosMqtt("ALERTA_FALTA_ENERGIA");
-        if (alertPower.check(tVoltagem < VOLT_OUTAGE_THR) == ALERT_NORMALIZED)
+        if (stPower == ALERT_NORMALIZED)
           enviarDadosMqtt("ENERGIA_RESTABELECIDA");
       }
 
       // 3. Bateria Baixa
       if (storage.data.chkBat) {
-        if (alertBatLow.check(tBateria < storage.data.batMinLimit) ==
-            ALERT_STARTED)
+        AlertStatus stBat =
+            alertBatLow.check(tBateria < storage.data.batMinLimit);
+        if (stBat == ALERT_STARTED ||
+            (stBat == ALERT_REPEATED && !alertasSilenciados))
           enviarDadosMqtt("ALERTA_BATERIA_BAIXA");
-        if (alertBatLow.check(tBateria < storage.data.batMinLimit) ==
-            ALERT_NORMALIZED)
+        if (stBat == ALERT_NORMALIZED)
           enviarDadosMqtt("BATERIA_NORMALIZADA");
       }
 
       // 4. Porta
       if (storage.data.chkDoor) {
-        if (alertDoor.check(isDoorOpen) == ALERT_STARTED)
+        AlertStatus stDoor = alertDoor.check(isDoorOpen);
+        if (stDoor == ALERT_STARTED ||
+            (stDoor == ALERT_REPEATED && !alertasSilenciados))
           enviarDadosMqtt("ALERTA_PORTA_ABERTA");
-        if (alertDoor.check(isDoorOpen) == ALERT_NORMALIZED)
+        if (stDoor == ALERT_NORMALIZED)
           enviarDadosMqtt("PORTA_FECHADA");
       }
 
@@ -280,10 +283,14 @@ void loop() {
       }
     }
 
-    // 3.1. Relatório Periódico de Telemetria (hora em hora para log histórico)
-    if (!modoManual && (now - lastReportTime >= 3600000UL)) {
-      lastReportTime = now;
-      enviarDadosMqtt("periodico");
+    // 3.1. Relatório Periódico de Telemetria (hora cheia para log histórico no
+    // Firestore)
+    if (!modoManual) {
+      static int lastProcessedHour = -1;
+      if (t.tm_hour != lastProcessedHour) {
+        lastProcessedHour = t.tm_hour;
+        enviarDadosMqtt("periodico");
+      }
     }
 
     // 3.2. Relatorio de suporte (hora em hora)
@@ -447,6 +454,10 @@ void processarMensagemMqtt(String topic, String payload) {
         true; // Impede novos alertas persistentes até normalizar
     notificarUsuario("Alarme Silenciado", 3000);
     enviarDadosMqtt("ALARME_SILENCIADO");
+  } else if (intencao == "reativar_alarme") {
+    alertasSilenciados = false;
+    notificarUsuario("Alarme Reativado", 3000);
+    enviarDadosMqtt("ALARME_REATIVADO");
 
   } else if (intencao == "obter_status_atual") {
     enviarDadosMqtt("STATUS_SOLICITADO");
@@ -662,6 +673,7 @@ void enviarDadosWeb() {
 
   doc["RELE"] = releLigado;
   doc["MODO"] = modoManual ? "MANUAL" : "AUTO";
+  doc["SILENCIADO"] = alertasSilenciados;
   doc["RSSI"] = network.getRSSI();
   doc["IP_LOCAL"] = WiFi.localIP().toString();
   doc["UPTIME"] = millis() / 1000;
@@ -799,6 +811,7 @@ void enviarDadosDashboard() {
   doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
   doc["RELE"] = releLigado;
   doc["MODO"] = modoManual ? "MANUAL" : "AUTO";
+  doc["SILENCIADO"] = alertasSilenciados;
   doc["RSSI"] = network.getRSSI();
   doc["IP_LOCAL"] = WiFi.localIP().toString();
   doc["UPTIME"] = millis() / 1000;

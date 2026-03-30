@@ -58,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate }) => {
             </div>
 
             <nav className="flex-1 px-3 space-y-3 mt-6 overflow-y-auto custom-scrollbar">
-                {(['dashboard', 'device-list', 'alerts', 'reports', 'settings', ...(currentUser?.role === 'manager' ? ['manager-panel'] : [])] as const).map((item) => (
+                {(['dashboard', 'device-list', 'alerts', 'reports', 'settings', ...(currentUser?.role === 'manager' || currentUser?.role === 'gestor' ? ['manager-panel'] : [])] as const).map((item) => (
                     <button key={item} onClick={() => onNavigate(item as any)} className={getLinkClass(item)} title={item}>
                         <div className="relative">
                             {renderIcon(item as keyof typeof iconMap)}

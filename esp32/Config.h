@@ -5,15 +5,15 @@
 #include <Arduino.h>
 
 // ---------- DEVICE ----------
-#define DEVICE_NAME "02 CENTRO"   // Added Device Name
+#define DEVICE_NAME "teste "   // Added Device Name
 #define COMPANY_NAME "Nikaotec"   // Added Company Name
-#define DEVICE_LOCATION "ALA SUL" // Added Location (ALA)
+#define DEVICE_LOCATION "ALA norte" // Added Location (ALA)
 
 // ---------- REDE ----------
 #define WIFI_SSID "VENANCIO"
 #define WIFI_PASS "liza1980"
 // #define MQTT_SERVER "173.249.10.19"
-#define MQTT_SERVER "mqtt.nikaotech.com"//"n8n.nikaotech.com"
+#define MQTT_SERVER "mqtt.nikaotech.com" //"n8n.nikaotech.com"
 #define MQTT_PORT 1883
 #define MQTT_USER ""
 #define MQTT_PASS ""
@@ -63,7 +63,7 @@
 #define DOOR_TIME_DEFAULT 30
 #define VOLT_OUTAGE_THR 20.0
 #define ALERT_DEBOUNCE 5000
-#define ALERT_REPEAT 300000 // 5 minutos em milissegundos
+#define ALERT_REPEAT 60000 // 1 minuto em milissegundos
 
 // ---------- ESTRUTURA DE DADOS ----------
 struct SystemSettings {

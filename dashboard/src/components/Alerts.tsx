@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { useTenant } from '../contexts/TenantContext';
-import { alerts as allAlerts } from '../data/mockData';
+import { useAuth } from '../contexts/AuthContext';
+import { useFirebaseData } from '../hooks/useFirebaseData';
 import { BellRing, ShieldAlert, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface AlertsProps {
@@ -10,12 +11,36 @@ interface AlertsProps {
 
 const Alerts: React.FC<AlertsProps> = ({ onNavigate }) => {
     const { currentTenant } = useTenant();
+    const { currentUser } = useAuth();
+    const { events } = useFirebaseData(currentTenant?.id || 'all', undefined, currentUser?.role);
     if (!currentTenant) return <div className="flex h-screen items-center justify-center bg-background-dark text-white">Carregando dados...</div>;
 
     const [filter, setFilter] = useState<'all' | 'critical' | 'warning'>('all');
 
-    // Filter by tenant and severity
-    const tenantAlerts = allAlerts.filter(a => a.tenantId === currentTenant.id);
+    // Mapear eventos do Firestore para o formato da UI
+    const tenantAlerts = events
+        .filter(e => e.type.startsWith('ALERTA_') || e.type.includes('NORMALIZADA') || e.type.includes('RESTABELECIDA') || e.type.includes('FECHADA'))
+        .map(e => {
+            let dateStr = 'Recent';
+            if (e.timestamp) {
+                // Handle Firestore Timestamp or ISO string
+                const timestamp = (e as any).timestamp;
+                if (timestamp.seconds) {
+                    dateStr = new Date(timestamp.seconds * 1000).toLocaleString('pt-BR');
+                } else {
+                    dateStr = new Date(timestamp).toLocaleString('pt-BR');
+                }
+            }
+            return {
+                id: e.id,
+                severity: (e as any).severity || (e.type.startsWith('ALERTA_') ? 'critical' : 'info'),
+                device: (e as any).deviceName || e.deviceId,
+                message: e.message || e.msg || 'Alerta detectado',
+                time: dateStr,
+                value: (e as any).value || 'N/A'
+            };
+        });
+
     const filteredAlerts = filter === 'all' ? tenantAlerts : tenantAlerts.filter(a => a.severity === filter);
 
     const criticalCount = tenantAlerts.filter(a => a.severity === 'critical').length;
