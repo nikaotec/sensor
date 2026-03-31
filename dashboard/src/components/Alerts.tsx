@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useFirebaseData } from '../hooks/useFirebaseData';
+import { useSupabaseData } from '../hooks/useSupabaseData';
 import { BellRing, ShieldAlert, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface AlertsProps {
@@ -12,7 +12,7 @@ interface AlertsProps {
 const Alerts: React.FC<AlertsProps> = ({ onNavigate }) => {
     const { currentTenant } = useTenant();
     const { currentUser } = useAuth();
-    const { events } = useFirebaseData(currentTenant?.id || 'all', undefined, currentUser?.role);
+    const { events } = useSupabaseData(currentTenant?.id || 'all', undefined, currentUser?.role);
     if (!currentTenant) return <div className="flex h-screen items-center justify-center bg-background-dark text-white">Carregando dados...</div>;
 
     const [filter, setFilter] = useState<'all' | 'critical' | 'warning'>('all');

@@ -1,0 +1,215 @@
+{
+    "name": "IoT Sensor - Events Logger (Supabase)",
+    "nodes": [
+        {
+            "parameters": {
+                "topics": "esp32c3/data,esp32c3/dashboard"
+            },
+            "id": "mqtt-trigger-events",
+            "name": "MQTT Trigger",
+            "type": "n8n-nodes-base.mqttTrigger",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const payloadString = $input.item.json.message;\ntry {\n  const payload = JSON.parse(payloadString);\n  return { json: payload };\n} catch(e) {\n  return { json: { error: 'Invalid JSON', payload: payloadString } };\n}"
+            },
+            "id": "parse-payload-events",
+            "name": "Parse Payload",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.DISPOSITIVO }}",
+                            "operation": "isNotEmpty"
+                        }
+                    ]
+                }
+            },
+            "id": "validate-data-events",
+            "name": "Validate Data",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "startsWith",
+                            "value2": "ALERTA_"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "contains",
+                            "value2": "NORMALIZADA"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "contains",
+                            "value2": "RESTABELECIDA"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "contains",
+                            "value2": "FECHADA"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "RELE_LIGADO_MANUAL"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "RELE_DESLIGADO_MANUAL"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "MODO_MANUTENCAO_ATIVADO"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "MODO_MANUTENCAO_DESATIVADO"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "RESET_MAX_MIN_MANUAL"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "equals",
+                            "value2": "feedback_configuracao"
+                        }
+                    ]
+                }
+            },
+            "id": "is-event-if-events",
+            "name": "Is Event?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "create",
+                "tableId": "events",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "device_id",
+                            "fieldValue": "={{ $json.ID_DISPOSITIVO }}"
+                        },
+                        {
+                            "fieldId": "type",
+                            "fieldValue": "={{ $json.TIPO }}"
+                        },
+                        {
+                            "fieldId": "msg",
+                            "fieldValue": "={{ $json.CAMPOS_ALTERADOS ? 'Configuração alterada: ' + $json.CAMPOS_ALTERADOS : ($json.TIPO.replace(/_/g, ' ').toLowerCase()) }}"
+                        },
+                        {
+                            "fieldId": "severity",
+                            "fieldValue": "={{ $json.TIPO.startsWith('ALERTA_') ? 'critical' : 'info' }}"
+                        },
+                        {
+                            "fieldId": "timestamp",
+                            "fieldValue": "={{ new Date().toISOString() }}"
+                        },
+                        {
+                            "fieldId": "tenant_id",
+                            "fieldValue": "={{ $json.EMPRESA || 'empresa_default' }}"
+                        },
+                        {
+                            "fieldId": "source",
+                            "fieldValue": "n8n_event_logger"
+                        }
+                    ]
+                }
+            },
+            "id": "insert-supabase-events",
+            "name": "Insert Event to Supabase",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                1120,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "MQTT Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Payload",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Payload": {
+            "main": [
+                [
+                    {
+                        "node": "Validate Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Validate Data": {
+            "main": [
+                [
+                    {
+                        "node": "Is Event?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Is Event?": {
+            "main": [
+                [
+                    {
+                        "node": "Insert Event to Supabase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useFirebaseData } from '../hooks/useFirebaseData';
+import { useSupabaseData } from '../hooks/useSupabaseData';
 import { useMqttData } from '../hooks/useMqttData';
-import { useEffect } from 'react';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { supabase } from '../supabase/config';
 import { metrics } from '../data/mockData';
 import {
     XAxis,
@@ -46,8 +44,8 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     if (!currentTenant) return <div className="flex h-screen items-center justify-center bg-background-dark text-white">Carregando dados...</div>;
     const [remoteSync, setRemoteSync] = useState(true);
 
-    const { devices: firebaseDevices, history, events } = useFirebaseData(currentTenant.id, deviceId);
-    const { devices: tenantDevices, isConnected, publish } = useMqttData('all', currentUser?.role, firebaseDevices);
+    const { devices: supabaseDevices, history, events } = useSupabaseData(currentTenant.id, deviceId, currentUser?.role);
+    const { devices: tenantDevices, isConnected, publish } = useMqttData('all', currentUser?.role, supabaseDevices);
 
     // Filter by tenant and deviceId
     const device = tenantDevices.find(d => d.id === deviceId) || tenantDevices[0];
@@ -94,13 +92,13 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
 
         try {
             publish('esp32c3/status/action', JSON.stringify(payload));
-            await addDoc(collection(db, 'events'), {
-                deviceId: device.id,
-                tenantId: device.tenantId,
+            await supabase.from('events').insert({
+                device_id: device.id,
+                tenant_id: device.tenantId,
                 type: 'DASHBOARD_COMMAND',
                 msg: logMsg,
-                userName: currentUser?.name || 'Usuário Dashboard',
-                userEmail: currentUser?.email || '',
+                user_name: currentUser?.name || 'Usuário Dashboard',
+                user_email: currentUser?.email || '',
                 timestamp: new Date().toISOString(),
                 source: 'dashboard'
             });

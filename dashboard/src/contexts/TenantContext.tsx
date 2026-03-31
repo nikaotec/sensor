@@ -3,8 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Tenant } from '../data/mockData';
 import { useAuth } from './AuthContext';
-import { db } from '../firebase/config';
-import { collection, query, where, documentId, onSnapshot } from 'firebase/firestore';
+import { supabase } from '../supabase/config';
 
 interface TenantContextType {
     currentTenant: Tenant | null;
@@ -34,57 +33,83 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         }
 
         setLoadingTenants(true);
-        let unsubscribe: () => void = () => { };
 
-        try {
-            const userRole = currentUser?.role || 'admin';
-            const userTenants = currentUser?.tenantIds || [];
+        const userRole = currentUser?.role || 'admin';
+        const userTenants = currentUser?.tenantIds || [];
 
-            if (userRole === 'manager') {
-                // Manager vê todas as empresas em tempo real
-                unsubscribe = onSnapshot(collection(db, 'tenants'), (snapshot) => {
-                    const fetchedTenants: Tenant[] = [];
-                    snapshot.forEach((doc) => {
-                        fetchedTenants.push({ id: doc.id, ...doc.data() } as Tenant);
-                    });
-                    setAvailableTenants(fetchedTenants);
+        const fetchTenants = async () => {
+            try {
+                let data: any[] | null = null;
+                let error: any = null;
+
+                if (userRole === 'manager') {
+                    // Manager vê todas as empresas
+                    const result = await supabase.from('tenants').select('*');
+                    data = result.data;
+                    error = result.error;
+                } else if (userTenants && userTenants.length > 0) {
+                    // Usuários normais ou admin: apenas seus tenants
+                    const result = await supabase
+                        .from('tenants')
+                        .select('*')
+                        .in('id', userTenants);
+                    data = result.data;
+                    error = result.error;
+                } else {
+                    setAvailableTenants([]);
                     if (!currentTenantId) setCurrentTenantId('all');
                     setLoadingTenants(false);
-                }, (error) => {
-                    console.error("Firestore Manager Tenants Listener Error:", error);
+                    return;
+                }
+
+                if (error) {
+                    console.error("Supabase Tenants Error:", error);
+                    // Se der erro, tenta usar dados em memória ou continua com array vazio
                     setAvailableTenants([]);
                     setLoadingTenants(false);
-                });
-            } else if (userTenants && userTenants.length > 0) {
-                // Usuários normais ou admin escutam apenas seus ids
-                const q = query(collection(db, 'tenants'), where(documentId(), 'in', userTenants));
-                unsubscribe = onSnapshot(q, (snapshot) => {
-                    const fetchedTenants: Tenant[] = [];
-                    snapshot.forEach((doc) => {
-                        fetchedTenants.push({ id: doc.id, ...doc.data() } as Tenant);
-                    });
-                    setAvailableTenants(fetchedTenants);
-                    if (fetchedTenants.length > 0 && !currentTenantId) {
-                        setCurrentTenantId('all');
-                    }
-                    setLoadingTenants(false);
-                }, (error) => {
-                    console.error("Firestore Tenant Listener Error:", error);
-                    setAvailableTenants([]);
-                    setLoadingTenants(false);
-                });
-            } else {
+                    return;
+                }
+
+                const fetchedTenants: Tenant[] = (data || []).map((row: any) => ({
+                    id: row.id,
+                    name: row.name,
+                    status: row.status || 'active',
+                    plan: row.plan || 'pro',
+                    colors: row.colors || {},
+                    ...row
+                })) as Tenant[];
+
+                setAvailableTenants(fetchedTenants);
+                if (fetchedTenants.length > 0 && !currentTenantId) {
+                    setCurrentTenantId('all');
+                } else if (!currentTenantId) {
+                    setCurrentTenantId('all');
+                }
+                setLoadingTenants(false);
+            } catch (e: any) {
+                console.error("Supabase error fetching tenants:", e.message);
                 setAvailableTenants([]);
-                if (!currentTenantId) setCurrentTenantId('all');
                 setLoadingTenants(false);
             }
-        } catch (e: any) {
-            console.error("Firebase Firestore error setup listeners:", e.message);
-            setAvailableTenants([]);
-            setLoadingTenants(false);
-        }
+        };
 
-        return () => unsubscribe();
+        fetchTenants();
+
+        // Realtime subscription para tenants
+        const channel = supabase
+            .channel('tenants_changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'tenants' },
+                () => {
+                    fetchTenants();
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
     }, [currentUser, authLoading]);
 
     // Update active tenant object and theme when ID changes

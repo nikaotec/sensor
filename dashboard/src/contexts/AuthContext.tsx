@@ -9,8 +9,8 @@ import {
     signInWithPopup
 } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
-import { auth, db } from '../firebase/config';
-import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
+import { auth } from '../firebase/config';
+import { supabase } from '../supabase/config';
 
 export interface AppUser {
     id: string;
@@ -44,48 +44,82 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setFirebaseUser(user);
             if (user) {
                 try {
-                    console.log("🔍 Buscando perfil no Firestore para:", user.uid);
-                    const userDocRef = doc(db, 'users', user.uid);
-                    const userDoc = await getDoc(userDocRef);
-                    const emailDocRef = doc(db, 'users', user.email || 'no-email');
-                    const emailDocSnap = user.email ? await getDoc(emailDocRef) : null;
+                    // Buscar perfil por UID
+                    const { data: userDoc, error: uidError } = await supabase
+                        .from('users')
+                        .select('*')
+                        .eq('id', user.uid)
+                        .maybeSingle();
 
-                    if (userDoc.exists()) {
-                        let userData = userDoc.data() as AppUser;
+                    if (uidError) throw uidError;
+
+                    // Buscar possível pré-provisionamento por email
+                    const { data: emailDoc } = user.email
+                        ? await supabase
+                            .from('users')
+                            .select('*')
+                            .eq('email', user.email.toLowerCase())
+                            .neq('id', user.uid)
+                            .maybeSingle()
+                        : { data: null };
+
+                    if (userDoc) {
+                        let userData = userDoc as any;
 
                         // Se existe um documento pré-provisionado por email, mescla as empresas e atualiza
-                        if (emailDocSnap && emailDocSnap.exists()) {
-                            const preProvisioned = emailDocSnap.data();
+                        if (emailDoc) {
                             const mergedTenants = Array.from(new Set([
-                                ...(userData.tenantIds || []),
-                                ...(preProvisioned.tenantIds || [])
+                                ...(userData.tenant_ids || []),
+                                ...(emailDoc.tenant_ids || [])
                             ]));
 
                             userData = {
                                 ...userData,
-                                role: preProvisioned.role || userData.role,
-                                tenantIds: mergedTenants
+                                role: emailDoc.role || userData.role,
+                                tenant_ids: mergedTenants
                             };
 
-                            await setDoc(userDocRef, userData);
-                            await deleteDoc(emailDocRef); // Remove documento temporário indexado por email
+                            await supabase
+                                .from('users')
+                                .update({ role: userData.role, tenant_ids: mergedTenants })
+                                .eq('id', user.uid);
+
+                            // Remove documento temporário indexado por email
+                            await supabase
+                                .from('users')
+                                .delete()
+                                .eq('id', emailDoc.id);
                         }
 
-                        setCurrentUser({ ...userData, id: user.uid });
+                        setCurrentUser({
+                            id: user.uid,
+                            name: userData.name,
+                            email: userData.email,
+                            role: userData.role,
+                            avatarUrl: userData.avatar_url,
+                            tenantIds: userData.tenant_ids || []
+                        });
                     } else {
-                        // Não achou por UID em Firestore. Verifica se foi pré-provisionado por EMAIL pelo Gestor
-                        if (emailDocSnap && emailDocSnap.exists()) {
-                            const preProvisioned = emailDocSnap.data();
+                        // Não achou por UID. Verifica se foi pré-provisionado por EMAIL pelo Gestor
+                        if (emailDoc) {
                             const newUser: AppUser = {
                                 id: user.uid,
                                 name: user.displayName || 'Novo Administrador',
                                 email: user.email || '',
-                                role: preProvisioned.role || 'admin',
-                                tenantIds: preProvisioned.tenantIds || []
+                                role: emailDoc.role || 'admin',
+                                tenantIds: emailDoc.tenant_ids || []
                             };
 
-                            await setDoc(userDocRef, newUser);
-                            await deleteDoc(emailDocRef); // Deleta o de email temporário
+                            await supabase.from('users').upsert({
+                                id: user.uid,
+                                name: newUser.name,
+                                email: newUser.email,
+                                role: newUser.role,
+                                tenant_ids: newUser.tenantIds
+                            });
+
+                            // Deleta o de email temporário
+                            await supabase.from('users').delete().eq('id', emailDoc.id);
                             setCurrentUser(newUser);
                         } else {
                             // Totalmente novo (ex: primeiro login manual)
@@ -96,13 +130,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                                 role: user.email === 'antoniovenancio10@gmail.com' ? 'manager' : 'admin',
                                 tenantIds: []
                             };
-                            await setDoc(userDocRef, newUser);
+                            await supabase.from('users').upsert({
+                                id: user.uid,
+                                name: newUser.name,
+                                email: newUser.email,
+                                role: newUser.role,
+                                tenant_ids: newUser.tenantIds
+                            });
                             setCurrentUser(newUser);
                         }
                     }
-                    console.log("✅ Perfil carregado com sucesso.");
                 } catch (error: any) {
-                    console.error("❌ Erro ao buscar dados do Firestore:", error.message);
+                    console.error("❌ Erro ao buscar dados do Supabase:", error.message);
                     // Fallback para não travar a UI
                     setCurrentUser({
                         id: user.uid,
@@ -141,7 +180,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const signup = async (email: string, pass: string, name: string) => {
         const res = await createUserWithEmailAndPassword(auth, email, pass);
-        // Create standard user profile in Firestore
+        // Create standard user profile in Supabase
         const newUser: AppUser = {
             id: res.user.uid,
             name,
@@ -150,9 +189,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             tenantIds: [] // Needs to create a company after signup
         };
         try {
-            await setDoc(doc(db, 'users', res.user.uid), newUser);
+            await supabase.from('users').upsert({
+                id: res.user.uid,
+                name,
+                email,
+                role: 'admin',
+                tenant_ids: []
+            });
         } catch (e: any) {
-            console.error("Warning: could not save to Firestore (invalid creds?)", e.message);
+            console.error("Warning: could not save to Supabase", e.message);
         }
         setCurrentUser(newUser);
     };
@@ -173,3 +218,6 @@ export const useAuth = () => {
     if (!context) throw new Error('useAuth must be used within AuthProvider');
     return context;
 };
+
+
+

@@ -2,7 +2,7 @@ import React from 'react';
 import Sidebar from './Sidebar';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useFirebaseData } from '../hooks/useFirebaseData';
+import { useSupabaseData } from '../hooks/useSupabaseData';
 import { useMqttData } from '../hooks/useMqttData';
 import {
     Search,
@@ -29,26 +29,36 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
     const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
 
     // Fetch initial devices from Firebase and update with live MQTT stream
-    const { devices: firebaseDevices } = useFirebaseData(currentTenant?.id || '', undefined, currentUser?.role);
-    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData('all', currentUser?.role, firebaseDevices);
+    const { devices: supabaseDevices } = useSupabaseData(currentTenant?.id || '', undefined, currentUser?.role);
+    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData('all', currentUser?.role, supabaseDevices);
+
+    const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
 
     // Filtro refinado para respeitar a aba selecionada e permissões de role
     const displayDevices = React.useMemo(() => {
-        if (!availableTenants) return [];
-        const allowedTenantIds = availableTenants.map(t => t.id);
-        const allowedTenantNames = availableTenants.map(t => t.name);
+        // Se não há dispositivos, retorna vazio
+        if (!tenantDevices || tenantDevices.length === 0) return [];
 
-        // Se estiver em uma aba de empresa específica (não "all"), filtra apenas por ela
+        // Se está em uma aba de empresa específica (não "all"), filtra apenas por ela
         if (currentTenant && currentTenant.id !== 'all') {
             return tenantDevices.filter(d => d && (d.tenantId === currentTenant.id || d.tenantId === currentTenant.name));
         }
 
-        // Se estiver na aba "Todos" (currentTenant.id === 'all')
-        if (currentUser?.role === 'manager') return tenantDevices;
+        // Se é gestor e está na aba "Todos", mostra todos os dispositivos (incluindo não atribuídos)
+        if (isManager) {
+            return tenantDevices;
+        }
 
-        // Admins vêem apenas as empresas que têm acesso (availableTenants)
-        return tenantDevices.filter(d => d && (allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId)));
-    }, [tenantDevices, currentTenant, availableTenants, currentUser?.role]);
+        // Usuário normal: mostra apenas dispositivos das empresas vinculadas
+        const allowedTenantIds = availableTenants.map(t => t.id);
+        const allowedTenantNames = availableTenants.map(t => t.name);
+        
+        // Filtra dispositivos que são de empresas vinculadas ao usuário
+        return tenantDevices.filter(d => {
+            if (!d || !d.tenantId) return false;
+            return allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId);
+        });
+    }, [tenantDevices, currentTenant, availableTenants, isManager]);
 
     // No longer needing primaryDevice or mocks
 

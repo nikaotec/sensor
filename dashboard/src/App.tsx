@@ -15,8 +15,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import { useMqttData } from './hooks/useMqttData'
 import { X, AlertOctagon } from 'lucide-react'
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext'
-import { db } from './firebase/config'
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore'
+import { supabase } from './supabase/config'
 
 type Screen = 'login' | 'signup' | 'dashboard' | 'device-list' | 'device-details' | 'alerts' | 'reports' | 'settings' | 'manager-panel'
 
@@ -52,8 +51,8 @@ const AppContent = () => {
     }
   };
 
-  // Função para salvar alerta no Firestore (Auditoria)
-  const logAlertToFirestore = async (alert: any) => {
+  // Função para salvar alerta no Supabase (Auditoria)
+  const logAlertToSupabase = async (alert: any) => {
     try {
       // Tentar encontrar o tenantId real baseado no nome da empresa vindo do MQTT
       let realTenantId = 'unknown';
@@ -64,20 +63,18 @@ const AppContent = () => {
         realTenantId = currentTenant.id;
       }
 
-      await addDoc(collection(db, "events"), {
-        deviceId: alert.ID_DISPOSITIVO || 'unknown',
-        deviceName: alert.DISPOSITIVO || 'Desconhecido',
-        tenantId: realTenantId,
+      await supabase.from('events').insert({
+        device_id: alert.ID_DISPOSITIVO || 'unknown',
+        tenant_id: realTenantId,
         type: 'alert',
         severity: 'critical',
         message: `${alert.TIPO?.replace('ALERTA_', '').replace('_', ' ')} detectado`,
         value: getAlertValue(alert),
         details: alert,
-        timestamp: serverTimestamp(),
-        createdAt: new Date().toISOString()
+        timestamp: new Date().toISOString()
       });
     } catch (e) {
-      console.error("Erro ao salvar log de alerta no Firestore:", e);
+      console.error("Erro ao salvar log de alerta no Supabase:", e);
     }
   };
 
@@ -89,7 +86,7 @@ const AppContent = () => {
     (alertPayload) => {
       playAlertSound();
       addAlert(alertPayload);
-      logAlertToFirestore(alertPayload);
+      logAlertToSupabase(alertPayload);
     }
   );
 

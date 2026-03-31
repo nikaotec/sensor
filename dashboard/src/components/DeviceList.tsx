@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useFirebaseData } from '../hooks/useFirebaseData';
+import { useSupabaseData } from '../hooks/useSupabaseData';
 import { useMqttData } from '../hooks/useMqttData';
 import { Search, AlertTriangle, BatteryCharging, Zap, Wifi, ServerCrash, Thermometer, Droplets } from 'lucide-react';
 
@@ -21,8 +21,8 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
 
     // Dados base do Firebase + sobreposição ao vivo do MQTT
     // Escuta todos os dados para que a lógica lide mesmo quando a aba não estiver em "Todos".
-    const { devices: firebaseDevices } = useFirebaseData(currentTenant.id);
-    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData('all', currentUser?.role, firebaseDevices);
+    const { devices: supabaseDevices } = useSupabaseData(currentTenant.id);
+    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData('all', currentUser?.role, supabaseDevices);
 
     // Filtro para garantir que administradores/usuários só vejam os dispositivos de empresas vinculadas / selecionadas
     const authFilteredDevices = React.useMemo(() => {

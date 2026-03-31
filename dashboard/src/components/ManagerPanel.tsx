@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
-import { db } from '../firebase/config';
-import { collection, addDoc, doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '../supabase/config';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useMqttData } from '../hooks/useMqttData';
-import { useFirebaseData, useUsers } from '../hooks/useFirebaseData';
+import { useSupabaseData, useUsers } from '../hooks/useSupabaseData';
 import {
     Building2,
     UserPlus,
@@ -37,11 +36,12 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
 
     // Data hooks
     const { users, isLoading: loadingUsers } = useUsers(currentUser?.role);
-    const { devices: firebaseDevices } = useFirebaseData('all', undefined, currentUser?.role);
-    const { devices: mqttDevices } = useMqttData('all', currentUser?.role, firebaseDevices);
+    const { devices: supabaseDevices } = useSupabaseData('all', undefined, currentUser?.role);
+    const { devices: mqttDevices } = useMqttData('all', currentUser?.role, supabaseDevices);
 
     const [selectedTenants, setSelectedTenants] = useState<{ [key: string]: string }>({});
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [openTenantPopoverFor, setOpenTenantPopoverFor] = useState<string | null>(null);
 
     // Form States
     const [newCompanyName, setNewCompanyName] = useState('');
@@ -50,9 +50,21 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const [newUserRole, setNewUserRole] = useState<'manager' | 'admin' | 'user'>('user');
     const [newUserTenants, setNewUserTenants] = useState<string[]>([]);
 
-    const unlinkedDevices = mqttDevices.filter(d =>
-        !d.tenantId || d.tenantId === "Unknown" || d.tenantId === "empresa_default" || d.tenantId === "Nikaotec"
-    );
+    const unlinkedDevices = mqttDevices.filter(d => {
+        const tid = d.tenantId || (d as any).tenant_id;
+        return !tid || tid === "Unknown" || tid === "empresa_default" || tid === "Nikaotec";
+    });
+
+    const popoverRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (popoverRef.current && !popoverRef.current.contains(event.target as Node)) {
+                setOpenTenantPopoverFor(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const showMessage = (type: 'success' | 'error', text: string) => {
         setMessage({ type, text });
@@ -63,10 +75,11 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         e.preventDefault();
         if (!newCompanyName.trim()) return;
         try {
-            await addDoc(collection(db, 'tenants'), {
+            const { error } = await supabase.from('tenants').insert({
                 name: newCompanyName.trim(),
-                createdAt: new Date().toISOString()
+                created_at: new Date().toISOString()
             });
+            if (error) throw error;
             showMessage('success', `Empresa "${newCompanyName}" criada com sucesso!`);
             setNewCompanyName('');
         } catch (err: any) {
@@ -85,16 +98,17 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         }
 
         try {
-            // Provisiona usuário por e-mail no Firestore
-            const userRef = doc(db, 'users', newUserEmail.toLowerCase());
-            await setDoc(userRef, {
+            // Provisiona usuário por e-mail no Supabase
+            const { error } = await supabase.from('users').upsert({
+                id: newUserEmail.toLowerCase(),
                 name: newUserName,
                 email: newUserEmail.toLowerCase(),
                 role: newUserRole,
-                tenantIds: newUserTenants,
-                createdAt: new Date().toISOString(),
-                provisionedBy: currentUser?.email
-            }, { merge: true });
+                tenant_ids: newUserTenants,
+                created_at: new Date().toISOString(),
+                provisioned_by: currentUser?.email
+            });
+            if (error) throw error;
 
             showMessage('success', `Usuário ${newUserName} provisionado com sucesso!`);
             setNewUserName('');
@@ -114,10 +128,11 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         }
 
         try {
-            const deviceRef = doc(db, 'devices_status', deviceId);
-            await setDoc(deviceRef, {
-                tenantId: tId
-            }, { merge: true });
+            const { error } = await supabase.from('devices_status').upsert({
+                id: deviceId,
+                tenant_id: tId
+            });
+            if (error) throw error;
             showMessage('success', 'Dispositivo vinculado com sucesso!');
         } catch (err: any) {
             showMessage('error', `Erro ao vincular: ${err.message}`);
@@ -138,8 +153,8 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         }
 
         try {
-            const userRef = doc(db, 'users', userId);
-            await updateDoc(userRef, { role: newRole });
+            const { error } = await supabase.from('users').update({ role: newRole }).eq('id', userId);
+            if (error) throw error;
             showMessage('success', `Cargo atualizado com sucesso!`);
         } catch (err: any) {
             showMessage('error', `Erro ao atualizar cargo: ${err.message}`);
@@ -149,7 +164,8 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const handleDeleteUser = async (userId: string, userEmail: string) => {
         if (!window.confirm(`Deseja realmente excluir o usuário ${userEmail}?`)) return;
         try {
-            await deleteDoc(doc(db, 'users', userId));
+            const { error } = await supabase.from('users').delete().eq('id', userId);
+            if (error) throw error;
             showMessage('success', `Usuário ${userEmail} removido.`);
         } catch (err: any) {
             showMessage('error', `Erro ao remover usuário: ${err.message}`);
@@ -161,7 +177,8 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         const newName = window.prompt("Digite o novo nome da empresa:", oldName);
         if (!newName || newName === oldName) return;
         try {
-            await updateDoc(doc(db, 'tenants', id), { name: newName });
+            const { error } = await supabase.from('tenants').update({ name: newName }).eq('id', id);
+            if (error) throw error;
             showMessage('success', 'Nome da empresa atualizado!');
         } catch (err: any) {
             showMessage('error', `Erro ao renomear: ${err.message}`);
@@ -171,7 +188,8 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const handleDeleteCompany = async (id: string, name: string) => {
         if (!window.confirm(`Excluir a empresa "${name}"? Esta ação é irreversível.`)) return;
         try {
-            await deleteDoc(doc(db, 'tenants', id));
+            const { error } = await supabase.from('tenants').delete().eq('id', id);
+            if (error) throw error;
             showMessage('success', `Empresa "${name}" removida.`);
         } catch (err: any) {
             showMessage('error', `Erro ao remover empresa: ${err.message}`);
@@ -182,26 +200,27 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const handleResetDevice = async (deviceId: string) => {
         if (!window.confirm("Deseja resetar o vínculo deste dispositivo? Ele voltará para a lista de pendentes.")) return;
         try {
-            await updateDoc(doc(db, 'devices_status', deviceId), {
-                tenantId: 'Nikaotec'
-            });
+            const { error } = await supabase.from('devices_status').update({
+                tenant_id: 'Nikaotec'
+            }).eq('id', deviceId);
+            if (error) throw error;
             showMessage('success', "Vínculo do dispositivo resetado.");
         } catch (err: any) {
             showMessage('error', `Erro ao resetar: ${err.message}`);
         }
     };
 
-    const handleToggleUserTenant = async (userEmail: string, tenantId: string, currentTenants: string[]) => {
+    const handleToggleUserTenant = async (userId: string, tenantId: string, currentTenants: string[]) => {
         try {
-            const userRef = doc(db, 'users', userEmail.toLowerCase());
             const isSelected = currentTenants.includes(tenantId);
             const updatedTenants = isSelected
                 ? currentTenants.filter(id => id !== tenantId)
                 : [...currentTenants, tenantId];
 
-            await updateDoc(userRef, {
-                tenantIds: updatedTenants
-            });
+            const { error } = await supabase.from('users').update({
+                tenant_ids: updatedTenants
+            }).eq('id', userId);
+            if (error) throw error;
         } catch (err: any) {
             showMessage('error', `Erro ao atualizar empresas: ${err.message}`);
         }
@@ -365,38 +384,50 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                                 </select>
                                                             </td>
                                                             <td className="px-6 py-4">
-                                                                <div className="relative group/tenants">
-                                                                    <div className="flex flex-wrap gap-1 max-w-[200px] cursor-pointer p-1 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10">
-                                                                        {u.tenantIds?.length > 0 ? u.tenantIds.map((tid: string) => (
-                                                                            <span key={tid} className="text-[9px] bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded text-primary font-bold">
-                                                                                {availableTenants.find(t => t.id === tid)?.name || tid}
-                                                                            </span>
-                                                                        )) : <span className="text-[10px] text-slate-600">Nenhuma empresa</span>}
-                                                                        <div className="size-5 rounded bg-white/10 flex items-center justify-center text-slate-400 group-hover/tenants:bg-primary group-hover/tenants:text-white transition-all ml-auto">
-                                                                            <Plus size={10} />
+                                                                {u.role === 'manager' || u.role === 'gestor' ? (
+                                                                    <span className="text-[10px] text-slate-500 italic">Acesso Total</span>
+                                                                ) : (
+                                                                    <div className="relative">
+                                                                        <div 
+                                                                            className="flex flex-wrap gap-1 max-w-[200px] cursor-pointer p-1 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
+                                                                            onClick={() => setOpenTenantPopoverFor(openTenantPopoverFor === u.id ? null : u.id)}
+                                                                        >
+                                                                            {u.tenant_ids?.length > 0 ? u.tenant_ids.map((tid: string) => (
+                                                                                <span key={tid} className="text-[9px] bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded text-primary font-bold">
+                                                                                    {availableTenants.find(t => t.id === tid)?.name || tid}
+                                                                                </span>
+                                                                            )) : <span className="text-[10px] text-slate-600">Nenhuma empresa</span>}
+                                                                            <div className={`size-5 rounded flex items-center justify-center ml-auto transition-all ${openTenantPopoverFor === u.id ? 'bg-primary text-white' : 'bg-white/10 text-slate-400'}`}>
+                                                                                <Plus size={10} />
+                                                                            </div>
                                                                         </div>
-                                                                    </div>
 
-                                                                    {/* Popover de Seleção (Aparece no Hover ou Foco) */}
-                                                                    <div className="absolute top-full left-0 mt-2 w-48 bg-background-dark border border-white/10 rounded-2xl p-3 shadow-2xl z-50 opacity-0 invisible group-hover/tenants:opacity-100 group-hover/tenants:visible transition-all">
-                                                                        <p className="text-[9px] font-black text-slate-500 uppercase mb-2 px-1">Gerenciar Acesso</p>
-                                                                        <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
-                                                                            {availableTenants.map(t => (
-                                                                                <button
-                                                                                    key={t.id}
-                                                                                    onClick={() => handleToggleUserTenant(u.id, t.id, u.tenantIds || [])}
-                                                                                    className={`w-full flex items-center justify-between p-2 rounded-lg text-[10px] font-bold transition-all ${(u.tenantIds || []).includes(t.id)
-                                                                                        ? 'bg-primary/10 text-primary'
-                                                                                        : 'text-slate-500 hover:bg-white/5'
-                                                                                        }`}
-                                                                                >
-                                                                                    {t.name}
-                                                                                    {(u.tenantIds || []).includes(t.id) && <CheckCircle2 size={12} />}
-                                                                                </button>
-                                                                            ))}
-                                                                        </div>
+                                                                        {/* Popover de Seleção (Aparece no Clique) */}
+                                                                        {openTenantPopoverFor === u.id && (
+                                                                            <div className="absolute bottom-full left-0 mb-2 w-48 bg-background-dark border border-white/10 rounded-2xl p-3 shadow-2xl z-[100]">
+                                                                                <p className="text-[9px] font-black text-slate-500 uppercase mb-2 px-1">Gerenciar Acesso</p>
+                                                                                <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
+                                                                                    {availableTenants.map(t => (
+                                                                                        <button
+                                                                                            key={t.id}
+                                                                                            onClick={(e) => {
+                                                                                                e.stopPropagation();
+                                                                                                handleToggleUserTenant(u.id, t.id, u.tenant_ids || []);
+                                                                                            }}
+                                                                                            className={`w-full flex items-center justify-between p-2 rounded-lg text-[10px] font-bold transition-all ${(u.tenant_ids || []).includes(t.id)
+                                                                                                ? 'bg-primary/10 text-primary'
+                                                                                                : 'text-slate-500 hover:bg-white/5'
+                                                                                                }`}
+                                                                                        >
+                                                                                            {t.name}
+                                                                                            {(u.tenant_ids || []).includes(t.id) && <CheckCircle2 size={12} />}
+                                                                                        </button>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
-                                                                </div>
+                                                                )}
                                                             </td>
                                                             <td className="px-6 py-4 text-right">
                                                                 <button
