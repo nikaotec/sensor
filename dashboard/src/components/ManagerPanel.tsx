@@ -196,7 +196,6 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         }
     };
 
-    // --- Funções de Gestão de Dispositivos ---
     const handleResetDevice = async (deviceId: string) => {
         if (!window.confirm("Deseja resetar o vínculo deste dispositivo? Ele voltará para a lista de pendentes.")) return;
         try {
@@ -207,6 +206,17 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
             showMessage('success', "Vínculo do dispositivo resetado.");
         } catch (err: any) {
             showMessage('error', `Erro ao resetar: ${err.message}`);
+        }
+    };
+
+    const handleDeleteDevice = async (deviceId: string, deviceName: string) => {
+        if (!window.confirm(`ATENÇÃO: Deseja excluir definitivamente o dispositivo "${deviceName}" do banco de dados? Ele poderá reaparecer como pendente se continuar enviando dados.`)) return;
+        try {
+            const { error } = await supabase.from('devices_status').delete().eq('id', deviceId);
+            if (error) throw error;
+            showMessage('success', "Dispositivo excluído com sucesso.");
+        } catch (err: any) {
+            showMessage('error', `Erro ao excluir: ${err.message}`);
         }
     };
 
@@ -388,7 +398,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                                     <span className="text-[10px] text-slate-500 italic">Acesso Total</span>
                                                                 ) : (
                                                                     <div className="relative">
-                                                                        <div 
+                                                                        <div
                                                                             className="flex flex-wrap gap-1 max-w-[200px] cursor-pointer p-1 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
                                                                             onClick={() => setOpenTenantPopoverFor(openTenantPopoverFor === u.id ? null : u.id)}
                                                                         >
@@ -583,7 +593,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
 
                                                     <div className="mt-auto space-y-4">
                                                         {!isLinked ? (
-                                                            <>
+                                                            <div className="space-y-2">
                                                                 <select
                                                                     value={selectedTenants[dev.id] || ""}
                                                                     onChange={(e) => setSelectedTenants({ ...selectedTenants, [dev.id]: e.target.value })}
@@ -594,20 +604,37 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                                         <option key={t.id} value={t.id}>{t.name}</option>
                                                                     ))}
                                                                 </select>
-                                                                <button
-                                                                    onClick={() => handleLinkDevice(dev.id)}
-                                                                    className="w-full py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition-all flex items-center justify-center gap-2"
-                                                                >
-                                                                    <CheckCircle2 size={16} /> Confirmar Ativação
-                                                                </button>
-                                                            </>
+                                                                <div className="grid grid-cols-4 gap-2">
+                                                                    <button
+                                                                        onClick={() => handleLinkDevice(dev.id)}
+                                                                        className="col-span-3 py-3 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 transition-all flex items-center justify-center gap-2"
+                                                                    >
+                                                                        <CheckCircle2 size={16} /> Ativar
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteDevice(dev.id, dev.name)}
+                                                                        className="col-span-1 py-3 border border-rose-500/20 text-rose-500 font-bold rounded-xl hover:bg-rose-500/10 transition-all flex items-center justify-center"
+                                                                        title="Excluir"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
                                                         ) : (
-                                                            <button
-                                                                onClick={() => handleResetDevice(dev.id)}
-                                                                className="w-full py-3 border border-white/10 text-slate-400 font-bold rounded-xl hover:bg-white/5 hover:text-white transition-all flex items-center justify-center gap-2"
-                                                            >
-                                                                <ArrowLeft size={16} /> Resetar Vínculo
-                                                            </button>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <button
+                                                                    onClick={() => handleResetDevice(dev.id)}
+                                                                    className="w-full py-3 border border-white/10 text-slate-400 font-bold rounded-xl hover:bg-white/5 hover:text-white transition-all flex items-center justify-center gap-2"
+                                                                >
+                                                                    <ArrowLeft size={16} /> Resetar
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteDevice(dev.id, dev.name)}
+                                                                    className="w-full py-3 border border-rose-500/20 text-rose-500 font-bold rounded-xl hover:bg-rose-500/10 hover:border-rose-500/40 transition-all flex items-center justify-center gap-2"
+                                                                >
+                                                                    <Trash2 size={16} /> Excluir
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </div>

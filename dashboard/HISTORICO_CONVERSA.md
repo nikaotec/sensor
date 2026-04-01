@@ -242,3 +242,94 @@ npm run build
 3. Testar atribuição de dispositivo a empresa
 4. Testar visibilidade para usuário não-gestor
 5. Implementar mais features conforme necessidade
+
+---
+
+## Data: 01/04/2026
+
+## Problema 8: n8n.nikaotech.com redirecionando para dashboard
+
+**Sintoma:** Ao acessar `n8n.nikaotech.com` era redirecionado para o dashboard em `nikaotech.com`.
+
+**Causa:** 
+- A config do Nginx só tinha HTTPS (porta 443) para `nikaotech.com`
+- O n8n só tinha config na porta 80 (HTTP)
+- Ao acessar via HTTPS, caía na config do dashboard
+
+**Diagnóstico:**
+- Executei `cat /etc/nginx/sites-enabled/*` na VPS
+- Identifiquei que existiam 3 arquivos: `nikaotech`, `default` (com certbot), `n8n`
+- Havia conflitos de server_name entre os arquivos
+
+**Solução:**
+
+1. Removi configs conflitantes:
+```bash
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/sites-enabled/n8n
+```
+
+2. Criei config unificada em `/etc/nginx/sites-enabled/nikaotech` com:
+   - HTTP → HTTPS para nikaotech.com
+   - HTTP → proxy para n8n (porta 5678)
+   - HTTPS para n8n.nikaotech.com (usando certificado dedicado)
+   - HTTPS para nikaotech.com (dashboard na porta 3000)
+
+3. Certificados SSL usados:
+   - `/etc/letsencrypt/live/nikaotech.com/fullchain.pem` → nikaotech.com
+   - `/etc/letsencrypt/live/n8n.nikaotech.com/fullchain.pem` → n8n.nikaotech.com
+
+**Arquivo de config gerado:** `docs/nginx-n8n-https.conf`
+
+---
+
+## Configuração Nginx Final
+
+```nginx
+# HTTP nikaotech.com → HTTPS
+server {
+    listen 80;
+    server_name nikaotech.com www.nikaotech.com;
+    return 301 https://$host$request_uri;
+}
+
+# HTTP n8n.nikaotech.com → proxy para n8n
+server {
+    listen 80;
+    server_name n8n.nikaotech.com mqtt.nikaotech.com;
+    location / {
+        proxy_pass http://127.0.0.1:5678;
+        proxy_set_header Host $host;
+    }
+}
+
+# HTTPS n8n.nikaotech.com → n8n
+server {
+    listen 443 ssl;
+    server_name n8n.nikaotech.com;
+    ssl_certificate /etc/letsencrypt/live/n8n.nikaotech.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/n8n.nikaotech.com/privkey.pem;
+    location / {
+        proxy_pass http://127.0.0.1:5678;
+    }
+}
+
+# HTTPS nikaotech.com → dashboard
+server {
+    listen 443 ssl;
+    server_name nikaotech.com www.nikaotech.com;
+    ssl_certificate /etc/letsencrypt/live/nikaotech.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/nikaotech.com/privkey.pem;
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+    }
+}
+```
+
+---
+
+## Próximos passos (continuação)
+
+1. Testar se n8n.nikaotech.com está acessível e funcionando
+2. Verificar se o dashboard continua funcionando em nikaotech.com
+3. Adicionar mqtt.nikaotech.com em HTTPS se necessário

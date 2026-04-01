@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import mqtt from 'mqtt';
 import type { Device } from '../data/mockData';
 
@@ -14,6 +14,11 @@ export const useMqttData = (
     const [devices, setDevices] = useState<any[]>(initialDevices.map(d => ({ ...d, mqttUpdated: false })));
     const [isConnected, setIsConnected] = useState(false);
     const [mqttClient, setMqttClient] = useState<mqtt.MqttClient | null>(null);
+
+    const devicesRef = useRef(devices);
+    useEffect(() => {
+        devicesRef.current = devices;
+    }, [devices]);
 
     useEffect(() => {
         if (initialDevices.length > 0) {
@@ -38,6 +43,28 @@ export const useMqttData = (
             });
         }
     }, [initialDevices]);
+
+    // Verification method to check if device is offline (5 minutes without incoming data)
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setDevices(prevDevices =>
+                prevDevices.map(device => {
+                    if (device.status !== 'offline' && device.lastSeen) {
+                        const lastSeenTime = new Date(device.lastSeen).getTime();
+                        const now = new Date().getTime();
+                        const OFFLINE_TIMEOUT = 5 * 60 * 1000; // 5 minutos sem comunicação
+
+                        if (now - lastSeenTime > OFFLINE_TIMEOUT) {
+                            return { ...device, status: 'offline' };
+                        }
+                    }
+                    return device;
+                })
+            );
+        }, 60000); // Check every 1 minute
+
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         if (!tenantId) return;
@@ -102,9 +129,23 @@ export const useMqttData = (
                 };
                 payload = normalizedPayload;
 
-                // Trigger alert callback if it's an alert
-                if (payload.TIPO && payload.TIPO.startsWith('ALERTA_')) {
-                    onAlert?.(payload);
+                // Get the latest devices state without triggering re-renders
+                const currentDevices = devicesRef.current;
+                const existingDevice = currentDevices.find(d =>
+                    (payload.id && d.id === payload.id) ||
+                    (!payload.id && d.name === payload.device_name && d.tenantId === payload.company)
+                );
+
+                const resolvedCompanyContext = (existingDevice ? existingDevice.tenantId : payload.company) || 'Unknown';
+                const isUnlinked = ['unknown', 'empresa_default', 'nikaotec', ''].includes(resolvedCompanyContext.trim().toLowerCase());
+
+                // Trigger alert callback if it's an alert AND device is validly assigned
+                if (!isUnlinked && payload.TIPO && payload.TIPO.startsWith('ALERTA_')) {
+                    // Check if it belongs to current view (tenantId)
+                    const belongsToCurrentView = tenantId === 'all' || resolvedCompanyContext.toLowerCase() === tenantId?.toLowerCase();
+                    if (belongsToCurrentView) {
+                        onAlert?.(payload);
+                    }
                 }
 
                 // Filter logic based on Role and Tenant

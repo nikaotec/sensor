@@ -39,23 +39,31 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         // Se não há dispositivos, retorna vazio
         if (!tenantDevices || tenantDevices.length === 0) return [];
 
+        // Filtra dispositivos não vinculados SEMPRE
+        const assignedDevices = tenantDevices.filter(d =>
+            d && d.tenantId &&
+            d.tenantId.trim() !== "" &&
+            d.tenantId.toLowerCase() !== "unknown" &&
+            d.tenantId.toLowerCase() !== "empresa_default" &&
+            d.tenantId.toLowerCase() !== "nikaotec"
+        );
+
         // Se está em uma aba de empresa específica (não "all"), filtra apenas por ela
         if (currentTenant && currentTenant.id !== 'all') {
-            return tenantDevices.filter(d => d && (d.tenantId === currentTenant.id || d.tenantId === currentTenant.name));
+            return assignedDevices.filter(d => d.tenantId === currentTenant.id || d.tenantId === currentTenant.name);
         }
 
-        // Se é gestor e está na aba "Todos", mostra todos os dispositivos (incluindo não atribuídos)
+        // Se é gestor e está na aba "Todos", mostra todos os dispositivos ATRIBUÍDOS
         if (isManager) {
-            return tenantDevices;
+            return assignedDevices;
         }
 
         // Usuário normal: mostra apenas dispositivos das empresas vinculadas
         const allowedTenantIds = availableTenants.map(t => t.id);
         const allowedTenantNames = availableTenants.map(t => t.name);
-        
+
         // Filtra dispositivos que são de empresas vinculadas ao usuário
-        return tenantDevices.filter(d => {
-            if (!d || !d.tenantId) return false;
+        return assignedDevices.filter(d => {
             return allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId);
         });
     }, [tenantDevices, currentTenant, availableTenants, isManager]);
@@ -171,19 +179,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                             </div>
                         ) : (
                             displayDevices.map((device) => {
-                                if (!(device as any).mqttUpdated) {
-                                    return (
-                                        <div
-                                            key={device.id}
-                                            className="bg-[#1A1D17] rounded-2xl border border-[#2A2E24] shadow-lg p-6 relative flex flex-col items-center justify-center min-h-[300px] overflow-hidden"
-                                        >
-                                            <div className="flex flex-col items-center opacity-50">
-                                                <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-4" />
-                                                <p className="text-center text-slate-400">Aguardando dados em tempo real de<br /><strong className="text-white">{device.name}</strong>...</p>
-                                            </div>
-                                        </div>
-                                    );
-                                }
+
 
                                 const getStatusLabel = (status: string) => {
                                     switch (status) {
@@ -213,11 +209,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                     return 'Fraco';
                                 };
 
+                                const isOffline = device.status === 'offline' || !(device as any).mqttUpdated;
+
                                 return (
                                     <div
                                         key={device.id}
                                         onClick={onDeviceClick}
-                                        className="bg-[#1A1D17] rounded-2xl border border-[#2A2E24] shadow-lg p-6 relative flex flex-col cursor-pointer hover:border-primary/50 transition-all group overflow-hidden"
+                                        className={`bg-[#1A1D17] rounded-2xl border shadow-lg p-6 relative flex flex-col cursor-pointer transition-all group overflow-hidden ${isOffline
+                                            ? 'border-red-400/30 opacity-80 grayscale-[0.5] hover:border-red-400/50'
+                                            : 'border-[#2A2E24] hover:border-primary/50'
+                                            }`}
                                     >
                                         <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
                                             <ServerCrash size={80} className="text-primary" />

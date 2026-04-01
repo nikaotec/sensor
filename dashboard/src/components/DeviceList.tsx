@@ -24,23 +24,30 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
     const { devices: supabaseDevices } = useSupabaseData(currentTenant.id);
     const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData('all', currentUser?.role, supabaseDevices);
 
-    // Filtro para garantir que administradores/usuários só vejam os dispositivos de empresas vinculadas / selecionadas
+    // Filtro para garantir que só seja exibido dispositivos vinculados
     const authFilteredDevices = React.useMemo(() => {
         const allowedTenantIds = availableTenants.map(t => t.id);
         const allowedTenantNames = availableTenants.map(t => t.name);
 
+        const assignedDevices = tenantDevices.filter(d =>
+            d && d.tenantId &&
+            d.tenantId.trim() !== "" &&
+            d.tenantId.toLowerCase() !== "unknown" &&
+            d.tenantId.toLowerCase() !== "empresa_default" &&
+            d.tenantId.toLowerCase() !== "nikaotec"
+        );
+
         if (currentTenant && currentTenant.id !== 'all') {
-            return tenantDevices.filter(d => d.tenantId === currentTenant.id || d.tenantId === currentTenant.name);
+            return assignedDevices.filter(d => d.tenantId === currentTenant.id || d.tenantId === currentTenant.name);
         }
 
-        if (currentUser?.role === 'manager') return tenantDevices;
+        if (currentUser?.role === 'manager') return assignedDevices;
 
-        return tenantDevices.filter(d => allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId));
+        return assignedDevices.filter(d => allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId));
     }, [tenantDevices, currentUser?.role, availableTenants, currentTenant]);
 
     // Filter by search, status AND require mqttUpdated to be true
     const filteredDevices = authFilteredDevices.filter(device => {
-        if (!(device as any).mqttUpdated) return false;
 
         const matchesSearch = device.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             device.location.toLowerCase().includes(searchTerm.toLowerCase());
@@ -125,11 +132,16 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
                                         return 'Fraco';
                                     };
 
+                                    const isOffline = device.status === 'offline' || !(device as any).mqttUpdated;
+
                                     return (
                                         <div
                                             key={device.id}
                                             onClick={() => onDeviceClick(device.id)}
-                                            className="bg-[#1A1D17] rounded-2xl border border-[#2A2E24] shadow-lg p-6 relative flex flex-col cursor-pointer hover:border-primary/50 transition-all group overflow-hidden"
+                                            className={`bg-[#1A1D17] rounded-2xl border shadow-lg p-6 relative flex flex-col cursor-pointer transition-all group overflow-hidden ${isOffline
+                                                ? 'border-red-400/30 opacity-80 grayscale-[0.5] hover:border-red-400/50'
+                                                : 'border-[#2A2E24] hover:border-primary/50'
+                                                }`}
                                         >
                                             <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
                                                 <ServerCrash size={80} className="text-primary" />
