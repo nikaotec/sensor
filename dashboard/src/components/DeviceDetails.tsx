@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import { useMqttData } from '../hooks/useMqttData';
 import { supabase } from '../supabase/config';
-import { metrics } from '../data/mockData';
 import {
     XAxis,
     YAxis,
@@ -47,8 +46,8 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const { devices: supabaseDevices, history, events } = useSupabaseData(currentTenant.id, deviceId, currentUser?.role);
     const { devices: tenantDevices, isConnected, publish } = useMqttData('all', currentUser?.role, supabaseDevices);
 
-    // Filter by tenant and deviceId
-    const device = tenantDevices.find(d => d.id === deviceId) || tenantDevices[0];
+    // Debug: log do history
+    console.log('[DeviceDetails] history:', history, 'deviceId:', deviceId);
 
     // Estados locais para controle remoto
     const [tempMinInput, setTempMinInput] = useState<string>('');
@@ -58,6 +57,9 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const [batMinInput, setBatMinInput] = useState<string>('');
     const [doorTimeInput, setDoorTimeInput] = useState<string>('');
     const [isUpdating, setIsUpdating] = useState(false);
+
+    // Filter by tenant and deviceId
+    const device = tenantDevices.find(d => d.id === deviceId);
 
     // Sincronizar inputs com dados do dispositivo quando eles chegarem ou se o auto-sync estiver ligado
     useEffect(() => {
@@ -72,6 +74,27 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
             }
         }
     }, [device?.telemetry, remoteSync]);
+
+    // Se o dispositivo ainda não foi carregado ou não encontrado
+    if (!device) {
+        return (
+            <div className="flex h-screen overflow-hidden bg-background-dark text-slate-100 font-display">
+                <Sidebar activeItem="device-list" onNavigate={onNavigate} />
+                <main className="flex-1 flex flex-col items-center justify-center p-8 bg-background-dark">
+                    <div className="bg-[#1A1D17] border border-[#2A2E24] p-10 rounded-3xl flex flex-col items-center text-center max-w-md shadow-2xl">
+                        <div className="size-20 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6 animate-pulse">
+                            <Wifi size={40} />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white mb-2">Localizando Dispositivo</h2>
+                        <p className="text-slate-400 mb-8">Aguardando dados de telemetria e conexão com o broker MQTT...</p>
+                        <button onClick={() => onNavigate('dashboard')} className="px-6 py-3 bg-[#0F110D] border border-[#2A2E24] rounded-xl text-xs font-bold text-white uppercase tracking-widest hover:border-primary/50 hover:text-primary transition-colors">
+                            Voltar ao Painel
+                        </button>
+                    </div>
+                </main>
+            </div>
+        );
+    }
 
     const handleAction = async (action: string, extraPayload: any = {}, logMsg: string) => {
         if (!device || !publish || isUpdating) return;
@@ -131,7 +154,6 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const handleToggleRelay = (action: 'ligar_rele' | 'desligar_rele') => {
         handleAction(action, {}, action === 'ligar_rele' ? 'Relé ligado manualmente' : 'Relé desligado manualmente');
     };
-    const tenantMetrics = metrics[currentTenant.id] || metrics['t1'];
 
     const getStatusStyle = (status: string) => {
         switch (status) {
@@ -476,9 +498,9 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                     {device?.status === 'online' && <span className="text-[10px] font-bold px-3 py-1.5 bg-primary text-background-dark rounded-lg uppercase tracking-widest shadow-lg shadow-primary/20">Ao Vivo</span>}
                                 </div>
                             </div>
-                            <div className="h-[400px]">
+                            <div className="h-[400px] relative w-full">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={history && history.length > 0 ? history : tenantMetrics.historicalData}>
+                                    <AreaChart data={history && history.length > 0 ? history : []}>
                                         <defs>
                                             <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
                                                 <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
@@ -498,6 +520,11 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                         <Area type="monotone" dataKey="value" stroke="var(--color-primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorTemp)" />
                                     </AreaChart>
                                 </ResponsiveContainer>
+                                {(!history || history.length === 0) && (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <p className="text-slate-500 text-sm">Aguardando dados históricos do dispositivo...</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

@@ -11,6 +11,11 @@ export interface DeviceEvent {
     message?: string;
     timestamp: string;
     tenantId: string;
+    userName?: string;
+    userEmail?: string;
+    source?: string;
+    value?: string;
+    details?: any;
 }
 
 const UNASSIGNED_TENANT_IDS = ['Unknown', 'empresa_default', 'Nikaotec', 'unassigned', null, ''];
@@ -54,16 +59,20 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
     useEffect(() => {
         const fetchDevices = async () => {
             let query = supabase.from('devices_status').select('*');
-            
-            if (isManager && tenantId === 'all') {
+
+            if (deviceId) {
+                // Se temos um deviceId específico, buscar apenas dados desse dispositivo
+                // Independente da empresa, pois o usuário já teve acesso ao evento/alerta dele.
+                query = query.eq('id', deviceId);
+            } else if (tenantId && tenantId !== 'all') {
+                // Especificamente selecionado: usar este ID
+                query = query.eq('tenant_id', tenantId);
+            } else if (isManager && tenantId === 'all') {
                 // Gestor vê todos os dispositivos (incluindo não atribuídos)
             } else if (!isManager && availableTenants.length > 0) {
-                // Usuário normal: só vê dispositivos das empresas que está vinculado
+                // Usuário normal vê "Todos": filtrar pelas empresas vinculadas
                 const userTenantIds = availableTenants.map(t => t.id);
                 query = query.in('tenant_id', userTenantIds);
-            } else if (tenantId && tenantId !== 'all') {
-                // Filtrar por empresa específica
-                query = query.eq('tenant_id', tenantId);
             }
 
             const { data, error } = await query;
@@ -73,14 +82,14 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
             }
 
             const mappedDevices = (data || []).map(mapRowToDevice);
-            
+
             // Filtrar dispositivos não atribuídos para usuários não-gestores
             const filteredDevices = mappedDevices.filter(d => {
                 if (isManager) return true; // Gestor vê tudo
                 const isUnassigned = UNASSIGNED_TENANT_IDS.includes(d.tenantId as any) || !d.tenantId;
                 return !isUnassigned; // Não-gestor não vê dispositivos não atribuídos
             });
-            
+
             setDevices(filteredDevices);
         };
 
@@ -109,6 +118,8 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
         const dateLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
         const fetchHistory = async () => {
+            // A tabela telemetry NÃO tem tenant_id, então buscamos apenas por deviceId
+            // Se não houver deviceId específico, buscamos todos os dispositivos deste tenant
             let query = supabase
                 .from('telemetry')
                 .select('*')
@@ -116,7 +127,14 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
                 .order('timestamp', { ascending: true });
 
             if (deviceId) {
+                // Se temos um deviceId específico, buscar apenas dados desse dispositivo
                 query = query.eq('device_id', deviceId);
+            } else if (tenantId && tenantId !== 'all' && devices.length > 0) {
+                // Se não temos deviceId mas temos tenant, buscar dados de todos os dispositivos desse tenant
+                const deviceIds = devices.map(d => d.id);
+                if (deviceIds.length > 0) {
+                    query = query.in('device_id', deviceIds);
+                }
             }
 
             const { data, error } = await query;
@@ -153,7 +171,7 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [tenantId, deviceId]);
+    }, [tenantId, deviceId, devices]);
 
     // Fetch events
     useEffect(() => {
@@ -166,14 +184,15 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
 
             if (deviceId) {
                 query = query.eq('device_id', deviceId);
+            } else if (tenantId && tenantId !== 'all') {
+                // Especificamente selecionado: usar este ID
+                query = query.eq('tenant_id', tenantId);
             } else if (isManager && tenantId === 'all') {
                 // Gestor vê tudo — sem filtro
             } else if (!isManager && availableTenants.length > 0) {
-                // Usuário normal: só vê eventos das empresas vinculadas
+                // Usuário normal vê "Todos": filtrar pelas empresas vinculadas
                 const userTenantIds = availableTenants.map(t => t.id);
                 query = query.in('tenant_id', userTenantIds);
-            } else if (tenantId && tenantId !== 'all') {
-                query = query.eq('tenant_id', tenantId);
             } else {
                 // Sem empresas vinculadas, não mostra nada
                 setEvents([]);
@@ -189,7 +208,7 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
             const mappedEvents: DeviceEvent[] = (data || []).map((row: any) => ({
                 id: row.id,
                 deviceId: row.device_id,
-                type: row.type || '',
+                type: row.details?.TIPO || row.type || '',
                 msg: row.msg,
                 message: row.message,
                 timestamp: row.timestamp,
@@ -197,30 +216,73 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
                 userName: row.user_name,
                 userEmail: row.user_email,
                 source: row.source,
+                value: row.value,
+                details: row.details,
             }));
             setEvents(mappedEvents);
         };
 
-        fetchEvents();
+        if (userRole) {
+            fetchEvents();
 
-        // Realtime para events
-        const channel = supabase
-            .channel('events_changes')
-            .on(
-                'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'events' },
-                () => {
-                    fetchEvents();
-                }
-            )
-            .subscribe();
+            // Realtime para events
+            const channel = supabase
+                .channel('events_changes')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'events' },
+                    () => {
+                        fetchEvents();
+                    }
+                )
+                .subscribe();
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [tenantId, deviceId, isManager, availableTenants]);
+            return () => {
+                supabase.removeChannel(channel);
+            };
+        }
+    }, [tenantId, deviceId, userRole, availableTenants]);
 
-    return { devices, history, events };
+    const refreshEvents = async () => {
+        // Simple trigger for manually refreshing events
+        const dateLimit = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+        let query = supabase
+            .from('events')
+            .select('*')
+            .gte('timestamp', dateLimit)
+            .order('timestamp', { ascending: false });
+
+        if (deviceId) {
+            query = query.eq('device_id', deviceId);
+        } else if (tenantId && tenantId !== 'all') {
+            // Especificamente selecionado: usar este ID
+            query = query.eq('tenant_id', tenantId);
+        } else if (isManager && tenantId === 'all') {
+            // Gestor vê tudo
+        } else if (!isManager && availableTenants.length > 0) {
+            // "Todos": mostrar apenas o que tem acesso
+            const userTenantIds = availableTenants.map(t => t.id);
+            query = query.in('tenant_id', userTenantIds);
+        }
+
+        const { data } = await query;
+        if (data) {
+            const mappedEvents: DeviceEvent[] = data.map((row: any) => ({
+                id: row.id,
+                deviceId: row.device_id,
+                tenantId: row.tenant_id,
+                type: row.details?.TIPO || row.type || '',
+                msg: row.msg || row.message,
+                severity: row.severity,
+                timestamp: row.timestamp,
+                userName: row.user_name,
+                userEmail: row.user_email
+            }));
+            setEvents(mappedEvents);
+        }
+    };
+
+    return { devices, history, events, refreshEvents };
 };
 
 export const useUsers = (userRole?: string) => {

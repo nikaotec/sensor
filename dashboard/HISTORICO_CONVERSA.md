@@ -328,8 +328,67 @@ server {
 
 ---
 
+## Problema 9: Histórico de temperatura ainda mockado
+
+**Sintoma:** O gráfico de temperatura no DeviceDetails mostrava dados mockados mesmo tendo dados no Supabase.
+
+**Causa:**
+1. O gráfico usava fallback: `history && history.length > 0 ? history : tenantMetrics.historicalData`
+2. A query do useSupabaseData não incluía os deviceIds do tenant corretamente
+
+**Solução:**
+1. **useSupabaseData.ts**: Ajustei a query para buscar dados de todos os dispositivos do tenant quando não há deviceId específico
+2. **DeviceDetails.tsx**: 
+   - Removi o fallback para dados mock
+   - Adicionei mensagem de "Aguardando dados" quando não há histórico
+   - Adicionei log de debug para verificar se dados chegam
+
+**Fluxo de dados:**
+```
+ESP32 (enviarDadosMqtt "periodico" a cada hora)
+    ↓ MQTT tópico: esp32c3/data
+n8n (workflow n8n_hourly_telemetry_supabase.json)
+    ↓ filtra por TIPO = "periodico"
+    ↓ insere na tabela "telemetry" do Supabase
+Dashboard (useSupabaseData.ts)
+    ↓ busca dados das últimas 24h na tabela "telemetry"
+    ↓ exibe no gráfico de temperatura
+```
+
+**Skills utilizadas:**
+- react-best-practices: Para padrões de data fetching em React
+- database-design: Para analisar schema do Supabase
+
+## Problema 10: n8n WebSocket erro 1006
+
+**Sintoma:** O n8n não conectava corretamente, erro 1006 (WebSocket).
+
+**Causa:** Configuração Nginx do n8n não tinha suporte a WebSockets.
+
+**Solução:** Atualizei o config `docs/nginx-n8n-https.conf` com as linhas necessárias:
+```nginx
+proxy_http_version 1.1;
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+proxy_read_timeout 86400;
+proxy_send_timeout 86400;
+```
+
+**Para aplicar no servidor:**
+```bash
+# Copiar o arquivo para o servidor e aplicar
+sudo cp docs/nginx-n8n-https.conf /etc/nginx/sites-enabled/nikaotech
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+**Skills utilizadas:**
+- bash-linux: Para padrões de Nginx e configuração de servidor
+
+---
+
 ## Próximos passos (continuação)
 
-1. Testar se n8n.nikaotech.com está acessível e funcionando
-2. Verificar se o dashboard continua funcionando em nikaotech.com
+1. Testar se o histórico agora exibe dados reais do Supabase
+2. Verificar se o workflow n8n está ativo e processando dados
 3. Adicionar mqtt.nikaotech.com em HTTPS se necessário

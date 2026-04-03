@@ -3,16 +3,21 @@ import Sidebar from './Sidebar';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSupabaseData } from '../hooks/useSupabaseData';
+import { supabase } from '../supabase/config';
 import { BellRing, ShieldAlert, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface AlertsProps {
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
+    onDeviceClick?: (deviceId: string) => void;
 }
 
-const Alerts: React.FC<AlertsProps> = ({ onNavigate }) => {
+const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
     const { currentTenant } = useTenant();
     const { currentUser } = useAuth();
-    const { events } = useSupabaseData(currentTenant?.id || 'all', undefined, currentUser?.role);
+    const { events, refreshEvents } = useSupabaseData(currentTenant?.id || 'all', undefined, currentUser?.role);
+    const [pendingConfirmations, setPendingConfirmations] = useState<Set<string>>(new Set());
+    const [confirmedAlerts, setConfirmedAlerts] = useState<Set<string>>(new Set());
+
     if (!currentTenant) return <div className="flex h-screen items-center justify-center bg-background-dark text-white">Carregando dados...</div>;
 
     const [filter, setFilter] = useState<'all' | 'critical' | 'warning'>('all');
@@ -33,6 +38,7 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate }) => {
             }
             return {
                 id: e.id,
+                deviceId: e.deviceId,
                 severity: (e as any).severity || (e.type.startsWith('ALERTA_') ? 'critical' : 'info'),
                 device: (e as any).deviceName || e.deviceId,
                 message: e.message || e.msg || 'Alerta detectado',
@@ -40,6 +46,37 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate }) => {
                 value: (e as any).value || 'N/A'
             };
         });
+
+    const handleConfirmAlert = async (e: React.MouseEvent, alertId: string) => {
+        e.stopPropagation();
+        console.log('Confirming alert:', alertId);
+        setPendingConfirmations(prev => new Set(prev).add(alertId));
+        try {
+            const { error } = await supabase
+                .from('events')
+                .update({ severity: 'info' })
+                .eq('id', alertId);
+
+            if (error) throw error;
+
+            console.log('Alert confirmed in DB');
+            setConfirmedAlerts(prev => new Set(prev).add(alertId));
+
+            // Força atualização dos dados
+            if (refreshEvents) {
+                await refreshEvents();
+            }
+        } catch (err) {
+            console.error('Error confirming alert:', err);
+            alert('Erro ao confirmar alerta. Verifique o console.');
+        } finally {
+            setPendingConfirmations(prev => {
+                const next = new Set(prev);
+                next.delete(alertId);
+                return next;
+            });
+        }
+    };
 
     const filteredAlerts = filter === 'all' ? tenantAlerts : tenantAlerts.filter(a => a.severity === filter);
 
@@ -159,10 +196,29 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate }) => {
                                                     </td>
                                                     <td className="px-6 py-5 text-right">
                                                         <div className="flex items-center justify-end gap-3">
-                                                            <button className="text-slate-500 hover:text-emerald-400 bg-[#0F110D] hover:bg-emerald-500/10 border border-[#2A2E24] hover:border-emerald-500/30 p-2 rounded-lg transition-all shadow-sm" title="Confirmar">
-                                                                <CheckCircle2 size={16} />
+                                                            <button
+                                                                onClick={(e) => handleConfirmAlert(e, alert.id)}
+                                                                disabled={pendingConfirmations.has(alert.id) || confirmedAlerts.has(alert.id) || alert.severity === 'info'}
+                                                                className={`p-2 rounded-lg transition-all shadow-sm relative z-10 border ${confirmedAlerts.has(alert.id) || alert.severity === 'info'
+                                                                        ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30 cursor-default'
+                                                                        : pendingConfirmations.has(alert.id)
+                                                                            ? 'text-slate-500 bg-[#0F110D] border-[#2A2E24] opacity-50 cursor-wait'
+                                                                            : 'text-slate-500 hover:text-emerald-400 bg-[#0F110D] hover:bg-emerald-500/10 border border-[#2A2E24] hover:border-emerald-500/30 cursor-pointer'
+                                                                    }`}
+                                                                title={confirmedAlerts.has(alert.id) || alert.severity === 'info' ? "Confirmado" : "Confirmar"}
+                                                            >
+                                                                <CheckCircle2 size={16} className={pendingConfirmations.has(alert.id) ? 'animate-pulse' : ''} />
                                                             </button>
-                                                            <button className="text-slate-500 hover:text-primary bg-[#0F110D] hover:bg-primary/10 border border-[#2A2E24] hover:border-primary/30 p-2 rounded-lg transition-all shadow-sm" title="Ver Detalhes">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    console.log('Deep navigating to device:', alert.deviceId);
+                                                                    if (onDeviceClick) onDeviceClick(alert.deviceId);
+                                                                    else console.warn('onDeviceClick prop is missing!');
+                                                                }}
+                                                                className="text-slate-500 hover:text-primary bg-[#0F110D] hover:bg-primary/10 border border-[#2A2E24] hover:border-primary/30 p-2 rounded-lg transition-all shadow-sm relative z-10 cursor-pointer"
+                                                                title="Ver Detalhes"
+                                                            >
                                                                 <ArrowRight size={16} />
                                                             </button>
                                                         </div>

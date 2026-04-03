@@ -135,6 +135,7 @@ const AppContent = () => {
           onChange={(e) => setTenantId(e.target.value)}
           className="bg-slate-700 text-white text-xs p-1 rounded border-none"
         >
+          {availableTenants.length > 0 && <option value="all">TODOS</option>}
           {availableTenants.map(t => (
             <option key={t.id} value={t.id}>{t.name}</option>
           ))}
@@ -186,7 +187,7 @@ const AppContent = () => {
       {currentScreen === 'signup' && <SignUp onLoginClick={navigateToLogin} onSignUp={handleSignUp} />}
       {currentScreen === 'device-list' && <DeviceList onDeviceClick={navigateToDeviceDetails} onNavigate={handleNavigation} />}
       {currentScreen === 'device-details' && <DeviceDetails deviceId={selectedDeviceId || ''} onNavigate={handleNavigation} />}
-      {currentScreen === 'alerts' && <Alerts onNavigate={handleNavigation} />}
+      {currentScreen === 'alerts' && <Alerts onNavigate={handleNavigation} onDeviceClick={navigateToDeviceDetails} />}
       {currentScreen === 'reports' && <Reports onNavigate={handleNavigation} />}
       {currentScreen === 'settings' && <Settings onNavigate={handleNavigation} />}
       {currentScreen === 'manager-panel' && <ManagerPanel onNavigate={handleNavigation} />}
