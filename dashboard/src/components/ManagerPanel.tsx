@@ -37,7 +37,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     // Data hooks
     const { users, isLoading: loadingUsers } = useUsers(currentUser?.role);
     const { devices: supabaseDevices } = useSupabaseData('all', undefined, currentUser?.role);
-    const { devices: mqttDevices } = useMqttData('all', currentUser?.role, supabaseDevices);
+    const { devices: mqttDevices, publish: mqttPublish } = useMqttData('all', currentUser?.role, supabaseDevices);
 
     const [selectedTenants, setSelectedTenants] = useState<{ [key: string]: string }>({});
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -127,13 +127,35 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
             return;
         }
 
+        // Encontra o nome da empresa pelo ID
+        const tenant = availableTenants.find(t => t.id === tId);
+        if (!tenant) {
+            showMessage('error', 'Empresa não encontrada.');
+            return;
+        }
+
+        // Encontra o dispositivo para pegar nome e ala
+        const device = mqttDevices.find(d => d.id === deviceId);
+
         try {
+            // 1. Salva no Supabase (vínculo para o dashboard)
             const { error } = await supabase.from('devices_status').upsert({
                 id: deviceId,
                 tenant_id: tId
             });
             if (error) throw error;
-            showMessage('success', 'Dispositivo vinculado com sucesso!');
+
+            // 2. Envia comando MQTT para o ESP32 gravar na EEPROM
+            const mqttPayload = JSON.stringify({
+                intencao: 'vincular_dispositivo',
+                is_admin: true,
+                empresa: tenant.name,
+                nome: device?.name || 'Sensor',
+                ala: device?.location || 'Nao Definida'
+            });
+            mqttPublish('esp32c3/status/action', mqttPayload);
+
+            showMessage('success', `Dispositivo vinculado à empresa ${tenant.name}!`);
         } catch (err: any) {
             showMessage('error', `Erro ao vincular: ${err.message}`);
         }

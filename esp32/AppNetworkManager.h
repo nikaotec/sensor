@@ -5,7 +5,6 @@
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
-#include <WiFiManager.h>
 #include <functional>
 
 // Define callback type
@@ -15,7 +14,6 @@ class AppNetworkManager {
 private:
   WiFiClient espClient;
   PubSubClient client;
-  WiFiManager wifiManager;
   unsigned long lastMqttReconnectAttempt;
   bool wifiConnected;
   MqttCallback messageHandler;
@@ -31,6 +29,7 @@ public:
   AppNetworkManager();
   void begin(MqttCallback handler);
   void update();
+  void resetWifi(); // Novo: reseta as configurações do WiFiManager
   void publish(const char *topic, String payload);
   bool isConnected();
   bool isWifiConnected();

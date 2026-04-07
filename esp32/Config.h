@@ -2,6 +2,8 @@
 #define CONFIG_H
 
 #include <Arduino.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 // ---------- DEFAULTS ----------
 #define DEFAULT_DEVICE_NAME "ESP32 Sensor"
@@ -25,15 +27,26 @@
 #define MSG_TOPIC_DASHBOARD "esp32c3/dashboard"
 
 // ---------- PINOS ----------
-#define DS18B20_PIN 5
-#define RELAY_PIN 32
-#define PIN_ZMPT 34
-#define PIN_BATTERY 35
-#define PIN_DOOR 19
-#define PIN_DHT11 17
+#define DS18B20_PIN 13 // ou pin 04
+#define RELAY_PIN 5
+#define PIN_ZMPT 35
+#define PIN_BATTERY 34
+#define PIN_DOOR 32
+#define PIN_DHT11 0
+#define PIN_BUZZER 14
 
 #define SDA_PIN 21
 #define SCL_PIN 22
+
+// ---------- I2C ADDRESSES ----------
+#define PCF8574_ADDR 0x20
+#define AHT10_ADDR 0x38
+
+// ---------- BOTÕES PCF8574 ----------
+#define BTN_MENU 4
+#define BTN_UP 5
+#define BTN_DOWN 6
+#define BTN_ENTER 7
 
 // ---------- ENDEREÇOS EEPROM ----------
 #define EEPROM_SIZE 256

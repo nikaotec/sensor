@@ -83,6 +83,12 @@ void DisplayManager::update(float temp, float max, float min, float voltage,
 
   if (now - lastDisplayUpdate > 250) {
     lastDisplayUpdate = now;
+
+    if (isMenuOpen()) {
+      drawMenu();
+      return;
+    }
+
     display.clearBuffer();
     display.setFont(u8g2_font_6x12_tf);
 
@@ -167,4 +173,120 @@ void DisplayManager::update(float temp, float max, float min, float voltage,
 
     display.sendBuffer();
   }
+}
+
+// --- MENU LOGIC ---
+
+void DisplayManager::openMenu() {
+  _currentMenu = MENU_MAIN;
+  _menuIndex = 0;
+  showMessage("Menu Ativo", 2000);
+}
+
+void DisplayManager::closeMenu() {
+  _currentMenu = MENU_OFF;
+  showMessage("Menu Fechado", 2000);
+}
+
+void DisplayManager::menuNext() {
+  if (_currentMenu == MENU_MAIN) {
+    _menuIndex = (_menuIndex + 1) % 5;
+  } else if (_currentMenu == SET_TEMP_MAX || _currentMenu == SET_TEMP_MIN) {
+    _tempAdjust += 0.5;
+  }
+}
+
+void DisplayManager::menuPrev() {
+  if (_currentMenu == MENU_MAIN) {
+    _menuIndex = (_menuIndex + 4) % 5;
+  } else if (_currentMenu == SET_TEMP_MAX || _currentMenu == SET_TEMP_MIN) {
+    _tempAdjust -= 0.5;
+  }
+}
+
+int DisplayManager::menuEnter(float &targetMax, float &targetMin,
+                              bool &targetAlarm, bool &targetRelay) {
+  if (_currentMenu == MENU_MAIN) {
+    if (_menuIndex == 0) {
+      _currentMenu = SET_TEMP_MAX;
+      _tempAdjust = targetMax;
+    } else if (_menuIndex == 1) {
+      _currentMenu = SET_TEMP_MIN;
+      _tempAdjust = targetMin;
+    } else if (_menuIndex == 2) {
+      _currentMenu = TOGGLE_ALARM;
+    } else if (_menuIndex == 3) {
+      _currentMenu = TEST_RELAY;
+    } else if (_menuIndex == 4) {
+      _currentMenu = RESET_WIFI;
+    }
+    return 0;
+  } else {
+    int changed = 0;
+    if (_currentMenu == SET_TEMP_MAX) {
+      targetMax = _tempAdjust;
+      changed = 1;
+    } else if (_currentMenu == SET_TEMP_MIN) {
+      targetMin = _tempAdjust;
+      changed = 1;
+    } else if (_currentMenu == TOGGLE_ALARM) {
+      targetAlarm = !targetAlarm;
+      changed = 1;
+    } else if (_currentMenu == TEST_RELAY) {
+      targetRelay = !targetRelay;
+      changed = 1;
+    } else if (_currentMenu == RESET_WIFI) {
+      changed = 2; // Código especial para Reset
+    }
+
+    _currentMenu = MENU_MAIN;
+    return changed;
+  }
+}
+
+void DisplayManager::drawMenu() {
+  display.clearBuffer();
+  display.setFont(u8g2_font_6x12_tf);
+
+  if (_currentMenu == MENU_MAIN) {
+    display.drawStr(0, 10, "> CONFIGURACOES");
+    const char *options[] = {"1. Temp Max", "2. Temp Min", "3. Alarme ON/OFF",
+                             "4. Testar Rele", "5. Reset WiFi"};
+    for (int i = 0; i < 5; i++) {
+      if (i == _menuIndex)
+        display.drawStr(0, 25 + (i * 12), ">");
+      display.drawStr(10, 25 + (i * 12), options[i]);
+    }
+  } else if (_currentMenu == SET_TEMP_MAX || _currentMenu == SET_TEMP_MIN) {
+    display.drawStr(0, 10,
+                    _currentMenu == SET_TEMP_MAX ? "AJUSTE TEMP MAX"
+                                                 : "AJUSTE TEMP MIN");
+    char buf[10];
+    dtostrf(_tempAdjust, 4, 1, buf);
+    display.setFont(u8g2_font_logisoso24_tf);
+    display.drawStr(30, 45, buf);
+    display.setFont(u8g2_font_6x12_tf);
+    display.drawStr(90, 45, "oC");
+    display.drawStr(0, 62, "[ENTER] p/ Salvar");
+  } else if (_currentMenu == TOGGLE_ALARM) {
+    display.drawStr(0, 10, "STATUS ALARME");
+    display.setFont(u8g2_font_logisoso24_tf);
+    display.drawStr(20, 45, "CONFIRMAR?");
+    display.setFont(u8g2_font_6x12_tf);
+    display.drawStr(0, 62, "[ENTER] Inverter");
+  } else if (_currentMenu == TEST_RELAY) {
+    display.drawStr(0, 10, "TESTE DE SAIDA");
+    display.setFont(u8g2_font_logisoso24_tf);
+    display.drawStr(20, 45, "RELE?");
+    display.setFont(u8g2_font_6x12_tf);
+    display.drawStr(0, 62, "[ENTER] p/ Alternar");
+  } else if (_currentMenu == RESET_WIFI) {
+    display.drawStr(0, 10, "RESETAR WIFI?");
+    display.setFont(u8g2_font_logisoso24_tf);
+    display.drawStr(5, 45, "CONFIRMAR?");
+    display.setFont(u8g2_font_6x12_tf);
+    display.drawStr(0, 62, "[ENTER] Apagar Tudo");
+  }
+
+  display.sendBuffer();
 }

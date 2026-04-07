@@ -68,3 +68,9 @@
 - [x] Fix n8n Firebase OAuth2 Authorization <!-- id: 39 -->
     - [x] Configure n8n to use Service Account instead of OAuth2 <!-- id: 40 -->
     - [x] Verify Google Cloud Console redirect URIs are no longer a blocker <!-- id: 41 -->
+
+# Task: Fix Environment Errors
+
+- [x] Resolve 'Arduino.h' not found error <!-- id: 42 -->
+    - [x] Explain environment configuration to user <!-- id: 43 -->
+    - [x] Optimize header includes in `Config.h` <!-- id: 44 -->

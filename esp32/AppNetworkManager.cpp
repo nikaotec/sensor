@@ -11,19 +11,24 @@ AppNetworkManager::AppNetworkManager() : client(espClient) {
 void AppNetworkManager::begin(MqttCallback handler) {
   messageHandler = handler;
 
-  // WiFiManager: tenta conectar com credenciais salvas (timeout 20s)
-  // Se falhar, abre hotspot "ESP32-Sensor-Config" para configurar via celular
-  wifiManager.setConfigPortalTimeout(180); // Portal fica aberto por 3 min
-  wifiManager.setConnectTimeout(20);       // Tenta conectar por 20s
+  Serial.println("[NET] Conectando ao WiFi: " + String(WIFI_SSID));
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-  Serial.println("[NET] Iniciando WiFiManager...");
-  if (!wifiManager.autoConnect("ESP32-Sensor-Config", "sensor1234")) {
-    Serial.println("[NET] WiFi nao configurado. Reiniciando...");
+  unsigned long startAttempt = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 30000) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n[NET] WiFi CONECTADO - IP: " + WiFi.localIP().toString());
+  } else {
+    Serial.println("\n[NET] FALHA no WiFi. Reiniciando...");
     delay(3000);
     ESP.restart();
   }
 
-  Serial.println("[NET] WiFi CONECTADO - IP: " + WiFi.localIP().toString());
   client.setServer(MQTT_SERVER, MQTT_PORT);
   client.setBufferSize(1024);
   client.setCallback(AppNetworkManager::staticCallback);
@@ -82,6 +87,13 @@ void AppNetworkManager::update() {
   verifyWifi();
   verifyMqtt();
   client.loop();
+}
+
+void AppNetworkManager::resetWifi() {
+  Serial.println("[NET] Resetando configuracoes de WiFi...");
+  WiFi.disconnect(true); // Apaga credenciais salvas da NVM
+  delay(500);
+  ESP.restart();
 }
 
 void AppNetworkManager::publish(const char *topic, String payload) {

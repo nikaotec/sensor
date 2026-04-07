@@ -2,6 +2,7 @@
 #include "AmbientSensor.h"
 #include "AppNetworkManager.h"
 #include "BatterySensor.h"
+#include "ButtonManager.h"
 #include "Config.h"
 #include "DisplayManager.h"
 #include "StorageManager.h"
@@ -16,13 +17,14 @@
 StorageManager storage;
 DisplayManager display;
 AppNetworkManager network;
+ButtonManager buttons;
 
 OneWire oneWire(DS18B20_PIN);
 DallasTemperature sensors(&oneWire);
 VoltageSensor voltSensor(PIN_ZMPT, VOLTAGE_CALIBRATION_DEFAULT);
 // BatterySensor agora é lida dentro da Task do VoltageSensor (evita contenção
 // ADC1) BatterySensor batterySensor(PIN_BATTERY, BATTERY_CALIBRATION_DEFAULT);
-AmbientSensor ambientSensor(PIN_DHT11);
+AmbientSensor ambientSensor;
 
 AlertManager alertTempMax("TEMPERATURA_ALTA", ALERT_DEBOUNCE, ALERT_REPEAT);
 AlertManager alertTempMin("TEMPERATURA_BAIXA", ALERT_DEBOUNCE, ALERT_REPEAT);
@@ -55,10 +57,20 @@ unsigned long doorOpenStart = 0; // Início do tempo de porta aberta
 
 // ...
 
-// ---------- PROTÓTIPOS ----------
-void processarMensagemMqtt(String topic, String payload);
 void enviarDadosMqtt(String evento);
 void enviarDadosDashboard();
+void enviarDadosWeb();
+
+// ---------- FUNÇÕES AUXILIARES ----------
+void emitirBipe(int tempo = 100, int repeticoes = 1) {
+  for (int i = 0; i < repeticoes; i++) {
+    digitalWrite(PIN_BUZZER, HIGH);
+    delay(tempo);
+    digitalWrite(PIN_BUZZER, LOW);
+    if (i < repeticoes - 1)
+      delay(100);
+  }
+}
 
 // ---------- ID ÚNICO ----------
 String getIdDispositivo() {
@@ -76,6 +88,10 @@ void setup() {
   // Inicializa Hardware
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
+  pinMode(PIN_BUZZER, OUTPUT);
+  digitalWrite(PIN_BUZZER, LOW);
+
+  emitirBipe(200, 2); // Feedback de inicialização
 
   // I2C
   Wire.begin(SDA_PIN, SCL_PIN);
@@ -86,6 +102,7 @@ void setup() {
   storage.begin();
   display.begin();
   network.begin(processarMensagemMqtt);
+  buttons.begin();
 
   // Configurações Iniciais
   alertDoor.setDebounce(storage.data.doorMaxTime * 1000);
@@ -110,6 +127,44 @@ void setup() {
 void loop() {
   delay(1); // Watchdog Feed
   unsigned long now = millis();
+
+  // 0. Ler Botões e Gerenciar Menu
+  ButtonEvent ev = buttons.checkButtons();
+  if (ev != BTN_NONE) {
+    if (!display.isMenuOpen()) {
+      if (ev == BTN_PRESSED_MENU)
+        display.openMenu();
+    } else {
+      if (ev == BTN_PRESSED_MENU)
+        display.closeMenu();
+      else if (ev == BTN_PRESSED_UP)
+        display.menuPrev();
+      else if (ev == BTN_PRESSED_DOWN)
+        display.menuNext();
+      else if (ev == BTN_PRESSED_ENTER) {
+        bool relayStatus = releLigado;
+        int res =
+            display.menuEnter(storage.data.alarmMax, storage.data.alarmMin,
+                              storage.data.chkVolt, relayStatus);
+        if (res == 1) {
+          // Se alterou algum parâmetro, salva
+          storage.save();
+          enviarDadosMqtt("feedback_configuracao");
+
+          // Trata teste de relé especificamente
+          if (relayStatus != releLigado) {
+            releLigado = relayStatus;
+            digitalWrite(RELAY_PIN, releLigado ? HIGH : LOW);
+            modoManual = true; // Força modo manual para teste
+          }
+        } else if (res == 2) {
+          // RESET WIFI
+          display.showMessage("RESETANDO WIFI...", 3000);
+          network.resetWifi();
+        }
+      }
+    }
+  }
 
   // 1. Atualizar Rede
   network.update();
@@ -250,11 +305,17 @@ void loop() {
       if (stMax == ALERT_STARTED ||
           (stMax == ALERT_REPEATED && !alertasSilenciados)) {
         statusSeguranca = "QUENTE!";
+        // Buzzer direto no loop para garantir feedback local
+        if (!alertasSilenciados)
+          emitirBipe(300, 3);
         enviarDadosMqtt("ALERTA_TEMP_ALTA");
       }
       if (stMin == ALERT_STARTED ||
           (stMin == ALERT_REPEATED && !alertasSilenciados)) {
         statusSeguranca = "FRIO!";
+        // Buzzer direto no loop para garantir feedback local
+        if (!alertasSilenciados)
+          emitirBipe(300, 3);
         enviarDadosMqtt("ALERTA_TEMP_BAIXA");
       }
 
@@ -316,8 +377,7 @@ bool isDeviceLinked() {
   comp.trim();
   comp.toLowerCase();
   // Lista de identificadores considerados "não vinculados"
-  if (comp == "" || comp == "nikaotec" || comp == "unknown" ||
-      comp == "empresa_default") {
+  if (comp == "" || comp == "unknown" || comp == "empresa_default") {
     return false;
   }
   return true;
@@ -326,6 +386,7 @@ bool isDeviceLinked() {
 // Função Helper para notificar por Display e MQTT ao mesmo tempo
 void notificarUsuario(String mensagem, int tempo = 4000) {
   display.showMessage(mensagem, tempo);
+  emitirBipe(100);
 
   StaticJsonDocument<256> doc;
   doc["TIPO"] = "MENSAGEM_DISPLAY";
@@ -702,11 +763,9 @@ void enviarDadosWeb() {
   doc["EMPRESA"] = storage.data.companyName;
   doc["ALA"] = storage.data.deviceLocation;
   doc["TIPO"] = "REALTIME";
-  doc["TEMP_ATUAL"] = serialized(String(temperaturaAtual, 1));
-  doc["MAX"] =
-      serialized(String(storage.data.tempMaxRec, 1)); // ADICIONADO PICO MAX
-  doc["MIN"] =
-      serialized(String(storage.data.tempMinRec, 1)); // ADICIONADO PICO MIN
+  doc["TEMP_C"] = serialized(String(temperaturaAtual, 1));
+  doc["TEMP_MAX"] = serialized(String(storage.data.tempMaxRec, 1));
+  doc["TEMP_MIN"] = serialized(String(storage.data.tempMinRec, 1));
   doc["VOLTAGEM"] = serialized(String(voltSensor.getVoltage(), 1));
   doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
   doc["ALARM_MAX"] = serialized(String(storage.data.alarmMax, 1));
@@ -771,22 +830,48 @@ void enviarDadosMqtt(String evento) {
   doc["ALA"] = storage.data.deviceLocation;
   doc["TIPO"] = evento;
 
-  // Lógica de Silêncio: Se não vinculado, bloqueia Alertas e Telemetria
-  // (n8n/Supabase)
+  // Feedback sonoro LOCAL para alertas (SEMPRE, antes de qualquer bloqueio)
+  if (evento.startsWith("ALERTA_") && !alertasSilenciados) {
+    emitirBipe(300, 2);
+
+    // Exibe mensagem de alerta no Display por 5 segundos
+    String msgAlerta = "";
+    if (evento == "ALERTA_TEMP_ALTA")
+      msgAlerta = "TEMP. MUITO ALTA";
+    else if (evento == "ALERTA_TEMP_BAIXA")
+      msgAlerta = "TEMP. MUITO BAIXA";
+    else if (evento == "ALERTA_FALTA_ENERGIA")
+      msgAlerta = "FALTA DE ENERGIA";
+    else if (evento == "ALERTA_BATERIA_BAIXA")
+      msgAlerta = "BATERIA FRACA";
+    else if (evento == "ALERTA_PORTA_ABERTA")
+      msgAlerta = "PORTA ABERTA";
+    else if (evento == "ALERTA_TENSAO_ALTA")
+      msgAlerta = "VOLTAGEM ALTA";
+    else if (evento == "ALERTA_TENSAO_BAIXA")
+      msgAlerta = "VOLTAGEM BAIXA";
+
+    if (msgAlerta != "") {
+      display.showMessage(msgAlerta, 5000);
+    }
+  }
+
+  // Lógica de Silêncio: Se não vinculado, bloqueia apenas envio remoto
+  // (n8n/Supabase/WhatsApp)
   if (!isDeviceLinked()) {
     if (evento.startsWith("ALERTA_") || evento == "periodico" ||
         evento == "periodico_suporte" || evento == "relatorio_diario") {
-      Serial.println(
-          "[SILENCIO] Bloqueado: Dispositivo nao vinculado (Empresa: " +
-          String(storage.data.companyName) + ")");
+      Serial.println("[SILENCIO] Bloqueado envio remoto: Dispositivo nao "
+                     "vinculado (Empresa: " +
+                     String(storage.data.companyName) + ")");
       return;
     }
   }
 
   // Dados de Sensores Formatados
-  doc["TEMP_ATUAL"] = serialized(String(temperaturaAtual, 1));
-  doc["MAX"] = serialized(String(storage.data.tempMaxRec, 1));
-  doc["MIN"] = serialized(String(storage.data.tempMinRec, 1));
+  doc["TEMP_C"] = serialized(String(temperaturaAtual, 1));
+  doc["TEMP_MAX"] = serialized(String(storage.data.tempMaxRec, 1));
+  doc["TEMP_MIN"] = serialized(String(storage.data.tempMinRec, 1));
 
   // Limites Configurados (Envia em status, configuração, relatórios periódicos
   // e ALERTAS para o n8n/IA saber o contexto)
@@ -870,8 +955,8 @@ void enviarDadosDashboard() {
   doc["EMPRESA"] = storage.data.companyName;
   doc["TIPO"] = "DASHBOARD_PERIODIC";
   doc["TEMP_C"] = serialized(String(temperaturaAtual, 1));
-  doc["TEMP_MAX_DIA"] = serialized(String(storage.data.tempMaxRec, 1));
-  doc["TEMP_MIN_DIA"] = serialized(String(storage.data.tempMinRec, 1));
+  doc["TEMP_MAX"] = serialized(String(storage.data.tempMaxRec, 1));
+  doc["TEMP_MIN"] = serialized(String(storage.data.tempMinRec, 1));
   doc["CPU_TEMP"] = 0; // Nao disponivel
   doc["TENSAO"] = serialized(String(voltSensor.getVoltage(), 1));
   doc["UPTIME_MIN"] = millis() / 60000;
