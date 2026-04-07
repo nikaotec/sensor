@@ -199,12 +199,16 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const handleResetDevice = async (deviceId: string) => {
         if (!window.confirm("Deseja resetar o vínculo deste dispositivo? Ele voltará para a lista de pendentes.")) return;
         try {
+            // Tenta encontrar a empresa master para resetar, ou remove o vínculo se permitido
+            const nikaoTenant = availableTenants.find(t => t.name.toLowerCase().includes('nikao'));
+
             const { error } = await supabase.from('devices_status').update({
-                tenant_id: 'Nikaotec'
+                tenant_id: nikaoTenant?.id || null // Usa o UUID real ou null
             }).eq('id', deviceId);
             if (error) throw error;
             showMessage('success', "Vínculo do dispositivo resetado.");
         } catch (err: any) {
+            console.error("Erro ao resetar:", err);
             showMessage('error', `Erro ao resetar: ${err.message}`);
         }
     };

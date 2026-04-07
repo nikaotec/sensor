@@ -1,13 +1,12 @@
-
 #ifndef CONFIG_H
 #define CONFIG_H
 
 #include <Arduino.h>
 
-// ---------- DEVICE ----------
-#define DEVICE_NAME "teste "   // Added Device Name
-#define COMPANY_NAME "Nikaotec"   // Added Company Name
-#define DEVICE_LOCATION "ALA norte" // Added Location (ALA)
+// ---------- DEFAULTS ----------
+#define DEFAULT_DEVICE_NAME "ESP32 Sensor"
+#define DEFAULT_COMPANY_NAME "Nikaotec"
+#define DEFAULT_DEVICE_LOCATION "Nao Definida"
 
 // ---------- REDE ----------
 #define WIFI_SSID "VENANCIO"
@@ -37,7 +36,7 @@
 #define SCL_PIN 22
 
 // ---------- ENDEREÇOS EEPROM ----------
-#define EEPROM_SIZE 64
+#define EEPROM_SIZE 256
 #define ADDR_MAX_REC 0
 #define ADDR_MIN_REC 4
 #define ADDR_ALM_MAX 8
@@ -51,6 +50,9 @@
 #define ADDR_CHK_VOLT 40
 #define ADDR_CHK_BAT 41
 #define ADDR_CHK_DOOR 42
+#define ADDR_DEVICE_NAME 44
+#define ADDR_COMPANY_NAME 76
+#define ADDR_DEVICE_LOCATION 108
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0
@@ -80,6 +82,9 @@ struct SystemSettings {
   bool chkVolt;
   bool chkBat;
   bool chkDoor;
+  char deviceName[32];     // Armazenamento fixo para strings na EEPROM
+  char companyName[32];    // Armazenamento fixo para strings na EEPROM
+  char deviceLocation[32]; // Armazenamento fixo para strings na EEPROM
 };
 
 #endif

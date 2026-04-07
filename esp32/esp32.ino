@@ -120,8 +120,8 @@ void loop() {
     enviarDadosWeb();
   }
 
-  // 1.2 Atualizar Dashboard via n8n (A cada 15 segundos)
-  if (now - lastDashboardReport >= 15000) {
+  // 1.2 Atualizar Dashboard via n8n (A cada 1 hora)
+  if (now - lastDashboardReport >= 3600000UL) {
     lastDashboardReport = now;
     enviarDadosDashboard();
   }
@@ -310,6 +310,19 @@ void loop() {
   }
 }
 
+// Helper para verificar se o dispositivo está vinculado a uma empresa real
+bool isDeviceLinked() {
+  String comp = String(storage.data.companyName);
+  comp.trim();
+  comp.toLowerCase();
+  // Lista de identificadores considerados "não vinculados"
+  if (comp == "" || comp == "nikaotec" || comp == "unknown" ||
+      comp == "empresa_default") {
+    return false;
+  }
+  return true;
+}
+
 // Função Helper para notificar por Display e MQTT ao mesmo tempo
 void notificarUsuario(String mensagem, int tempo = 4000) {
   display.showMessage(mensagem, tempo);
@@ -318,7 +331,7 @@ void notificarUsuario(String mensagem, int tempo = 4000) {
   doc["TIPO"] = "MENSAGEM_DISPLAY";
   doc["CONTEUDO"] = mensagem;
   doc["HORA"] = network.getCurrentTime();
-  doc["DISPOSITIVO"] = DEVICE_NAME;
+  doc["DISPOSITIVO"] = storage.data.deviceName;
 
   String output;
   serializeJson(doc, output);
@@ -576,6 +589,42 @@ void processarMensagemMqtt(String topic, String payload) {
     } else {
       notificarUsuario("Erro Bat Cal: " + String(novoFator, 2), 5000);
     }
+  } else if (intencao == "vincular_dispositivo") {
+    bool alterou = false;
+    if (doc.containsKey("nome")) {
+      strncpy(storage.data.deviceName, doc["nome"], 31);
+      storage.data.deviceName[31] = '\0';
+      alterou = true;
+    }
+    if (doc.containsKey("empresa")) {
+      strncpy(storage.data.companyName, doc["empresa"], 31);
+      storage.data.companyName[31] = '\0';
+      alterou = true;
+    }
+    if (doc.containsKey("ala")) {
+      strncpy(storage.data.deviceLocation, doc["ala"], 31);
+      storage.data.deviceLocation[31] = '\0';
+      alterou = true;
+    }
+
+    if (alterou) {
+      storage.save();
+      notificarUsuario("VINCULADO: " + String(storage.data.companyName), 5000);
+      enviarDadosMqtt("feedback_vinculo");
+      // Envia REALTIME imediato para atualizar dashboard
+      enviarDadosWeb();
+    }
+  } else if (intencao == "desvincular_dispositivo") {
+    strncpy(storage.data.deviceName, DEFAULT_DEVICE_NAME, 31);
+    strncpy(storage.data.companyName, DEFAULT_COMPANY_NAME, 31);
+    strncpy(storage.data.deviceLocation, DEFAULT_DEVICE_LOCATION, 31);
+    storage.data.deviceName[31] = '\0';
+    storage.data.companyName[31] = '\0';
+    storage.data.deviceLocation[31] = '\0';
+    storage.save();
+    notificarUsuario("DESVINCULADO", 5000);
+    enviarDadosMqtt("feedback_desvinculo");
+    enviarDadosWeb();
   } else if (intencao == "ligar_rele") {
     modoManual = true;
     releLigado = true;
@@ -649,9 +698,9 @@ void enviarDadosWeb() {
 
   StaticJsonDocument<512> doc;
   doc["ID_DISPOSITIVO"] = getIdDispositivo();
-  doc["DISPOSITIVO"] = DEVICE_NAME;
-  doc["EMPRESA"] = COMPANY_NAME;
-  doc["ALA"] = DEVICE_LOCATION;
+  doc["DISPOSITIVO"] = storage.data.deviceName;
+  doc["EMPRESA"] = storage.data.companyName;
+  doc["ALA"] = storage.data.deviceLocation;
   doc["TIPO"] = "REALTIME";
   doc["TEMP_ATUAL"] = serialized(String(temperaturaAtual, 1));
   doc["MAX"] =
@@ -717,10 +766,22 @@ void enviarDadosMqtt(String evento) {
 
   StaticJsonDocument<1024> doc;
   doc["ID_DISPOSITIVO"] = getIdDispositivo();
-  doc["DISPOSITIVO"] = DEVICE_NAME;
-  doc["EMPRESA"] = COMPANY_NAME;
-  doc["ALA"] = DEVICE_LOCATION;
+  doc["DISPOSITIVO"] = storage.data.deviceName;
+  doc["EMPRESA"] = storage.data.companyName;
+  doc["ALA"] = storage.data.deviceLocation;
   doc["TIPO"] = evento;
+
+  // Lógica de Silêncio: Se não vinculado, bloqueia Alertas e Telemetria
+  // (n8n/Supabase)
+  if (!isDeviceLinked()) {
+    if (evento.startsWith("ALERTA_") || evento == "periodico" ||
+        evento == "periodico_suporte" || evento == "relatorio_diario") {
+      Serial.println(
+          "[SILENCIO] Bloqueado: Dispositivo nao vinculado (Empresa: " +
+          String(storage.data.companyName) + ")");
+      return;
+    }
+  }
 
   // Dados de Sensores Formatados
   doc["TEMP_ATUAL"] = serialized(String(temperaturaAtual, 1));
@@ -799,21 +860,23 @@ void enviarDadosDashboard() {
   if (!network.isConnected())
     return;
 
+  // Se não vinculado, não envia para o dashboard global (n8n)
+  if (!isDeviceLinked())
+    return;
+
   StaticJsonDocument<512> doc;
   doc["ID_DISPOSITIVO"] = getIdDispositivo();
-  doc["DISPOSITIVO"] = DEVICE_NAME;
-  doc["EMPRESA"] = COMPANY_NAME;
+  doc["DISPOSITIVO"] = storage.data.deviceName;
+  doc["EMPRESA"] = storage.data.companyName;
   doc["TIPO"] = "DASHBOARD_PERIODIC";
-  doc["TEMP_ATUAL"] = serialized(String(temperaturaAtual, 1));
-  doc["MAX"] = serialized(String(storage.data.tempMaxRec, 1));
-  doc["MIN"] = serialized(String(storage.data.tempMinRec, 1));
-  doc["VOLTAGEM"] = serialized(String(voltSensor.getVoltage(), 1));
-  doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
-  doc["RELE"] = releLigado;
-  doc["MODO"] = modoManual ? "MANUAL" : "AUTO";
-  doc["SILENCIADO"] = alertasSilenciados;
-  doc["RSSI"] = network.getRSSI();
-  doc["IP_LOCAL"] = WiFi.localIP().toString();
+  doc["TEMP_C"] = serialized(String(temperaturaAtual, 1));
+  doc["TEMP_MAX_DIA"] = serialized(String(storage.data.tempMaxRec, 1));
+  doc["TEMP_MIN_DIA"] = serialized(String(storage.data.tempMinRec, 1));
+  doc["CPU_TEMP"] = 0; // Nao disponivel
+  doc["TENSAO"] = serialized(String(voltSensor.getVoltage(), 1));
+  doc["UPTIME_MIN"] = millis() / 60000;
+  doc["WIFI_RSSI"] = network.getRSSI();
+  doc["RELE_STATUS"] = digitalRead(RELAY_PIN) == LOW ? "ON" : "OFF";
   doc["UPTIME"] = millis() / 1000;
   doc["PROTOCOLO"] = "MQTT/WSS";
 

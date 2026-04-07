@@ -18,7 +18,7 @@ export interface DeviceEvent {
     details?: any;
 }
 
-const UNASSIGNED_TENANT_IDS = ['Unknown', 'empresa_default', 'Nikaotec', 'unassigned', null, ''];
+const UNASSIGNED_TENANT_IDS = ['Unknown', 'empresa_default', 'unassigned', null, ''];
 
 export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: string) => {
     const { availableTenants } = useTenant();
@@ -331,4 +331,54 @@ export const useUsers = (userRole?: string) => {
     }, [userRole]);
 
     return { users, isLoading };
+};
+export const useReports = (tenantId: string) => {
+    const [reportConfigs, setReportConfigs] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchReports = async () => {
+        setIsLoading(true);
+        let query = supabase.from('report_configs').select('*');
+
+        if (tenantId !== 'all') {
+            query = query.eq('tenant_id', tenantId);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
+
+        if (error) {
+            console.error("Erro ao carregar relatórios:", error);
+        } else {
+            setReportConfigs(data || []);
+        }
+        setIsLoading(false);
+    };
+
+    useEffect(() => {
+        fetchReports();
+        const channel = supabase
+            .channel('report_configs_changes')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'report_configs' }, () => {
+                fetchReports();
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [tenantId]);
+
+    const saveReportConfig = async (config: any) => {
+        const { error } = await supabase.from('report_configs').upsert(config);
+        if (error) throw error;
+        await fetchReports();
+    };
+
+    const deleteReportConfig = async (id: string) => {
+        const { error } = await supabase.from('report_configs').delete().eq('id', id);
+        if (error) throw error;
+        await fetchReports();
+    };
+
+    return { reportConfigs, isLoading, saveReportConfig, deleteReportConfig };
 };

@@ -17,15 +17,15 @@ BEGIN
     -- Impede a criação de registros inúteis de dispositivos ainda soltos no MQTT.
     -- (O ManagerPanel verá o dispositivo via WebSockets do MQTT e criará o registro via Upsert)
     IF TG_OP = 'INSERT' THEN
-        IF NEW.tenant_id IN ('Unknown', 'empresa_default', 'Nikaotec') OR NEW.tenant_id IS NULL THEN
+        IF NEW.tenant_id IN ('Unknown', 'empresa_default') OR NEW.tenant_id IS NULL THEN
             RETURN NULL; -- Aborta silenciosamente o INSERT
         END IF;
     END IF;
 
     -- Protege contra sobrescrita acidental feita pelos fluxos do N8N (MQTT -> Supabase)
     IF TG_OP = 'UPDATE' THEN
-        IF OLD.tenant_id IS NOT NULL AND OLD.tenant_id NOT IN ('Unknown', 'empresa_default', 'Nikaotec') THEN
-            IF NEW.tenant_id IN ('Unknown', 'empresa_default', 'Nikaotec') OR NEW.tenant_id IS NULL THEN
+        IF OLD.tenant_id IS NOT NULL AND OLD.tenant_id NOT IN ('Unknown', 'empresa_default') THEN
+            IF NEW.tenant_id IN ('Unknown', 'empresa_default') OR NEW.tenant_id IS NULL THEN
                 NEW.tenant_id = OLD.tenant_id; -- Força manter a empresa verdadeira
             END IF;
         END IF;
@@ -50,7 +50,7 @@ DECLARE
 BEGIN
     SELECT tenant_id INTO v_tenant_id FROM devices_status WHERE id = NEW.device_id;
     
-    IF v_tenant_id IS NULL OR v_tenant_id IN ('Unknown', 'empresa_default', 'Nikaotec') THEN
+    IF v_tenant_id IS NULL OR v_tenant_id IN ('Unknown', 'empresa_default') THEN
         RETURN NULL; -- Não registra telemetria para chips órfãos
     END IF;
     
@@ -65,12 +65,12 @@ FOR EACH ROW EXECUTE FUNCTION protect_telemetry();
 
 
 -- =======================================================
--- 3. PROTEÇÃO DA TABELA: hourly_telemetry
+-- 3. PROTEÇÃO DA TABELA: hourly_telemetry (DESATIVADO - Tabela inexistente)
 -- =======================================================
-DROP TRIGGER IF EXISTS trg_hourly_telemetry_protect ON hourly_telemetry;
-CREATE TRIGGER trg_hourly_telemetry_protect
-BEFORE INSERT ON hourly_telemetry
-FOR EACH ROW EXECUTE FUNCTION protect_telemetry(); 
+-- DROP TRIGGER IF EXISTS trg_hourly_telemetry_protect ON hourly_telemetry;
+-- CREATE TRIGGER trg_hourly_telemetry_protect
+-- BEFORE INSERT ON hourly_telemetry
+-- FOR EACH ROW EXECUTE FUNCTION protect_telemetry(); 
 
 
 -- =======================================================
@@ -82,7 +82,7 @@ DECLARE
 BEGIN
     SELECT tenant_id INTO v_tenant_id FROM devices_status WHERE id = NEW.device_id;
     
-    IF v_tenant_id IS NULL OR v_tenant_id IN ('Unknown', 'empresa_default', 'Nikaotec') THEN
+    IF v_tenant_id IS NULL OR v_tenant_id IN ('Unknown', 'empresa_default') THEN
         RETURN NULL; -- Não registra alertas/eventos para chips órfãos
     END IF;
     

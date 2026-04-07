@@ -12,7 +12,6 @@ void StorageManager::load() {
   EEPROM.get(ADDR_ALM_MIN, data.alarmMin);
   EEPROM.get(ADDR_VOLT_MAX, data.voltMax);
   EEPROM.get(ADDR_VOLT_MIN, data.voltMin);
-  EEPROM.get(ADDR_VOLT_MIN, data.voltMin);
   EEPROM.get(ADDR_VOLT_CAL, data.voltCalFactor);
   EEPROM.get(ADDR_BAT_CAL, data.batCalFactor);
   EEPROM.get(ADDR_BAT_MIN, data.batMinLimit);
@@ -20,6 +19,9 @@ void StorageManager::load() {
   EEPROM.get(ADDR_CHK_VOLT, data.chkVolt);
   EEPROM.get(ADDR_CHK_BAT, data.chkBat);
   EEPROM.get(ADDR_CHK_DOOR, data.chkDoor);
+  EEPROM.get(ADDR_DEVICE_NAME, data.deviceName);
+  EEPROM.get(ADDR_COMPANY_NAME, data.companyName);
+  EEPROM.get(ADDR_DEVICE_LOCATION, data.deviceLocation);
 
   // Validação e Valores Padrão
   if (isnan(data.voltCalFactor) || data.voltCalFactor < 10.0 ||
@@ -67,6 +69,20 @@ void StorageManager::load() {
     EEPROM.put(ADDR_MIN_REC, data.tempMinRec);
     EEPROM.commit();
   }
+
+  // Padrões para Strings
+  if (data.deviceName[0] == 0 || (uint8_t)data.deviceName[0] == 0xFF) {
+    strncpy(data.deviceName, "ESP32 Sensor", 31);
+    data.deviceName[31] = '\0';
+  }
+  if (data.companyName[0] == 0 || (uint8_t)data.companyName[0] == 0xFF) {
+    strncpy(data.companyName, "Nikaotec", 31);
+    data.companyName[31] = '\0';
+  }
+  if (data.deviceLocation[0] == 0 || (uint8_t)data.deviceLocation[0] == 0xFF) {
+    strncpy(data.deviceLocation, "Nao Definida", 31);
+    data.deviceLocation[31] = '\0';
+  }
 }
 
 void StorageManager::save() {
@@ -74,7 +90,6 @@ void StorageManager::save() {
   EEPROM.put(ADDR_ALM_MIN, data.alarmMin);
   EEPROM.put(ADDR_VOLT_MAX, data.voltMax);
   EEPROM.put(ADDR_VOLT_MIN, data.voltMin);
-  EEPROM.put(ADDR_VOLT_MIN, data.voltMin); // Remover duplicata se houver
   EEPROM.put(ADDR_VOLT_CAL, data.voltCalFactor);
   EEPROM.put(ADDR_BAT_CAL, data.batCalFactor);
   EEPROM.put(ADDR_BAT_MIN, data.batMinLimit);
@@ -82,9 +97,10 @@ void StorageManager::save() {
   EEPROM.put(ADDR_CHK_VOLT, data.chkVolt);
   EEPROM.put(ADDR_CHK_BAT, data.chkBat);
   EEPROM.put(ADDR_CHK_DOOR, data.chkDoor);
+  EEPROM.put(ADDR_DEVICE_NAME, data.deviceName);
+  EEPROM.put(ADDR_COMPANY_NAME, data.companyName);
+  EEPROM.put(ADDR_DEVICE_LOCATION, data.deviceLocation);
 
-  // Não salvamos Max/Min aqui para não desgastar à toa, eles são salvos em
-  // updateRecords
   EEPROM.commit();
 }
 

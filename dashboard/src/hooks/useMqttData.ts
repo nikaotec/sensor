@@ -137,7 +137,7 @@ export const useMqttData = (
                 );
 
                 const resolvedCompanyContext = (existingDevice ? existingDevice.tenantId : payload.company) || 'Unknown';
-                const isUnlinked = ['unknown', 'empresa_default', 'nikaotec', ''].includes(resolvedCompanyContext.trim().toLowerCase());
+                const isUnlinked = ['unknown', 'empresa_default', ''].includes(resolvedCompanyContext.trim().toLowerCase());
 
                 // Trigger alert callback if it's an alert AND device is validly assigned
                 if (!isUnlinked && payload.TIPO && payload.TIPO.startsWith('ALERTA_')) {

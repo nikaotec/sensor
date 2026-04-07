@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Login from './components/Login'
 import SignUp from './components/SignUp'
 import Dashboard from './components/Dashboard'
@@ -27,27 +27,72 @@ const AppContent = () => {
   const { currentTenant, setTenantId, availableTenants } = useTenant();
   const { currentUser, loading } = useAuth();
 
-  // Função para tocar som de alerta (Web Audio API)
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Efeito para "desbloquear" o áudio no navegador com a primeira interação do usuário
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume().then(() => {
+          console.log("AudioContext ativado com sucesso");
+        });
+      }
+      // Remove os listeners após desbloquear
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
+
+  // Função para tocar som de alerta (Padrão Sirene)
   const playAlertSound = () => {
     try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
+      if (!audioCtxRef.current) return;
+      const ctx = audioCtxRef.current;
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
+      // Forçar resume se necessário
+      if (ctx.state === 'suspended') ctx.resume();
 
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5);
+      const startTime = ctx.currentTime;
 
-      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+      // Função auxiliar para criar bipes da sirene
+      const createTone = (freq: number, time: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
 
-      oscillator.start();
-      oscillator.stop(audioCtx.currentTime + 0.5);
+        osc.type = 'sawtooth'; // Som mais "alerta"
+        osc.frequency.setValueAtTime(freq, time);
+
+        // Envelope suave para evitar estalidos
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(0.1, time + 0.05);
+        gain.gain.setValueAtTime(0.1, time + duration - 0.05);
+        gain.gain.linearRampToValueAtTime(0, time + duration);
+
+        osc.start(time);
+        osc.stop(time + duration);
+      };
+
+      // Sirene de dois tons alternados
+      createTone(880, startTime, 0.25);
+      createTone(554, startTime + 0.25, 0.25);
+      createTone(880, startTime + 0.5, 0.25);
+      createTone(554, startTime + 0.75, 0.25);
+
     } catch (e) {
-      console.warn('Áudio não habilitado pelo navegador (interação do usuário necessária).');
+      console.warn('Erro na reprodução do áudio:', e);
     }
   };
 

@@ -115,9 +115,14 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
 
         try {
             publish('esp32c3/status/action', JSON.stringify(payload));
+
+            // Valida se o tenantId é um UUID válido antes de inserir no banco
+            const isValidUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+            const tenant_id = device.tenantId && isValidUUID(device.tenantId) ? device.tenantId : null;
+
             await supabase.from('events').insert({
                 device_id: device.id,
-                tenant_id: device.tenantId,
+                tenant_id,
                 type: 'DASHBOARD_COMMAND',
                 msg: logMsg,
                 user_name: currentUser?.name || 'Usuário Dashboard',
