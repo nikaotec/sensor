@@ -60,6 +60,8 @@ unsigned long doorOpenStart = 0; // Início do tempo de porta aberta
 void enviarDadosMqtt(String evento);
 void enviarDadosDashboard();
 void enviarDadosWeb();
+void notificarUsuario(String mensagem, int tempo = 4000);
+bool isDeviceLinked();
 
 // ---------- FUNÇÕES AUXILIARES ----------
 void emitirBipe(int tempo = 100, int repeticoes = 1) {
@@ -186,7 +188,8 @@ void loop() {
     lastTempCheck = now;
 
     sensors.requestTemperatures();
-    temperaturaAtual = sensors.getTempCByIndex(0);
+    float tempBruta = sensors.getTempCByIndex(0);
+    temperaturaAtual = tempBruta + storage.data.tempCalOffset;
     float tVoltagem = voltSensor.getVoltage();
     float tBateria = voltSensor.getBatteryVoltage();
     ambientSensor.read();
@@ -226,6 +229,14 @@ void loop() {
     }
 
     // Controle e Alertas (Apenas se não estiver em manutenção)
+    // 0. Verifica timeout do modo manual (restaura após 5 minutos)
+    if (modoManual && (now - manualTimeout > 300000)) {
+      modoManual = false;
+      display.showMessage("Aviso: M. Auto Retomado", 4000);
+      enviarDadosMqtt("MODO_AUTOMATICO_RETOMADO_TIMEOUT");
+      Serial.println("[TIMER] Modo Manual expirado, retornando ao automático");
+    }
+
     if (!modoManual) {
 
       // 0. Lógica do Relé (Apenas com temperatura válida)
@@ -240,10 +251,12 @@ void loop() {
       }
 
       // 1. Declaração de status de temperatura
-      AlertStatus stMax =
-          alertTempMax.check(temperaturaAtual >= storage.data.alarmMax);
-      AlertStatus stMin =
-          alertTempMin.check(temperaturaAtual <= storage.data.alarmMin);
+      AlertStatus stMax = ALERT_NONE;
+      AlertStatus stMin = ALERT_NONE;
+      if (storage.data.chkTemp) {
+        stMax = alertTempMax.check(temperaturaAtual >= storage.data.alarmMax);
+        stMin = alertTempMin.check(temperaturaAtual <= storage.data.alarmMin);
+      }
 
       // 2. Falta de Energia
       // 2. Falta de Energia
@@ -305,17 +318,15 @@ void loop() {
       if (stMax == ALERT_STARTED ||
           (stMax == ALERT_REPEATED && !alertasSilenciados)) {
         statusSeguranca = "QUENTE!";
-        // Buzzer direto no loop para garantir feedback local
-        if (!alertasSilenciados)
-          emitirBipe(300, 3);
+        String msg = "Temp Alta: " + String(temperaturaAtual, 1) + "C";
+        notificarUsuario(msg, 5000);
         enviarDadosMqtt("ALERTA_TEMP_ALTA");
       }
       if (stMin == ALERT_STARTED ||
           (stMin == ALERT_REPEATED && !alertasSilenciados)) {
         statusSeguranca = "FRIO!";
-        // Buzzer direto no loop para garantir feedback local
-        if (!alertasSilenciados)
-          emitirBipe(300, 3);
+        String msg = "Temp Baixa: " + String(temperaturaAtual, 1) + "C";
+        notificarUsuario(msg, 5000);
         enviarDadosMqtt("ALERTA_TEMP_BAIXA");
       }
 
@@ -384,7 +395,7 @@ bool isDeviceLinked() {
 }
 
 // Função Helper para notificar por Display e MQTT ao mesmo tempo
-void notificarUsuario(String mensagem, int tempo = 4000) {
+void notificarUsuario(String mensagem, int tempo) {
   display.showMessage(mensagem, tempo);
   emitirBipe(100);
 
@@ -417,6 +428,17 @@ void processarMensagemMqtt(String topic, String payload) {
 
   String intencao = doc["intencao"] | "";
   bool isAdmin = doc["is_admin"] | false;
+
+  // Filtra pacotes destinados a outro dispositivo específico
+  if (doc.containsKey("dispositivo_id")) {
+    String reqId = doc["dispositivo_id"].as<String>();
+    if (reqId != "" && reqId != getIdDispositivo()) {
+      Serial.println(
+          "[MQTT RX] IGNORADO - Pacote destinado a outro dispositivo: " +
+          reqId);
+      return;
+    }
+  }
 
   // Salva remoteJid para incluir nas respostas
   if (doc.containsKey("remoteJid")) {
@@ -709,30 +731,57 @@ void processarMensagemMqtt(String topic, String payload) {
     storage.save();
     notificarUsuario("Mon. Tensao LIGADO", 4000);
     enviarDadosMqtt("feedback_configuracao");
+    enviarDadosWeb();
   } else if (intencao == "desabilitar_tensao") {
     storage.data.chkVolt = false;
     storage.save();
     notificarUsuario("Mon. Tensao DESLIGADO", 4000);
     enviarDadosMqtt("feedback_configuracao");
+    enviarDadosWeb();
   } else if (intencao == "habilitar_bateria") {
     storage.data.chkBat = true;
     storage.save();
     notificarUsuario("Mon. Bateria LIGADO", 4000);
     enviarDadosMqtt("feedback_configuracao");
+    enviarDadosWeb();
   } else if (intencao == "desabilitar_bateria") {
     storage.data.chkBat = false;
     storage.save();
     notificarUsuario("Mon. Bateria DESLIGADO", 4000);
     enviarDadosMqtt("feedback_configuracao");
+    enviarDadosWeb();
   } else if (intencao == "habilitar_porta") {
     storage.data.chkDoor = true;
     storage.save();
     notificarUsuario("Mon. Porta LIGADO", 4000);
     enviarDadosMqtt("feedback_configuracao");
+    enviarDadosWeb();
   } else if (intencao == "desabilitar_porta") {
     storage.data.chkDoor = false;
     storage.save();
     notificarUsuario("Mon. Porta DESLIGADO", 4000);
+    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosWeb();
+  } else if (intencao == "habilitar_temperatura") {
+    storage.data.chkTemp = true;
+    storage.save();
+    notificarUsuario("Mon. Temp LIGADO", 4000);
+    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosWeb();
+  } else if (intencao == "desabilitar_temperatura") {
+    storage.data.chkTemp = false;
+    storage.save();
+    notificarUsuario("Mon. Temp DESLIGADO", 4000);
+    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosWeb();
+  } else if (intencao == "calibrar_temperatura") {
+    if (doc.containsKey("nova_temperatura")) {
+      float offset = doc["nova_temperatura"].as<float>();
+      storage.data.tempCalOffset = offset;
+      storage.save();
+      String msg = "Cal. Temp: " + String(offset, 1) + "C";
+      notificarUsuario(msg, 4000);
+    }
     enviarDadosMqtt("feedback_configuracao");
   } else if (intencao == "reset_manual") {
     storage.resetMinMax(temperaturaAtual);
@@ -774,6 +823,10 @@ void enviarDadosWeb() {
   doc["VOLT_MIN_LIMIT"] = serialized(String(storage.data.voltMin, 1));
   doc["BAT_MIN_LIMIT"] = serialized(String(storage.data.batMinLimit, 1));
   doc["TEMPO_PORTA"] = storage.data.doorMaxTime;
+  doc["CHK_VOLT"] = storage.data.chkVolt;
+  doc["CHK_BAT"] = storage.data.chkBat;
+  doc["CHK_TEMP"] = storage.data.chkTemp;
+  doc["CHK_DOOR"] = storage.data.chkDoor;
 
   // Dados do Sensor Ambiente (DHT11)
   doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
@@ -870,6 +923,7 @@ void enviarDadosMqtt(String evento) {
 
   // Dados de Sensores Formatados
   doc["TEMP_C"] = serialized(String(temperaturaAtual, 1));
+  doc["TEMP"] = serialized(String(temperaturaAtual, 1)); // Compatibilidade n8n
   doc["TEMP_MAX"] = serialized(String(storage.data.tempMaxRec, 1));
   doc["TEMP_MIN"] = serialized(String(storage.data.tempMinRec, 1));
 
@@ -888,7 +942,9 @@ void enviarDadosMqtt(String evento) {
   doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
   doc["CHK_VOLT"] = storage.data.chkVolt;
   doc["CHK_BAT"] = storage.data.chkBat;
+  doc["CHK_TEMP"] = storage.data.chkTemp;
   doc["CHK_DOOR"] = storage.data.chkDoor;
+  doc["TEMP_CAL_OFFSET"] = storage.data.tempCalOffset;
 
   // Sensor Ambiente (DHT11)
   if (evento == "STATUS_SOLICITADO" || evento == "periodico_suporte") {

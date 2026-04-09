@@ -74,3 +74,17 @@
 - [x] Resolve 'Arduino.h' not found error <!-- id: 42 -->
     - [x] Explain environment configuration to user <!-- id: 43 -->
     - [x] Optimize header includes in `Config.h` <!-- id: 44 -->
+
+# Task: Fix Hourly Telemetry Logging (Supabase)
+
+- [x] Fix n8n_hourly_telemetry_supabase field mapping <!-- id: 45 -->
+    - [x] Change TEMP_ATUAL to TEMP_C (correct ESP32 field name) <!-- id: 46 -->
+    - [x] Add temp_max and temp_min fields to telemetry insert <!-- id: 47 -->
+- [x] Update Supabase schema for temp_max/temp_min <!-- id: 48 -->
+    - [x] Add columns to telemetry table in supabase_schema.sql <!-- id: 49 -->
+    - [x] Create add_telemetry_columns.sql for existing databases <!-- id: 50 -->
+- [x] Fix n8n_mqtt_to_supabase field mapping <!-- id: 51 -->
+    - [x] Update devices_status upsert to use TEMP_C, TEMP_MAX, TEMP_MIN <!-- id: 52 -->
+    - [x] Update telemetry insert to use correct field names <!-- id: 53 -->
+- [x] Verify ESP32 sends correct field names <!-- id: 54 -->
+    - [x] ESP32 sends TEMP_C, TEMP_MAX, TEMP_MIN in periodico events <!-- id: 55 -->

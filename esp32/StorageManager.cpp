@@ -18,7 +18,9 @@ void StorageManager::load() {
   EEPROM.get(ADDR_DOOR_TIME, data.doorMaxTime);
   EEPROM.get(ADDR_CHK_VOLT, data.chkVolt);
   EEPROM.get(ADDR_CHK_BAT, data.chkBat);
+  EEPROM.get(ADDR_CHK_TEMP, data.chkTemp);
   EEPROM.get(ADDR_CHK_DOOR, data.chkDoor);
+  EEPROM.get(ADDR_TEMP_CAL, data.tempCalOffset);
   EEPROM.get(ADDR_DEVICE_NAME, data.deviceName);
   EEPROM.get(ADDR_COMPANY_NAME, data.companyName);
   EEPROM.get(ADDR_DEVICE_LOCATION, data.deviceLocation);
@@ -49,6 +51,20 @@ void StorageManager::load() {
       data.doorMaxTime > 300) {
     data.doorMaxTime = DOOR_TIME_DEFAULT;
     EEPROM.put(ADDR_DOOR_TIME, data.doorMaxTime);
+    EEPROM.commit();
+  }
+
+  // chkTemp default = true
+  if (data.chkTemp != true && data.chkTemp != false) {
+    data.chkTemp = true;
+    EEPROM.put(ADDR_CHK_TEMP, data.chkTemp);
+    EEPROM.commit();
+  }
+
+  // tempCalOffset default = 0.0
+  if (isnan(data.tempCalOffset)) {
+    data.tempCalOffset = 0.0;
+    EEPROM.put(ADDR_TEMP_CAL, data.tempCalOffset);
     EEPROM.commit();
   }
 
@@ -96,7 +112,9 @@ void StorageManager::save() {
   EEPROM.put(ADDR_DOOR_TIME, data.doorMaxTime);
   EEPROM.put(ADDR_CHK_VOLT, data.chkVolt);
   EEPROM.put(ADDR_CHK_BAT, data.chkBat);
+  EEPROM.put(ADDR_CHK_TEMP, data.chkTemp);
   EEPROM.put(ADDR_CHK_DOOR, data.chkDoor);
+  EEPROM.put(ADDR_TEMP_CAL, data.tempCalOffset);
   EEPROM.put(ADDR_DEVICE_NAME, data.deviceName);
   EEPROM.put(ADDR_COMPANY_NAME, data.companyName);
   EEPROM.put(ADDR_DEVICE_LOCATION, data.deviceLocation);

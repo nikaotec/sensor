@@ -61,7 +61,15 @@
                         },
                         {
                             "fieldId": "temperature",
-                            "fieldValue": "={{ parseFloat($json.TEMP_ATUAL) }}"
+                            "fieldValue": "={{ parseFloat($json.TEMP_C) }}"
+                        },
+                        {
+                            "fieldId": "temp_max",
+                            "fieldValue": "={{ parseFloat($json.TEMP_MAX) }}"
+                        },
+                        {
+                            "fieldId": "temp_min",
+                            "fieldValue": "={{ parseFloat($json.TEMP_MIN) }}"
                         },
                         {
                             "fieldId": "voltage",

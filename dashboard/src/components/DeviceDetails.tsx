@@ -29,7 +29,12 @@ import {
     Wifi,
     Download,
     VolumeX,
-    Volume2
+    Volume2,
+    Gauge,
+    DoorOpen,
+    ToggleLeft,
+    ToggleRight,
+    Settings2
 } from 'lucide-react';
 
 interface DeviceDetailsProps {
@@ -58,6 +63,17 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const [doorTimeInput, setDoorTimeInput] = useState<string>('');
     const [isUpdating, setIsUpdating] = useState(false);
 
+    // Estados para controle de alarmes por sensor (CHK_*)
+    const [chkVolt, setChkVolt] = useState<boolean>(true);
+    const [chkBat, setChkBat] = useState<boolean>(true);
+    const [chkTemp, setChkTemp] = useState<boolean>(true);
+    const [chkDoor, setChkDoor] = useState<boolean>(true);
+
+    // Estados para calibração
+    const [voltCalibration, setVoltCalibration] = useState<string>('');
+    const [batCalibration, setBatCalibration] = useState<string>('');
+    const [tempCalibration, setTempCalibration] = useState<string>('');
+
     // Filter by tenant and deviceId
     const device = tenantDevices.find(d => d.id === deviceId);
 
@@ -72,6 +88,11 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                 if (device.telemetry.batMinLimit !== undefined) setBatMinInput(device.telemetry.batMinLimit.toString());
                 if (device.telemetry.doorMaxTime !== undefined) setDoorTimeInput(device.telemetry.doorMaxTime.toString());
             }
+            // Sincronizar estados de alarmes (CHK_*)
+            if (device.telemetry.chkVolt !== undefined) setChkVolt(device.telemetry.chkVolt);
+            if (device.telemetry.chkBat !== undefined) setChkBat(device.telemetry.chkBat);
+            if (device.telemetry.chkTemp !== undefined) setChkTemp(device.telemetry.chkTemp);
+            if (device.telemetry.chkDoor !== undefined) setChkDoor(device.telemetry.chkDoor);
         }
     }, [device?.telemetry, remoteSync]);
 
@@ -104,6 +125,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
         const payload = {
             intencao: action,
             id: device.id,
+            dispositivo_id: device.id,
             is_admin: isAdmin,
             source: 'dashboard',
             user: {
@@ -158,6 +180,57 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
 
     const handleToggleRelay = (action: 'ligar_rele' | 'desligar_rele') => {
         handleAction(action, {}, action === 'ligar_rele' ? 'Relé ligado manualmente' : 'Relé desligado manualmente');
+    };
+
+    // Handler para habilitar/desabilitar alarmes por sensor
+    const handleToggleAlarm = (sensor: 'habilitar_tensao' | 'desabilitar_tensao' | 'habilitar_bateria' | 'desabilitar_bateria' | 'habilitar_temperatura' | 'desabilitar_temperatura' | 'habilitar_porta' | 'desabilitar_porta') => {
+        const sensorNames: Record<string, string> = {
+            'habilitar_tensao': 'Tensão',
+            'desabilitar_tensao': 'Tensão',
+            'habilitar_bateria': 'Bateria',
+            'desabilitar_bateria': 'Bateria',
+            'habilitar_temperatura': 'Temperatura',
+            'desabilitar_temperatura': 'Temperatura',
+            'habilitar_porta': 'Porta',
+            'desabilitar_porta': 'Porta'
+        };
+        const actionType = sensor.startsWith('habilitar') ? 'habilitado' : 'desabilitado';
+
+        // Update otimista do estado local para feedback imediato
+        if (sensor === 'habilitar_tensao' || sensor === 'desabilitar_tensao') {
+            setChkVolt(sensor.startsWith('habilitar'));
+        } else if (sensor === 'habilitar_bateria' || sensor === 'desabilitar_bateria') {
+            setChkBat(sensor.startsWith('habilitar'));
+        } else if (sensor === 'habilitar_temperatura' || sensor === 'desabilitar_temperatura') {
+            setChkTemp(sensor.startsWith('habilitar'));
+        } else if (sensor === 'habilitar_porta' || sensor === 'desabilitar_porta') {
+            setChkDoor(sensor.startsWith('habilitar'));
+        }
+
+        handleAction(sensor, {}, `Alarme de ${sensorNames[sensor]} ${actionType} via dashboard`);
+    };
+
+    // Handler para calibração de sensores
+    const handleSettings2 = (type: 'tensao' | 'bateria' | 'temperatura') => {
+        if (type === 'temperatura') {
+            const value = tempCalibration;
+            if (!value || isNaN(parseFloat(value))) {
+                alert('Por favor, insira um valor válido para calibração');
+                return;
+            }
+            handleAction('calibrar_temperatura', { nova_temperatura: parseFloat(value) }, `Calibração de temperatura com offset ${value}C`);
+            setTempCalibration('');
+            return;
+        }
+        const value = type === 'tensao' ? voltCalibration : batCalibration;
+        if (!value || isNaN(parseFloat(value))) {
+            alert('Por favor, insira um valor válido para calibração');
+            return;
+        }
+        const action = type === 'tensao' ? 'calibrar_tensao' : 'calibrar_bateria';
+        handleAction(action, { nova_tensao: parseFloat(value) }, `Calibração de ${type === 'tensao' ? 'tensão' : 'bateria'} para ${value}V`);
+        setVoltCalibration('');
+        setBatCalibration('');
     };
 
     const getStatusStyle = (status: string) => {
@@ -423,6 +496,202 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                     >
                                         {isUpdating ? 'ENVIANDO...' : (isConnected ? 'ATUALIZAR LIMITES' : 'SEM CONEXÃO')}
                                     </button>
+
+                                    {/* Seção: Controle de Alarmes por Sensor */}
+                                    <div className="pt-4 mt-4 border-t border-[#2A2E24]">
+                                        <label className="text-[10px] text-slate-500 uppercase font-bold tracking-widest mb-3 block">Alarmes por Sensor</label>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                                            {/* Toggle: Alarme de Tensão */}
+                                            <button
+                                                onClick={() => handleToggleAlarm(chkVolt ? 'desabilitar_tensao' : 'habilitar_tensao')}
+                                                disabled={isUpdating || !isConnected}
+                                                className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 w-full text-left group
+                                                    ${chkVolt
+                                                        ? 'bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.05)]'
+                                                        : 'bg-[#0F110D] border-[#2A2E24] hover:bg-[#151811]'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-lg transition-colors ${chkVolt ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#1A1D17] text-slate-500'}`}>
+                                                        <Gauge size={16} />
+                                                    </div>
+                                                    <div>
+                                                        <p className={`text-[11px] font-bold uppercase tracking-wider ${chkVolt ? 'text-emerald-400' : 'text-slate-400'}`}>Tensão</p>
+                                                        <p className={`text-[9px] font-medium ${chkVolt ? 'text-emerald-500/70' : 'text-slate-600'}`}>{chkVolt ? 'Alerta Ativado' : 'Desativado'}</p>
+                                                    </div>
+                                                </div>
+                                                <div className={chkVolt ? 'text-emerald-500' : 'text-slate-600'}>
+                                                    {chkVolt ? (
+                                                        <ToggleRight size={24} className="transition-transform group-hover:scale-105" />
+                                                    ) : (
+                                                        <ToggleLeft size={24} className="transition-transform group-hover:scale-105" />
+                                                    )}
+                                                </div>
+                                            </button>
+
+                                            {/* Toggle: Alarme de Bateria */}
+                                            <button
+                                                onClick={() => handleToggleAlarm(chkBat ? 'desabilitar_bateria' : 'habilitar_bateria')}
+                                                disabled={isUpdating || !isConnected}
+                                                className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 w-full text-left group
+                                                    ${chkBat
+                                                        ? 'bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.05)]'
+                                                        : 'bg-[#0F110D] border-[#2A2E24] hover:bg-[#151811]'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-lg transition-colors ${chkBat ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#1A1D17] text-slate-500'}`}>
+                                                        <BatteryCharging size={16} />
+                                                    </div>
+                                                    <div>
+                                                        <p className={`text-[11px] font-bold uppercase tracking-wider ${chkBat ? 'text-emerald-400' : 'text-slate-400'}`}>Bateria</p>
+                                                        <p className={`text-[9px] font-medium ${chkBat ? 'text-emerald-500/70' : 'text-slate-600'}`}>{chkBat ? 'Alerta Ativado' : 'Desativado'}</p>
+                                                    </div>
+                                                </div>
+                                                <div className={chkBat ? 'text-emerald-500' : 'text-slate-600'}>
+                                                    {chkBat ? (
+                                                        <ToggleRight size={24} className="transition-transform group-hover:scale-105" />
+                                                    ) : (
+                                                        <ToggleLeft size={24} className="transition-transform group-hover:scale-105" />
+                                                    )}
+                                                </div>
+                                            </button>
+
+                                            {/* Toggle: Alarme de Temperatura */}
+                                            <button
+                                                onClick={() => handleToggleAlarm(chkTemp ? 'desabilitar_temperatura' : 'habilitar_temperatura')}
+                                                disabled={isUpdating || !isConnected}
+                                                className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 w-full text-left group
+                                                    ${chkTemp
+                                                        ? 'bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.05)]'
+                                                        : 'bg-[#0F110D] border-[#2A2E24] hover:bg-[#151811]'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-lg transition-colors ${chkTemp ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#1A1D17] text-slate-500'}`}>
+                                                        <Thermometer size={16} />
+                                                    </div>
+                                                    <div>
+                                                        <p className={`text-[11px] font-bold uppercase tracking-wider ${chkTemp ? 'text-emerald-400' : 'text-slate-400'}`}>Temperatura</p>
+                                                        <p className={`text-[9px] font-medium ${chkTemp ? 'text-emerald-500/70' : 'text-slate-600'}`}>{chkTemp ? 'Alerta Ativado' : 'Desativado'}</p>
+                                                    </div>
+                                                </div>
+                                                <div className={chkTemp ? 'text-emerald-500' : 'text-slate-600'}>
+                                                    {chkTemp ? (
+                                                        <ToggleRight size={24} className="transition-transform group-hover:scale-105" />
+                                                    ) : (
+                                                        <ToggleLeft size={24} className="transition-transform group-hover:scale-105" />
+                                                    )}
+                                                </div>
+                                            </button>
+
+                                            {/* Toggle: Alarme de Porta */}
+                                            <button
+                                                onClick={() => handleToggleAlarm(chkDoor ? 'desabilitar_porta' : 'habilitar_porta')}
+                                                disabled={isUpdating || !isConnected}
+                                                className={`flex items-center justify-between p-3 rounded-xl border transition-all duration-300 w-full text-left group
+                                                    ${chkDoor
+                                                        ? 'bg-emerald-500/10 border-emerald-500/30 hover:border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.05)]'
+                                                        : 'bg-[#0F110D] border-[#2A2E24] hover:bg-[#151811]'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-2 rounded-lg transition-colors ${chkDoor ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#1A1D17] text-slate-500'}`}>
+                                                        <DoorOpen size={16} />
+                                                    </div>
+                                                    <div>
+                                                        <p className={`text-[11px] font-bold uppercase tracking-wider ${chkDoor ? 'text-emerald-400' : 'text-slate-400'}`}>Porta</p>
+                                                        <p className={`text-[9px] font-medium ${chkDoor ? 'text-emerald-500/70' : 'text-slate-600'}`}>{chkDoor ? 'Alerta Ativado' : 'Desativado'}</p>
+                                                    </div>
+                                                </div>
+                                                <div className={chkDoor ? 'text-emerald-500' : 'text-slate-600'}>
+                                                    {chkDoor ? (
+                                                        <ToggleRight size={24} className="transition-transform group-hover:scale-105" />
+                                                    ) : (
+                                                        <ToggleLeft size={24} className="transition-transform group-hover:scale-105" />
+                                                    )}
+                                                </div>
+                                            </button>
+                                        </div>
+
+                                        {/* Seção de Calibração (Agora visível e mais elegante) */}
+                                        <div className="mt-6 pt-5 border-t border-[#2A2E24]">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="bg-primary/10 p-2 rounded-lg border border-primary/20">
+                                                    <Settings2 size={16} className="text-primary" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-[11px] text-white uppercase font-bold tracking-widest leading-none">Calibração de Sensores</h4>
+                                                    <p className="text-[9px] text-slate-500 mt-1">Insira o valor medido pelo multímetro para manter a precisão.</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3 bg-[#0A0D08] p-4 rounded-xl border border-[#2A2E24] shadow-inner">
+                                                {/* Calibração de Tensão */}
+                                                <div className="space-y-1.5 focus-within:ring-1 focus-within:ring-amber-500/30 rounded-lg transition-all p-1">
+                                                    <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider ml-1">Tensão Real (V)</label>
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="number"
+                                                            step="1"
+                                                            value={voltCalibration}
+                                                            onChange={(e) => setVoltCalibration(e.target.value)}
+                                                            className="flex-1 bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-amber-500 focus:outline-none transition-colors placeholder:text-slate-600"
+                                                            placeholder="Ex: 220"
+                                                        />
+                                                        <button
+                                                            onClick={() => handleSettings2('tensao')}
+                                                            disabled={isUpdating || !isConnected || !voltCalibration}
+                                                            className="px-4 py-2 bg-[#0F110D] border border-[#2A2E24] hover:bg-amber-500/10 hover:border-amber-500/30 text-amber-500 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            Aplicar
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Calibração de Bateria */}
+                                                <div className="space-y-1.5 focus-within:ring-1 focus-within:ring-emerald-500/30 rounded-lg transition-all p-1">
+                                                    <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider ml-1">Bateria Real (V)</label>
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="number"
+                                                            step="0.1"
+                                                            value={batCalibration}
+                                                            onChange={(e) => setBatCalibration(e.target.value)}
+                                                            className="flex-1 bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-emerald-500 focus:outline-none transition-colors placeholder:text-slate-600"
+                                                            placeholder="Ex: 12.6"
+                                                        />
+                                                        <button
+                                                            onClick={() => handleSettings2('bateria')}
+                                                            disabled={isUpdating || !isConnected || !batCalibration}
+                                                            className="px-4 py-2 bg-[#0F110D] border border-[#2A2E24] hover:bg-emerald-500/10 hover:border-emerald-500/30 text-emerald-500 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            Aplicar
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Calibração de Temperatura */}
+                                                <div className="space-y-1.5 focus-within:ring-1 focus-within:ring-red-500/30 rounded-lg transition-all p-1">
+                                                    <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider ml-1">Temperatura Real (°C)</label>
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="number"
+                                                            step="0.1"
+                                                            value={tempCalibration}
+                                                            onChange={(e) => setTempCalibration(e.target.value)}
+                                                            className="flex-1 bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-red-500 focus:outline-none transition-colors placeholder:text-slate-600"
+                                                            placeholder="Ex: 25.0"
+                                                        />
+                                                        <button
+                                                            onClick={() => handleSettings2('temperatura')}
+                                                            disabled={isUpdating || !isConnected || !tempCalibration}
+                                                            className="px-4 py-2 bg-[#0F110D] border border-[#2A2E24] hover:bg-red-500/10 hover:border-red-500/30 text-red-500 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            Aplicar
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
                                     <div className="pt-3 border-t border-[#2A2E24] space-y-4">
                                         <div>

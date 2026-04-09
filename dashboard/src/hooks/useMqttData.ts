@@ -108,9 +108,16 @@ export const useMqttData = (
                     company: payload.company || payload.EMPRESA || 'Unknown',
                     device_name: payload.device_name || payload.DISPOSITIVO,
                     ala: payload.ala !== undefined ? payload.ala : payload.ALA,
-                    temp: payload.temp !== undefined ? payload.temp : (payload.TEMP_ATUAL !== undefined ? parseFloat(payload.TEMP_ATUAL) : undefined),
-                    tempMax: payload.tempMax !== undefined ? payload.tempMax : (payload.MAX !== undefined ? parseFloat(payload.MAX) : undefined),
-                    tempMin: payload.tempMin !== undefined ? payload.tempMin : (payload.MIN !== undefined ? parseFloat(payload.MIN) : undefined),
+                    temp: (typeof payload.temp === 'number' && !isNaN(payload.temp)) ? payload.temp :
+                        (typeof payload.TEMP === 'number' && !isNaN(payload.TEMP)) ? payload.TEMP :
+                            (payload.TEMP_ATUAL !== undefined ? parseFloat(payload.TEMP_ATUAL) :
+                                (payload.TEMP_C !== undefined ? parseFloat(payload.TEMP_C) : undefined)),
+                    tempMax: (typeof payload.tempMax === 'number' && !isNaN(payload.tempMax)) ? payload.tempMax :
+                        (payload.TEMP_MAX !== undefined ? parseFloat(payload.TEMP_MAX) :
+                            (payload.MAX !== undefined ? parseFloat(payload.MAX) : undefined)),
+                    tempMin: (typeof payload.tempMin === 'number' && !isNaN(payload.tempMin)) ? payload.tempMin :
+                        (payload.TEMP_MIN !== undefined ? parseFloat(payload.TEMP_MIN) :
+                            (payload.MIN !== undefined ? parseFloat(payload.MIN) : undefined)),
                     batteryVoltage: payload.batteryVoltage !== undefined ? payload.batteryVoltage : (payload.BATERIA !== undefined ? parseFloat(payload.BATERIA) : undefined),
                     inputVoltage: payload.inputVoltage !== undefined ? payload.inputVoltage : (payload.VOLTAGEM !== undefined ? parseFloat(payload.VOLTAGEM) : undefined),
                     signal: payload.signal !== undefined ? payload.signal : (payload.RSSI !== undefined ? parseInt(payload.RSSI) : undefined),
@@ -126,6 +133,11 @@ export const useMqttData = (
                     doorOpen: payload.PORTA_ABERTA !== undefined ? payload.PORTA_ABERTA : undefined,
                     secondsOpen: payload.SEC_ABERTA !== undefined ? parseInt(payload.SEC_ABERTA) : undefined,
                     silenced: payload.SILENCIADO !== undefined ? payload.SILENCIADO : undefined,
+                    // Estados de monitoramento de alarmes (CHK_*)
+                    chkVolt: payload.CHK_VOLT !== undefined ? payload.CHK_VOLT : true,
+                    chkBat: payload.CHK_BAT !== undefined ? payload.CHK_BAT : true,
+                    chkTemp: payload.CHK_TEMP !== undefined ? payload.CHK_TEMP : true,
+                    chkDoor: payload.CHK_DOOR !== undefined ? payload.CHK_DOOR : true,
                 };
                 payload = normalizedPayload;
 
@@ -136,7 +148,7 @@ export const useMqttData = (
                     (!payload.id && d.name === payload.device_name && d.tenantId === payload.company)
                 );
 
-                const resolvedCompanyContext = (existingDevice ? existingDevice.tenantId : payload.company) || 'Unknown';
+                const resolvedCompanyContext = (existingDevice ? existingDevice.tenantId : (payload.company || payload.EMPRESA)) || 'Unknown';
                 const isUnlinked = ['unknown', 'empresa_default', ''].includes(resolvedCompanyContext.trim().toLowerCase());
 
                 // Trigger alert callback if it's an alert AND device is validly assigned
@@ -179,9 +191,9 @@ export const useMqttData = (
                             lastSeen: new Date().toISOString(),
                             telemetry: {
                                 ...existing.telemetry,
-                                temp: payload.temp ?? existing.telemetry.temp,
-                                tempMax: payload.tempMax ?? existing.telemetry.tempMax,
-                                tempMin: payload.tempMin ?? existing.telemetry.tempMin,
+                                temp: (typeof payload.temp === 'number' && !isNaN(payload.temp)) ? payload.temp : existing.telemetry.temp,
+                                tempMax: (typeof payload.tempMax === 'number' && !isNaN(payload.tempMax)) ? payload.tempMax : existing.telemetry.tempMax,
+                                tempMin: (typeof payload.tempMin === 'number' && !isNaN(payload.tempMin)) ? payload.tempMin : existing.telemetry.tempMin,
                                 batteryVoltage: payload.batteryVoltage ?? existing.telemetry.batteryVoltage,
                                 inputVoltage: payload.inputVoltage ?? existing.telemetry.inputVoltage,
                                 signal: payload.signal ?? existing.telemetry.signal,
@@ -201,6 +213,10 @@ export const useMqttData = (
                                 humidity: payload.humidity ?? existing.telemetry.humidity,
                                 doorOpen: payload.doorOpen ?? existing.telemetry.doorOpen,
                                 secondsOpen: payload.secondsOpen ?? existing.telemetry.secondsOpen,
+                                chkVolt: payload.CHK_VOLT !== undefined ? payload.CHK_VOLT : existing.telemetry.chkVolt,
+                                chkBat: payload.CHK_BAT !== undefined ? payload.CHK_BAT : existing.telemetry.chkBat,
+                                chkTemp: payload.CHK_TEMP !== undefined ? payload.CHK_TEMP : existing.telemetry.chkTemp,
+                                chkDoor: payload.CHK_DOOR !== undefined ? payload.CHK_DOOR : existing.telemetry.chkDoor,
                             },
                             mqttUpdated: true
                         };
@@ -238,6 +254,10 @@ export const useMqttData = (
                                 humidity: payload.humidity,
                                 doorOpen: payload.doorOpen,
                                 secondsOpen: payload.secondsOpen,
+                                chkVolt: payload.CHK_VOLT !== undefined ? payload.CHK_VOLT : true,
+                                chkBat: payload.CHK_BAT !== undefined ? payload.CHK_BAT : true,
+                                chkTemp: payload.CHK_TEMP !== undefined ? payload.CHK_TEMP : true,
+                                chkDoor: payload.CHK_DOOR !== undefined ? payload.CHK_DOOR : true,
                             },
                             mqttUpdated: true
                         };

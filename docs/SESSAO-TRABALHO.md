@@ -62,3 +62,46 @@ server {
 - `/media/venancio/.../sensor/docs/nginx-mqtt-proxy.conf` - config nginx
 - `/media/venancio/.../sensor/esp32/Config.h` - config ESP32
 - `/media/venancio/.../sensor/dashboard/src/hooks/useMqttData.ts` - MQTT client
+
+---
+
+# Atualização: Correção Hourly Telemetry (07/04/2026)
+
+## Problema Identificado
+O sistema de logging hourly não estava funcionando corretamente porque:
+1. Os workflows n8n usavam campo `TEMP_ATUAL` que não existe no payload do ESP32
+2. O ESP32 envia `TEMP_C` (temperatura atual), `TEMP_MAX` e `TEMP_MIN`
+3. A tabela `telemetry` não tinha colunas para temp_max e temp_min
+
+## Correções Aplicadas
+
+### 1. n8n_hourly_telemetry_supabase.json
+- Corrigido campo `TEMP_ATUAL` → `TEMP_C`
+- Adicionados campos `temp_max` e `temp_min` no insert
+
+### 2. supabase_schema.sql
+- Adicionadas colunas `temp_max REAL` e `temp_min REAL` na tabela telemetry
+
+### 3. add_telemetry_columns.sql (novo)
+- Script SQL para adicionar colunas em banco existente
+
+### 4. n8n_mqtt_to_supabase.json
+- Corrigido campo `TEMP_ATUAL` → `TEMP_C` no devices_status upsert
+- Adicionados campos `temp_max` e `temp_min` no devices_status upsert
+- Corrigido campo `TEMP_ATUAL` → `TEMP_C` no telemetry insert
+- Adicionados campos `temp_max` e `temp_min` no telemetry insert
+
+### 5. ESP32 (esp32.ino)
+- Já envia corretamente `TEMP_C`, `TEMP_MAX`, `TEMP_MIN` no evento "periodico"
+- Verificado nas linhas 872-874
+
+## Ação Requerida no Supabase
+Execute o SQL em `add_telemetry_columns.sql` no SQL Editor do Supabase:
+```sql
+ALTER TABLE telemetry ADD COLUMN IF NOT EXISTS temp_max REAL;
+ALTER TABLE telemetry ADD COLUMN IF NOT EXISTS temp_min REAL;
+```
+
+## Skills Utilizadas
+- **n8n-workflow-patterns**: Para entender o padrão de scheduled tasks e database operations
+- **n8n-node-configuration**: Para configurar corretamente os nodes Supabase com os campos necessários

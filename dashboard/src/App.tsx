@@ -138,9 +138,13 @@ const AppContent = () => {
   const getAlertValue = (alert: any) => {
     if (alert.TIPO?.includes('BATERIA')) return `${alert.BATERIA}V`;
     if (alert.TIPO?.includes('TENSAO') || alert.TIPO?.includes('ENERGIA')) return `${alert.VOLTAGEM}V`;
-    if (alert.TIPO?.includes('TEMP')) return `${alert.TEMP_ATUAL}°C`;
+    if (alert.TIPO?.includes('TEMP')) {
+      // Tenta varios campos de temperatura
+      const temp = alert.TEMP || alert.TEMP_ATUAL || alert.TEMP_C || alert.temperatura;
+      return temp ? `${temp}°C` : 'N/A';
+    }
     if (alert.TIPO?.includes('PORTA')) return alert.PORTA;
-    return alert.TEMP_ATUAL || alert.VOLTAGEM || alert.BATERIA || 'N/A';
+    return alert.TEMP || alert.TEMP_ATUAL || alert.TEMP_C || alert.VOLTAGEM || alert.BATERIA || 'N/A';
   };
 
   // Efeito para sincronizar a tela com o estado de autenticação (Logout automático)

@@ -51,14 +51,20 @@
           "fieldValues": [
             { "fieldId": "id", "fieldValue": "={{$json.ID_DISPOSITIVO}}" },
             { "fieldId": "name", "fieldValue": "={{$json.DISPOSITIVO}}" },
-            { "fieldId": "temperature", "fieldValue": "={{parseFloat($json.TEMP_ATUAL)}}" },
+            { "fieldId": "temperature", "fieldValue": "={{parseFloat($json.TEMP_C)}}" },
+            { "fieldId": "temp_max", "fieldValue": "={{parseFloat($json.TEMP_MAX)}}" },
+            { "fieldId": "temp_min", "fieldValue": "={{parseFloat($json.TEMP_MIN)}}" },
             { "fieldId": "voltage", "fieldValue": "={{parseFloat($json.VOLTAGEM)}}" },
             { "fieldId": "humidity", "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}" },
             { "fieldId": "battery", "fieldValue": "={{parseFloat($json.BATERIA || 0)}}" },
             { "fieldId": "status", "fieldValue": "online" },
             { "fieldId": "last_seen", "fieldValue": "={{new Date().toISOString()}}" },
             { "fieldId": "tenant_id", "fieldValue": "={{$json.EMPRESA || 'Unknown'}}" },
-            { "fieldId": "updated_at", "fieldValue": "={{new Date().toISOString()}}" }
+            { "fieldId": "updated_at", "fieldValue": "={{new Date().toISOString()}}" },
+            { "fieldId": "chk_volt", "fieldValue": "={{$json.CHK_VOLT !== undefined ? $json.CHK_VOLT : true}}" },
+            { "fieldId": "chk_bat", "fieldValue": "={{$json.CHK_BAT !== undefined ? $json.CHK_BAT : true}}" },
+            { "fieldId": "chk_temp", "fieldValue": "={{$json.CHK_TEMP !== undefined ? $json.CHK_TEMP : true}}" },
+            { "fieldId": "chk_door", "fieldValue": "={{$json.CHK_DOOR !== undefined ? $json.CHK_DOOR : true}}" }
           ]
         },
         "conflictFields": "id"
@@ -76,7 +82,9 @@
         "fieldsUi": {
           "fieldValues": [
             { "fieldId": "device_id", "fieldValue": "={{$json.ID_DISPOSITIVO}}" },
-            { "fieldId": "temperature", "fieldValue": "={{parseFloat($json.TEMP_ATUAL)}}" },
+            { "fieldId": "temperature", "fieldValue": "={{parseFloat($json.TEMP_C)}}" },
+            { "fieldId": "temp_max", "fieldValue": "={{parseFloat($json.TEMP_MAX)}}" },
+            { "fieldId": "temp_min", "fieldValue": "={{parseFloat($json.TEMP_MIN)}}" },
             { "fieldId": "voltage", "fieldValue": "={{parseFloat($json.VOLTAGEM)}}" },
             { "fieldId": "humidity", "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}" },
             { "fieldId": "battery", "fieldValue": "={{parseFloat($json.BATERIA || 0)}}" },

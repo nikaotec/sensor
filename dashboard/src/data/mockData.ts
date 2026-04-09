@@ -40,6 +40,23 @@ export interface Device {
         signal?: number;
         doorOpen?: boolean;
         relay?: boolean;
+        // Estados de monitoramento de alarmes
+        chkVolt?: boolean;
+        chkBat?: boolean;
+        chkTemp?: boolean;
+        chkDoor?: boolean;
+        // Limites configurados
+        alarmMax?: number;
+        alarmMin?: number;
+        voltMaxLimit?: number;
+        voltMinLimit?: number;
+        batMinLimit?: number;
+        doorMaxTime?: number;
+        // Estado do sistema
+        modo?: string;
+        silenced?: boolean;
+        uptime?: number;
+        ip?: string;
     };
     config?: {
         minTempInfo?: number;

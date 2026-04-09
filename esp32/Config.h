@@ -62,10 +62,12 @@
 #define ADDR_DOOR_TIME 36
 #define ADDR_CHK_VOLT 40
 #define ADDR_CHK_BAT 41
-#define ADDR_CHK_DOOR 42
-#define ADDR_DEVICE_NAME 44
-#define ADDR_COMPANY_NAME 76
-#define ADDR_DEVICE_LOCATION 108
+#define ADDR_CHK_TEMP 42
+#define ADDR_CHK_DOOR 43
+#define ADDR_TEMP_CAL 44
+#define ADDR_DEVICE_NAME 48
+#define ADDR_COMPANY_NAME 80
+#define ADDR_DEVICE_LOCATION 112
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0
@@ -90,10 +92,12 @@ struct SystemSettings {
   float voltMin;
   float voltCalFactor;
   float batCalFactor;
+  float tempCalOffset;
   float batMinLimit;
   int doorMaxTime;
   bool chkVolt;
   bool chkBat;
+  bool chkTemp;
   bool chkDoor;
   char deviceName[32];     // Armazenamento fixo para strings na EEPROM
   char companyName[32];    // Armazenamento fixo para strings na EEPROM

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,  -- Firebase UID
   name TEXT,
   email TEXT UNIQUE,
+  phone TEXT,
   role TEXT DEFAULT 'admin',
   tenant_ids TEXT[] DEFAULT '{}',
   avatar_url TEXT,
@@ -51,6 +52,8 @@ CREATE TABLE IF NOT EXISTS telemetry (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   device_id TEXT NOT NULL,
   temperature REAL,
+  temp_max REAL,
+  temp_min REAL,
   humidity REAL,
   battery REAL,
   voltage REAL,

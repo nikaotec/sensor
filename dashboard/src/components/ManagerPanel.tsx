@@ -19,9 +19,45 @@ import {
     Loader2,
     Building,
     Trash2,
-    Edit2
+    Edit2,
+    Phone,
+    X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Máscara de telefone: +55 81 99999-9999 (formato brasileiro)
+// Aceita até 13 dígitos: +55 (2) + DDD (2) + 9 dígitos = 13 dígitos
+const formatPhone = (value: string): string => {
+    const digits = value.replace(/\D/g, '');
+    
+    if (digits.length <= 0) return '';
+    
+    // Limita a 13 dígitos (sem o +)
+    const limited = digits.slice(0, 13);
+    
+    let result = '+' + limited;
+    
+    if (limited.length > 2) {
+        // Insere espaço após DDI
+        result = '+' + limited.slice(0, 2) + ' ' + limited.slice(2);
+    }
+    
+    if (limited.length > 4) {
+        // Insere espaço após DDD
+        result = '+' + limited.slice(0, 2) + ' ' + limited.slice(2, 4) + ' ' + limited.slice(4);
+    }
+    
+    if (limited.length > 9) {
+        // Insere hífen antes dos últimos 4 dígitos
+        result = '+' + limited.slice(0, 2) + ' ' + limited.slice(2, 4) + ' ' + limited.slice(4, 9) + '-' + limited.slice(9);
+    }
+    
+    return result;
+};
+
+const handlePhoneChange = (setter: (value: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setter(formatPhone(e.target.value));
+};
 
 interface ManagerPanelProps {
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
@@ -47,8 +83,17 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const [newCompanyName, setNewCompanyName] = useState('');
     const [newUserEmail, setNewUserEmail] = useState('');
     const [newUserName, setNewUserName] = useState('');
+    const [newUserPhone, setNewUserPhone] = useState('');
     const [newUserRole, setNewUserRole] = useState<'manager' | 'admin' | 'user'>('user');
     const [newUserTenants, setNewUserTenants] = useState<string[]>([]);
+
+    // Modal de edição de usuário
+    const [editingUser, setEditingUser] = useState<any>(null);
+    const [editUserName, setEditUserName] = useState('');
+    const [editUserEmail, setEditUserEmail] = useState('');
+    const [editUserPhone, setEditUserPhone] = useState('');
+    const [editUserRole, setEditUserRole] = useState<'manager' | 'admin' | 'user'>('user');
+    const [editUserTenants, setEditUserTenants] = useState<string[]>([]);
 
     const unlinkedDevices = mqttDevices.filter(d => {
         const tid = d.tenantId || (d as any).tenant_id;
@@ -103,6 +148,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                 id: newUserEmail.toLowerCase(),
                 name: newUserName,
                 email: newUserEmail.toLowerCase(),
+                phone: newUserPhone || null,
                 role: newUserRole,
                 tenant_ids: newUserTenants,
                 created_at: new Date().toISOString(),
@@ -113,6 +159,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
             showMessage('success', `Usuário ${newUserName} provisionado com sucesso!`);
             setNewUserName('');
             setNewUserEmail('');
+            setNewUserPhone('');
             setNewUserRole('user');
             setNewUserTenants([]);
         } catch (err: any) {
@@ -184,7 +231,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     };
 
     const handleDeleteUser = async (userId: string, userEmail: string) => {
-        if (!window.confirm(`Deseja realmente excluir o usuário ${userEmail}?`)) return;
+        if (!window.confirm(`Deseja realmente excluir o usuário ${userEmail}? Esta ação é IRREVERSÍVEL.`)) return;
         try {
             const { error } = await supabase.from('users').delete().eq('id', userId);
             if (error) throw error;
@@ -192,6 +239,50 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         } catch (err: any) {
             showMessage('error', `Erro ao remover usuário: ${err.message}`);
         }
+    };
+
+    // Abre modal de edição
+    const handleOpenEditUser = (user: any) => {
+        setEditingUser(user);
+        setEditUserName(user.name || '');
+        setEditUserEmail(user.email || '');
+        setEditUserPhone(user.phone || '');
+        setEditUserRole(user.role === 'gestor' ? 'manager' : (user.role || 'user'));
+        setEditUserTenants(user.tenant_ids || []);
+    };
+
+    // Salva edição de usuário
+    const handleSaveUser = async () => {
+        if (!editingUser) return;
+
+        // Validação hierárquica
+        if (editUserRole === 'manager' && currentUser?.role !== 'manager' && currentUser?.role !== 'gestor') {
+            showMessage('error', 'Apenas um Gestor pode promover outro a Gestor.');
+            return;
+        }
+
+        try {
+            const { error } = await supabase.from('users').update({
+                name: editUserName,
+                email: editUserEmail.toLowerCase(),
+                phone: editUserPhone || null,
+                role: editUserRole,
+                tenant_ids: editUserTenants
+            }).eq('id', editingUser.id);
+
+            if (error) throw error;
+            showMessage('success', `Usuário ${editUserName} atualizado com sucesso!`);
+            setEditingUser(null);
+        } catch (err: any) {
+            showMessage('error', `Erro ao atualizar usuário: ${err.message}`);
+        }
+    };
+
+    // Toggle empresa para usuário em edição
+    const toggleTenantForEditUser = (id: string) => {
+        setEditUserTenants(prev =>
+            prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
+        );
     };
 
     // --- Funções de Gestão de Empresas ---
@@ -343,6 +434,24 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                         transition={{ duration: 0.3 }}
                         className="max-w-6xl mx-auto"
                     >
+                        {/* Modal de Edição de Usuário */}
+                        <EditUserModal
+                            isOpen={!!editingUser}
+                            onClose={() => setEditingUser(null)}
+                            name={editUserName}
+                            setName={setEditUserName}
+                            email={editUserEmail}
+                            setEmail={setEditUserEmail}
+                            phone={editUserPhone}
+                            setPhone={setEditUserPhone}
+                            role={editUserRole}
+                            setRole={setEditUserRole}
+                            tenants={editUserTenants}
+                            availableTenants={availableTenants}
+                            onSave={handleSaveUser}
+                            onToggleTenant={toggleTenantForEditUser}
+                        />
+
                         {activeTab === 'overview' && (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 <StatCard label="Total de Usuários" value={users.length} icon={<Users className="text-blue-500" />} />
@@ -405,6 +514,11 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                                     <div>
                                                                         <p className="text-sm font-bold text-white">{u.name || 'Sem nome'}</p>
                                                                         <p className="text-xs text-slate-500 font-medium">{u.email}</p>
+                                                                        {u.phone && (
+                                                                            <p className="text-xs text-primary font-medium flex items-center gap-1">
+                                                                                <Phone size={10} /> {u.phone}
+                                                                            </p>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                             </td>
@@ -467,6 +581,13 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                             </td>
                                                             <td className="px-6 py-4 text-right">
                                                                 <button
+                                                                    onClick={() => handleOpenEditUser(u)}
+                                                                    className="p-2 text-slate-500 hover:text-primary transition-all"
+                                                                    title="Editar Usuário"
+                                                                >
+                                                                    <Edit2 size={16} />
+                                                                </button>
+                                                                <button
                                                                     onClick={() => handleDeleteUser(u.id, u.email)}
                                                                     className="p-2 text-slate-500 hover:text-rose-500 transition-all"
                                                                     title="Remover Usuário"
@@ -492,6 +613,12 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                         <form onSubmit={handleCreateUser} className="space-y-6">
                                             <FormInput label="Nome Completo" value={newUserName} onChange={setNewUserName} placeholder="Ex: João Silva" required />
                                             <FormInput label="E-mail" type="email" value={newUserEmail} onChange={setNewUserEmail} placeholder="joao@email.com" required />
+                                            <FormInput 
+                                                label="Telefone" 
+                                                value={newUserPhone} 
+                                                onChange={handlePhoneChange(setNewUserPhone)} 
+                                                placeholder="+55 81 99999-9999" 
+                                            />
 
                                             <div>
                                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Cargo do Sistema</label>
@@ -747,5 +874,97 @@ const RoleSlot = ({ active, onClick, label }: any) => (
         {label}
     </button>
 );
+
+// Modal de Edição de Usuário
+const EditUserModal = ({
+    isOpen,
+    onClose,
+    name,
+    setName,
+    email,
+    setEmail,
+    phone,
+    setPhone,
+    role,
+    setRole,
+    tenants,
+    availableTenants,
+    onSave,
+    onToggleTenant
+}: any) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-[#1A1D17] border border-white/10 rounded-3xl p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar"
+            >
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                        <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-500">
+                            <Edit2 size={24} />
+                        </div>
+                        <h3 className="text-xl font-bold text-white">Editar Usuário</h3>
+                    </div>
+                    <button onClick={onClose} className="p-2 text-slate-500 hover:text-white transition-all">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="space-y-5">
+                    <FormInput label="Nome Completo" value={name} onChange={setName} placeholder="Ex: João Silva" required />
+                    <FormInput label="E-mail" type="email" value={email} onChange={setEmail} placeholder="joao@email.com" required />
+                    
+                    {/* Campo telefone especial - não usa FormInput pois precisa de formatação */}
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Telefone</label>
+                        <input
+                            type="tel"
+                            value={phone}
+                            onChange={handlePhoneChange(setPhone)}
+                            className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-700"
+                            placeholder="+55 81 99999-9999"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Cargo do Sistema</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            <RoleSlot active={role === 'manager'} onClick={() => setRole('manager')} label="Gestor" />
+                            <RoleSlot active={role === 'admin'} onClick={() => setRole('admin')} label="Admin" />
+                            <RoleSlot active={role === 'user'} onClick={() => setRole('user')} label="Usuário" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Empresas com Acesso</label>
+                        <div className="space-y-2 max-h-40 overflow-y-auto px-2 custom-scrollbar">
+                            {availableTenants.map((t: any) => (
+                                <label key={t.id} className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5 cursor-pointer transition-colors group">
+                                    <div className={`size-5 rounded border ${tenants.includes(t.id) ? 'bg-primary border-primary' : 'border-white/20'} flex items-center justify-center transition-all`}>
+                                        {tenants.includes(t.id) && <CheckCircle2 size={12} className="text-white" />}
+                                    </div>
+                                    <input type="checkbox" className="hidden" checked={tenants.includes(t.id)} onChange={() => onToggleTenant(t.id)} />
+                                    <span className="text-sm text-slate-400 group-hover:text-white transition-colors">{t.name}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex gap-3 mt-8">
+                    <button onClick={onClose} className="flex-1 py-4 border border-white/10 text-slate-400 font-bold rounded-2xl hover:bg-white/5 transition-all">
+                        Cancelar
+                    </button>
+                    <button onClick={onSave} className="flex-1 py-4 bg-primary text-white font-bold rounded-2xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20">
+                        Salvar Alterações
+                    </button>
+                </div>
+            </motion.div>
+        </div>
+    );
+};
 
 export default ManagerPanel;

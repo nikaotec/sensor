@@ -51,6 +51,10 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
                 tempMin: row.temp_min !== null ? row.temp_min
                     : (dailyStats.minTemp !== undefined ? dailyStats.minTemp : undefined),
                 tempExt: row.temp_ext !== null ? row.temp_ext : undefined,
+                chkVolt: row.chk_volt !== null ? row.chk_volt : true,
+                chkBat: row.chk_bat !== null ? row.chk_bat : true,
+                chkTemp: row.chk_temp !== null ? row.chk_temp : true,
+                chkDoor: row.chk_door !== null ? row.chk_door : true,
             }
         } as Device;
     };
