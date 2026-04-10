@@ -17,7 +17,7 @@ import {
     Legend
 } from 'recharts';
 import {
-    CalendarRange, Download, Zap, TrendingUp, Timer,
+    CalendarRange, Download, Zap, TrendingUp,
     AlertOctagon, Lightbulb, Plus, Edit2, Trash2,
     Clock, Smartphone, Mail, Check, X
 } from 'lucide-react';
@@ -34,6 +34,15 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
 
     const [showModal, setShowModal] = useState(false);
     const [editingReport, setEditingReport] = useState<any>(null);
+    const [showGenerateModal, setShowGenerateModal] = useState(false);
+    const [generateForm, setGenerateForm] = useState({
+        type: 'device',
+        tenant_id: currentTenant?.id === 'all' ? '' : currentTenant?.id || '',
+        device_id: '',
+        start_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        end_date: new Date().toISOString().split('T')[0]
+    });
+    const [generating, setGenerating] = useState(false);
 
     if (!currentTenant) return <div className="flex h-screen items-center justify-center bg-background-dark text-white">Carregando dados...</div>;
 
@@ -117,65 +126,175 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
         }
     };
 
+    const handleGenerateNow = async () => {
+        if (generateForm.type === 'device' && !generateForm.device_id) {
+            alert('Selecione um dispositivo para gerar o relatório.');
+            return;
+        }
+
+        // Get selected tenant details
+        const selectedTenant = availableTenants.find(t => t.id === generateForm.tenant_id) || (currentTenant.id !== 'all' ? currentTenant : null);
+        const tenantId = selectedTenant?.id;
+        const companyName = selectedTenant?.name || 'Geral';
+
+        setGenerating(true);
+        try {
+            const payload: any = {
+                type: generateForm.type,
+                start_date: generateForm.start_date,
+                end_date: generateForm.end_date,
+                company_name: companyName
+            };
+
+            if (tenantId) {
+                payload.tenant_id = tenantId;
+            }
+
+            if (generateForm.type === 'device' && generateForm.device_id) {
+                const device = devices.find(d => d.id === generateForm.device_id);
+                payload.device_id = generateForm.device_id;
+                payload.device_name = device?.name || generateForm.device_id;
+                payload.device_code = device?.id || generateForm.device_id;
+                payload.ala = device?.location || 'Não informada';
+            } else {
+                // For company type, use first device of that company if available for triggering n8n
+                const companyDevices = devices.filter(d => d.tenantId === tenantId);
+                payload.device_id = companyDevices[0]?.id || devices[0]?.id;
+            }
+
+            console.log('Gerando relatório:', payload);
+
+            const response = await fetch('/api/n8n/webhook/generate-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            console.log('Response status:', response.status);
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Response data:', result);
+
+                if (result.pdf_base64) {
+                    const linkSource = `data:application/pdf;base64,${result.pdf_base64}`;
+                    const downloadLink = document.createElement("a");
+                    const fileName = `relatorio_${payload.device_id || 'geral'}_${new Date().toISOString().split('T')[0]}.pdf`;
+
+                    downloadLink.href = linkSource;
+                    downloadLink.download = fileName;
+                    downloadLink.click();
+                    alert("Relatório gerado e baixado com sucesso!");
+                } else {
+                    alert("Relatório gerado com sucesso! Verifique seu WhatsApp.");
+                }
+            } else {
+                const errorText = await response.text();
+                console.error('Error response:', errorText);
+                alert("Erro ao gerar relatório. Verifique o console para detalhes.");
+            }
+            setShowGenerateModal(false);
+        } catch (err) {
+            console.error('Fetch error:', err);
+            alert("Erro ao gerar relatório: " + (err instanceof Error ? err.message : 'Verifique sua conexão'));
+        } finally {
+            setGenerating(false);
+        }
+    };
+
     return (
-        <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+        <div className="flex h-screen overflow-hidden bg-[#0a1323] text-slate-100 font-display">
             <Sidebar activeItem="reports" onNavigate={onNavigate} />
 
-            <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden relative bg-background-light text-text-dark">
+            <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden relative bg-[#0a1323]">
                 {/* HEADER */}
-                <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+                <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-[#0a1323]/40 backdrop-blur-xl border-b border-white/5 sticky top-0 z-30">
                     <div>
-                        <h2 className="text-xl font-bold text-text-dark tracking-tight">Relatórios e Insights</h2>
-                        <p className="text-slate-500 text-xs font-normal">Ecossistema {currentTenant.name}</p>
+                        <h2 className="text-2xl font-bold tracking-tight text-white font-heading">Relatórios <span className="text-primary">&</span> Insights</h2>
+                        <p className="text-slate-400 text-xs font-medium uppercase tracking-[0.1em]">Ecossistema {currentTenant?.name}</p>
                     </div>
-                    <div className="flex gap-3">
-                        <button className="px-4 py-2.5 bg-[#0F110D] border border-[#2A2E24] rounded-xl text-sm font-bold text-white flex items-center gap-2 hover:bg-[#2A2E24]/50 transition-colors">
-                            <CalendarRange size={16} className="text-slate-400" />
-                            Últimos 30 Dias
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => setShowGenerateModal(true)}
+                            className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-semibold text-white flex items-center gap-2 hover:bg-white/10 transition-all backdrop-blur-md active:scale-95"
+                        >
+                            <CalendarRange size={18} className="text-primary" />
+                            Gerar Agora
                         </button>
-                        <button className="px-4 py-2.5 bg-primary text-background-dark rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]">
-                            <Download size={16} />
+                        <button
+                            onClick={() => setShowGenerateModal(true)}
+                            className="px-5 py-2.5 bg-gradient-to-br from-primary to-[#004299] text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:brightness-110 transition-all shadow-[0_0_20px_rgba(19,109,236,0.3)] hover:scale-[1.02] active:scale-95"
+                        >
+                            <Download size={18} />
                             Exportar PDF
                         </button>
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 py-6 custom-scrollbar">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 py-8 custom-scrollbar">
+                    {/* AI INSIGHTS PULSE CARD */}
+                    <div className="mb-10 group relative">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-purple-500/50 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+                        <div className="relative bg-[#172030]/60 backdrop-blur-2xl border border-white/5 p-8 rounded-2xl shadow-2xl flex flex-col md:flex-row items-center gap-8">
+                            <div className="size-20 bg-primary/10 rounded-full flex items-center justify-center shrink-0 shadow-[0_0_40px_rgba(19,109,236,0.2)] border border-primary/20">
+                                <Lightbulb size={40} className="text-primary animate-pulse" />
+                            </div>
+                            <div className="flex-1 text-center md:text-left text-white">
+                                <h3 className="text-2xl font-bold mb-2 tracking-tight">Análise Preditiva da IA</h3>
+                                <div className="text-slate-300 text-lg leading-relaxed font-body">
+                                    {recentAlerts > 5 ? (
+                                        <p>Detectamos uma alta incidência de alertas (<strong className="text-primary">{recentAlerts}</strong> nas últimas 24h) na unidade <strong className="text-white">{currentTenant?.name}</strong>. Recomendamos uma revisão preventiva nos equipamentos com maior frequência de incidentes.</p>
+                                    ) : batteryCritical > 0 ? (
+                                        <p>Atenção! Identificamos <strong className="text-primary">{batteryCritical}</strong> dispositivo(s) com nível de bateria crítico na empresa <strong className="text-white">{currentTenant?.name}</strong>. Agende a troca para evitar perda de dados.</p>
+                                    ) : (
+                                        <p>A operação na unidade <strong className="text-white">{currentTenant?.name}</strong> apresenta estabilidade térmica ideal. Mantendo este padrão, a vida útil dos compressores pode ser estendida em até <strong className="text-primary">15%</strong>.</p>
+                                    )}
+                                </div>
+                            </div>
+                            <button className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl text-sm font-bold hover:bg-white/10 transition-all backdrop-blur-md shrink-0">
+                                DETALHAR OPERAÇÃO
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
                         {[
-                            { label: 'Disponibilidade', value: `${availabilityRate}%`, icon: <Zap size={22} />, colorClass: 'text-primary bg-primary/10 border-primary/20', iconColor: 'text-primary' },
-                            { label: 'Temp. Média', value: `${avgTemp}°C`, icon: <TrendingUp size={22} />, colorClass: 'text-amber-500 bg-amber-500/10 border-amber-500/20', iconColor: 'text-amber-500' },
-                            { label: 'Dispositivos', value: `${devicesOnline}/${devicesTotal}`, icon: <Timer size={22} />, colorClass: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20', iconColor: 'text-emerald-400' },
-                            { label: 'Alertas (24h)', value: String(recentAlerts), icon: <AlertOctagon size={22} />, colorClass: 'text-[#E63946] bg-[#E63946]/10 border-[#E63946]/20', iconColor: 'text-[#E63946]' },
+                            { label: 'Disponibilidade', value: `${availabilityRate}%`, icon: <Zap size={22} />, colorClass: 'text-primary bg-primary/5 border-primary/10' },
+                            { label: 'Temp. Média', value: `${avgTemp}°C`, icon: <TrendingUp size={22} />, colorClass: 'text-amber-400 bg-amber-400/5 border-amber-400/10' },
+                            { label: 'Dispositivos', value: `${devicesOnline}/${devicesTotal}`, icon: <Smartphone size={22} />, colorClass: 'text-emerald-400 bg-emerald-400/5 border-emerald-400/10' },
+                            { label: 'Alertas (24h)', value: String(recentAlerts), icon: <AlertOctagon size={22} />, colorClass: 'text-rose-400 bg-rose-400/5 border-rose-400/10' },
                         ].map((stat, i) => (
-                            <div key={i} className="flex gap-4 rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-5 items-center hover:border-[#DFDFDF]/30 transition-all shadow-lg">
-                                <div className={`${stat.colorClass} p-3 rounded-xl border`}>
+                            <div key={i} className="flex gap-4 rounded-2xl border border-white/5 bg-[#172030]/40 backdrop-blur-lg p-6 items-center hover:bg-[#172030]/60 transition-all group">
+                                <div className={`${stat.colorClass} p-3 rounded-xl border transition-colors group-hover:brightness-125`}>
                                     {stat.icon}
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider font-heading">{stat.label}</h3>
-                                    <p className="text-2xl font-bold text-white tracking-tight mt-1">{stat.value}</p>
+                                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.14em] font-heading">{stat.label}</h3>
+                                    <p className="text-2xl font-bold text-white tracking-tight mt-0.5">{stat.value}</p>
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
-                        <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg">
-                            <h3 className="text-lg font-bold leading-tight tracking-tight text-white/90 font-heading mb-6">Alertas Recentes por Sensor</h3>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-10">
+                        <div className="rounded-2xl border border-white/5 bg-[#172030]/40 p-8 backdrop-blur-lg shadow-xl">
+                            <div className="flex items-center justify-between mb-8">
+                                <h3 className="text-lg font-bold text-white/90 tracking-tight font-heading">Alertas por Sensor</h3>
+                                <div className="px-3 py-1 bg-white/5 rounded-full text-[10px] text-slate-400 font-bold uppercase tracking-wider border border-white/5">Últimos 10 sensores</div>
+                            </div>
                             <div className="h-[300px] min-h-[300px] w-full">
                                 {alertsPerDeviceData.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={alertsPerDeviceData}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#2A2E24" />
-                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} dy={10} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} dx={-10} />
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 600 }} dy={10} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 600 }} dx={-10} />
                                             <Tooltip
-                                                contentStyle={{ backgroundColor: '#0F110D', border: '1px solid #2A2E24', borderRadius: '12px' }}
+                                                contentStyle={{ backgroundColor: '#131c2c', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)' }}
                                                 itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
-                                                cursor={{ fill: '#2A2E24', opacity: 0.4 }}
+                                                cursor={{ fill: 'rgba(255,255,255,0.03)' }}
                                             />
-                                            <Bar dataKey="value" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                                            <Bar dataKey="value" fill="#136dec" radius={[6, 6, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 ) : (
@@ -184,50 +303,55 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                             </div>
                         </div>
 
-                        <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg">
-                            <h3 className="text-lg font-bold leading-tight tracking-tight text-white/90 font-heading mb-6">Status da Frota em Tempo Real</h3>
+                        <div className="rounded-2xl border border-white/5 bg-[#172030]/40 p-8 backdrop-blur-lg shadow-xl">
+                            <h3 className="text-lg font-bold text-white/90 tracking-tight font-heading mb-8">Status Geral da Frota</h3>
                             <div className="h-[300px] min-h-[300px] w-full">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
                                             data={statusPieData}
-                                            innerRadius={80}
-                                            outerRadius={110}
-                                            paddingAngle={5}
+                                            innerRadius={85}
+                                            outerRadius={115}
+                                            paddingAngle={8}
                                             dataKey="value"
                                             stroke="none"
                                         >
                                             {statusPieData.map((entry: any, index: number) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
+                                                <Cell key={`cell-${index}`} fill={entry.color} fillOpacity={0.8} />
                                             ))}
                                         </Pie>
                                         <Tooltip
-                                            contentStyle={{ backgroundColor: '#0F110D', border: '1px solid #2A2E24', borderRadius: '12px' }}
+                                            contentStyle={{ backgroundColor: '#131c2c', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
                                             itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
                                         />
-                                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px', color: '#94a3b8' }} />
+                                        <Legend
+                                            verticalAlign="bottom"
+                                            height={36}
+                                            iconType="circle"
+                                            wrapperStyle={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600, paddingTop: '20px' }}
+                                        />
                                     </PieChart>
                                 </ResponsiveContainer>
                             </div>
                         </div>
                     </div>
 
-                    <div className="mb-8 overflow-hidden rounded-2xl border border-[#2A2E24] bg-[#1A1D17] shadow-lg">
-                        <div className="flex items-center justify-between border-b border-[#2A2E24] bg-[#0F110D]/50 px-6 py-4">
-                            <div className="flex items-center gap-3">
-                                <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                                    <Clock size={20} />
+                    <div className="mb-10 overflow-hidden rounded-2xl border border-white/5 bg-[#172030]/40 backdrop-blur-lg shadow-2xl">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/5 bg-white/5 px-8 py-6 gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className="rounded-xl bg-primary/10 p-3 text-primary border border-primary/20">
+                                    <Clock size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-white">Relatórios Automáticos</h3>
-                                    <p className="text-xs text-slate-400">Agendamentos via WhatsApp e E-mail</p>
+                                    <h3 className="text-lg font-bold text-white tracking-tight leading-tight">Relatórios Automáticos</h3>
+                                    <p className="text-xs text-slate-400 font-medium">Cronograma de envios ativos</p>
                                 </div>
                             </div>
                             <button
                                 onClick={() => { setEditingReport(null); setShowModal(true); }}
-                                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-background-dark hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                                className="flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white hover:brightness-110 transition-all shadow-[0_0_15px_rgba(19,109,236,0.2)] active:scale-95"
                             >
-                                <Plus size={16} />
+                                <Plus size={18} />
                                 Novo Agendamento
                             </button>
                         </div>
@@ -239,82 +363,83 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                 <div className="p-10 text-center text-slate-400">Nenhum agendamento configurado.</div>
                             ) : (
                                 <table className="w-full text-left">
-                                    <thead className="bg-[#0F110D]/30 text-xs font-bold uppercase text-slate-500">
+                                    <thead className="bg-[#0a1323]/50 text-[10px] font-bold uppercase text-slate-500 tracking-[0.15em]">
                                         <tr>
-                                            <th className="px-6 py-4">Nome / Tipo</th>
-                                            <th className="px-6 py-4">Frequência</th>
-                                            <th className="px-6 py-4">Canais</th>
-                                            <th className="px-6 py-4">Status</th>
-                                            <th className="px-6 py-4 text-right">Ações</th>
+                                            <th className="px-8 py-5">Nome / Tipo</th>
+                                            <th className="px-8 py-5">Frequência</th>
+                                            <th className="px-8 py-5">Canais</th>
+                                            <th className="px-8 py-5">Status</th>
+                                            <th className="px-8 py-5 text-right">Ações</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-[#2A2E24]">
+                                    <tbody className="divide-y divide-white/5">
                                         {reportConfigs.map((config) => (
                                             <tr key={config.id} className="hover:bg-white/5 transition-colors">
-                                                <td className="px-6 py-4">
+                                                <td className="px-8 py-5">
                                                     <div className="font-bold text-white">{config.name}</div>
-                                                    <div className="text-xs text-slate-400">{config.type === 'company' ? 'Empresa Inteira' : `Dispositivo: ${config.device_id}`}</div>
+                                                    <div className="text-[10px] text-slate-500 font-medium">{config.type === 'company' ? 'FROTA TOTAL' : `ID: ${config.device_id}`}</div>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-8 py-5">
                                                     <div className="text-sm text-slate-300">
                                                         {config.schedule_type === 'daily' && `Todo dia às ${config.schedule_time}`}
                                                         {config.schedule_type === 'weekly' && `Toda ${['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'][config.schedule_day || 0]} às ${config.schedule_time}`}
-                                                        {config.schedule_type === 'monthly' && `Todo dia ${config.schedule_day} às ${config.schedule_time}`}
+                                                        {config.schedule_type === 'monthly' && `Dia ${config.schedule_day} às ${config.schedule_time}`}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-8 py-5">
                                                     <div className="flex gap-2">
                                                         {config.channels?.includes('whatsapp') && (
-                                                            <span title="WhatsApp"><Smartphone size={14} className="text-emerald-400" /></span>
+                                                            <div className="p-1.5 bg-emerald-500/10 rounded-lg" title="WhatsApp"><Smartphone size={14} className="text-emerald-400" /></div>
                                                         )}
                                                         {config.channels?.includes('email') && (
-                                                            <span title="E-mail"><Mail size={14} className="text-blue-400" /></span>
+                                                            <div className="p-1.5 bg-blue-500/10 rounded-lg" title="E-mail"><Mail size={14} className="text-blue-400" /></div>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-8 py-5">
                                                     <button
                                                         onClick={() => handleToggle(config)}
-                                                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition-all ${config.enabled ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}
+                                                        className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold transition-all ${config.enabled ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}
                                                     >
-                                                        {config.enabled ? <Check size={12} /> : <X size={12} />}
-                                                        {config.enabled ? 'Ativo' : 'Pausado'}
+                                                        {config.enabled ? <Check size={10} /> : <X size={10} />}
+                                                        {config.enabled ? 'ATIVO' : 'PAUSADO'}
                                                     </button>
                                                 </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <button
-                                                        onClick={async () => {
-                                                            if (window.confirm("Deseja gerar e enviar este relatório agora?")) {
-                                                                try {
-                                                                    // URL do Webhook do n8n (será preenchido pelo usuário ou via config)
-                                                                    await fetch('https://n8n.nikaotech.com/webhook/generate-report', {
-                                                                        method: 'POST',
-                                                                        headers: { 'Content-Type': 'application/json' },
-                                                                        body: JSON.stringify({ config_id: config.id, type: config.type, tenant_id: config.tenant_id })
-                                                                    });
-                                                                    alert("Solicitação enviada com sucesso!");
-                                                                } catch (err) {
-                                                                    alert("Erro ao solicitar relatório.");
+                                                <td className="px-8 py-5 text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (window.confirm("Deseja gerar e enviar este relatório agora?")) {
+                                                                    try {
+                                                                        await fetch('/api/n8n/webhook/generate-report', {
+                                                                            method: 'POST',
+                                                                            headers: { 'Content-Type': 'application/json' },
+                                                                            body: JSON.stringify({ config_id: config.id, type: config.type, tenant_id: config.tenant_id })
+                                                                        });
+                                                                        alert("Solicitação enviada com sucesso!");
+                                                                    } catch (err) {
+                                                                        alert("Erro ao solicitar relatório.");
+                                                                    }
                                                                 }
-                                                            }
-                                                        }}
-                                                        className="p-2 text-primary hover:text-white transition-colors"
-                                                        title="Gerar Agora"
-                                                    >
-                                                        <Plus size={16} className="rotate-45" /> {/* Simulating a play icon or just use Plus for now */}
-                                                    </button>
-                                                    <button
-                                                        onClick={() => { setEditingReport(config); setShowModal(true); }}
-                                                        className="p-2 text-slate-400 hover:text-white transition-colors"
-                                                    >
-                                                        <Edit2 size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(config.id)}
-                                                        className="p-2 text-slate-400 hover:text-red-400 transition-colors"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
+                                                            }}
+                                                            className="p-2 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                                            title="Gerar Agora"
+                                                        >
+                                                            <Plus size={16} className="rotate-45" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => { setEditingReport(config); setShowModal(true); }}
+                                                            className="p-2 text-slate-400 hover:bg-white/5 rounded-lg transition-colors"
+                                                        >
+                                                            <Edit2 size={16} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(config.id)}
+                                                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/5 rounded-lg transition-colors"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}
@@ -324,50 +449,30 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                         </div>
                     </div>
                 </div>
-
-                <div className="bg-primary/10 border border-primary/20 p-8 rounded-2xl text-center shadow-lg relative overflow-hidden group hover:border-primary/40 transition-all">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
-                    <div className="relative z-10 flex flex-col items-center">
-                        <div className="size-16 bg-primary/20 rounded-full flex items-center justify-center mb-4 text-primary shadow-[0_0_30px_rgba(56,189,248,0.3)]">
-                            <Lightbulb size={32} className="animate-pulse" />
-                        </div>
-                        <h3 className="text-xl md:text-2xl font-bold mb-3 text-white tracking-tight">Insight de Inteligência Artificial</h3>
-                        <p className="text-slate-300 max-w-2xl mx-auto leading-relaxed">
-                            {recentAlerts > 5 ? (
-                                <>Detectamos uma alta incidência de alertas (<strong className="text-primary">{recentAlerts}</strong> nas últimas 24h) na unidade <strong className="text-white">{currentTenant.name}</strong>. Recomendamos uma revisão preventiva nos equipamentos com maior frequência de incidentes.</>
-                            ) : batteryCritical > 0 ? (
-                                <>Atenção! Identificamos <strong className="text-primary">{batteryCritical}</strong> dispositivo(s) com nível de bateria crítico na empresa <strong className="text-white">{currentTenant.name}</strong>. Agende a troca para evitar perda de dados.</>
-                            ) : (
-                                <>A operação na unidade <strong className="text-white">{currentTenant.name}</strong> apresenta estabilidade térmica ideal. Mantendo este padrão, a vida útil dos compressores pode ser estendida em até <strong className="text-primary">15%</strong>.</>
-                            )}
-                        </p>
-                        <button className="mt-6 px-6 py-2.5 bg-primary text-background-dark rounded-xl text-sm font-bold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]">
-                            DETALHAR OPERAÇÃO
-                        </button>
-                    </div>
-                </div>
             </main>
 
+            {/* MODALS */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-md bg-[#1A1D17] border border-[#2A2E24] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="flex items-center justify-between border-b border-[#2A2E24] p-6">
+                    <div className="w-full max-w-md bg-[#172030] border border-white/5 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center justify-between border-b border-white/5 p-6">
                             <h3 className="text-xl font-bold text-white">{editingReport ? 'Editar Agendamento' : 'Novo Agendamento'}</h3>
-                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white"><X size={24} /></button>
+                            <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
                         </div>
                         <form onSubmit={handleSave} className="p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Nome do Agendamento</label>
-                                <input name="name" defaultValue={editingReport?.name} placeholder="Ex: Relatório Manhã Diário" required className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors" />
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nome do Agendamento</label>
+                                <input name="name" defaultValue={editingReport?.name} placeholder="Ex: Relatório Mensal" required className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors" />
                             </div>
-                            {currentTenant.id === 'all' && (
+
+                            {currentTenant?.id === 'all' && (
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Empresa</label>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Empresa</label>
                                     <select
                                         name="tenant_id"
                                         defaultValue={editingReport?.tenant_id}
                                         required
-                                        className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors"
+                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors"
                                     >
                                         <option value="">Selecione uma empresa</option>
                                         {availableTenants.map(t => (
@@ -376,14 +481,15 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                     </select>
                                 </div>
                             )}
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Tipo</label>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Tipo</label>
                                     <select
                                         name="type"
                                         defaultValue={editingReport?.type || 'company'}
                                         required
-                                        className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors"
+                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors"
                                         onChange={(e) => setEditingReport({ ...editingReport, type: e.target.value })}
                                     >
                                         <option value="company">Empresa Inteira</option>
@@ -391,8 +497,8 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Frequência</label>
-                                    <select name="schedule_type" defaultValue={editingReport?.schedule_type || 'daily'} required className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors">
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Frequência</label>
+                                    <select name="schedule_type" defaultValue={editingReport?.schedule_type || 'daily'} required className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors">
                                         <option value="daily">Diário</option>
                                         <option value="weekly">Semanal</option>
                                         <option value="monthly">Mensal</option>
@@ -400,10 +506,10 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                 </div>
                             </div>
 
-                            {(editingReport?.type === 'device' || (!editingReport && false)) && (
+                            {editingReport?.type === 'device' && (
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Dispositivo</label>
-                                    <select name="device_id" defaultValue={editingReport?.device_id} required className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors">
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Dispositivo</label>
+                                    <select name="device_id" defaultValue={editingReport?.device_id} required className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors">
                                         <option value="">Selecione um dispositivo</option>
                                         {devices.map(d => (
                                             <option key={d.id} value={d.id}>{d.name} ({d.id})</option>
@@ -414,40 +520,147 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Horário</label>
-                                    <input name="schedule_time" type="time" defaultValue={editingReport?.schedule_time || '08:00'} required className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors" />
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Horário</label>
+                                    <input name="schedule_time" type="time" defaultValue={editingReport?.schedule_time || '08:00'} required className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Dia (Se Semanal/Mensal)</label>
-                                    <input name="schedule_day" type="number" min="0" max="31" defaultValue={editingReport?.schedule_day || 0} className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors" />
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Dia do Envio</label>
+                                    <input name="schedule_day" type="number" min="0" max="31" defaultValue={editingReport?.schedule_day || 0} className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors" />
                                 </div>
                             </div>
+
                             <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Canais de Envio</label>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                                        <input type="checkbox" name="channels" value="whatsapp" defaultChecked={editingReport?.channels?.includes('whatsapp')} className="accent-primary" />
-                                        WhatsApp
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Canais de Envio</label>
+                                <div className="flex gap-6 mt-2">
+                                    <label className="flex items-center gap-3 text-sm text-slate-300 cursor-pointer group">
+                                        <input type="checkbox" name="channels" value="whatsapp" defaultChecked={editingReport?.channels?.includes('whatsapp')} className="w-4 h-4 rounded border-white/10 bg-[#0a1323] text-primary focus:ring-primary accent-primary" />
+                                        <span className="group-hover:text-white transition-colors">WhatsApp</span>
                                     </label>
-                                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                                        <input type="checkbox" name="channels" value="email" defaultChecked={editingReport?.channels?.includes('email')} className="accent-primary" />
-                                        E-mail
+                                    <label className="flex items-center gap-3 text-sm text-slate-300 cursor-pointer group">
+                                        <input type="checkbox" name="channels" value="email" defaultChecked={editingReport?.channels?.includes('email')} className="w-4 h-4 rounded border-white/10 bg-[#0a1323] text-primary focus:ring-primary accent-primary" />
+                                        <span className="group-hover:text-white transition-colors">E-mail</span>
                                     </label>
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">E-mails (separados por vírgula)</label>
-                                <textarea name="emails" defaultValue={editingReport?.recipients?.emails?.join(', ')} placeholder="email@exemplo.com, outro@exemplo.com" className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors h-20 resize-none" />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Telefones (separados por vírgula)</label>
-                                <input name="phones" defaultValue={editingReport?.recipients?.phones?.join(', ')} placeholder="5511999999999, 5511888888888" className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors" />
-                            </div>
-                            <div className="pt-4 flex gap-3">
-                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-3 border border-[#2A2E24] rounded-xl text-sm font-bold text-slate-300 hover:bg-white/5 transition-colors">Cancelar</button>
-                                <button type="submit" className="flex-1 px-4 py-3 bg-primary text-background-dark rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">Salvar Agendamento</button>
+
+                            <div className="pt-6 flex gap-3">
+                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 px-4 py-3 border border-white/10 rounded-xl text-sm font-bold text-slate-300 hover:bg-white/5 transition-all">Cancelar</button>
+                                <button type="submit" className="flex-1 px-4 py-3 bg-gradient-to-br from-primary to-blue-700 text-white rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-primary/20">Salvar Configuração</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {showGenerateModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-md bg-[#172030] border border-white/5 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center justify-between border-b border-white/5 p-6">
+                            <h3 className="text-xl font-bold text-white">Gerar Relatório Instantâneo</h3>
+                            <button onClick={() => setShowGenerateModal(false)} className="text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            {/* Role-based Company Selector */}
+                            {(currentUser?.role === 'manager' || currentUser?.role === 'gestor' || availableTenants.length > 1) && (
+                                <div className="animate-in slide-in-from-top-2 duration-300">
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Empresa</label>
+                                    <select
+                                        value={generateForm.tenant_id}
+                                        onChange={(e) => setGenerateForm({ ...generateForm, tenant_id: e.target.value, device_id: '' })}
+                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    >
+                                        <option value="">Selecione a empresa...</option>
+                                        {availableTenants.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Escopo do Relatório</label>
+                                <select
+                                    value={generateForm.type}
+                                    onChange={(e) => setGenerateForm({ ...generateForm, type: e.target.value, device_id: '' })}
+                                    className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                >
+                                    <option value="company">Toda a Empresa (Frotal)</option>
+                                    <option value="device">Dispositivo Específico</option>
+                                </select>
+                            </div>
+
+                            {generateForm.type === 'device' && (
+                                <div className="animate-in slide-in-from-top-2 duration-300">
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Selecione o Dispositivo</label>
+                                    <select
+                                        value={generateForm.device_id}
+                                        onChange={(e) => setGenerateForm({ ...generateForm, device_id: e.target.value })}
+                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    >
+                                        <option value="">Escolha um sensor...</option>
+                                        {devices
+                                            .filter(d => !generateForm.tenant_id || d.tenantId === generateForm.tenant_id)
+                                            .map(d => (
+                                                <option key={d.id} value={d.id}>{d.name} ({d.location || 'Sem ala'})</option>
+                                            ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Período Inicial</label>
+                                    <input
+                                        type="date"
+                                        value={generateForm.start_date}
+                                        onChange={(e) => setGenerateForm({ ...generateForm, start_date: e.target.value })}
+                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Período Final</label>
+                                    <input
+                                        type="date"
+                                        value={generateForm.end_date}
+                                        onChange={(e) => setGenerateForm({ ...generateForm, end_date: e.target.value })}
+                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl">
+                                <p className="text-[11px] text-primary font-medium leading-relaxed">
+                                    O PDF será processado agora e enviado para os canais configurados na conta corporativa.
+                                </p>
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowGenerateModal(false)}
+                                    className="flex-1 px-4 py-3 border border-white/10 rounded-xl text-sm font-bold text-slate-300 hover:bg-white/5 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleGenerateNow}
+                                    disabled={generating || (generateForm.type === 'device' && !generateForm.device_id)}
+                                    className="flex-1 px-4 py-3 bg-primary text-white rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {generating ? (
+                                        <>
+                                            <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
+                                            Processando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Download size={16} />
+                                            Gerar Relatório
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

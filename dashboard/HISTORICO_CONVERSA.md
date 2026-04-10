@@ -927,3 +927,203 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT;
 3. Testar exclusão de usuário
 4. Verificar se o telefone aparece na lista
 5. Build do dashboard para produção
+
+---
+
+## Data: 08/04/2026 - Parte 6
+
+## Implementação: Sistema de Relatórios PDF com Envio WhatsApp
+
+**Requisito:** Implementar dois tipos de relatórios:
+1. **Relatórios Estatísticos para Gestores** - Visão geral do sistema (métricas, gráficos)
+2. **Relatórios por Dispositivo/Empresa** - PDF enviado via WhatsApp para números selecionados
+
+### Análise do Sistema
+
+O sistema já possuía:
+- Tabela `report_configs` para agendamento de relatórios (create_report_configs.sql)
+- Workflow n8n para relatórios via WhatsApp (mqtt receive.json - relatório mensal)
+- Componente Reports.tsx com UI básica de agendamento
+- Evolution API integrada para envio de mensagens WhatsApp
+
+### Skills Utilizadas
+
+1. **react-best-practices** - Para componentização do modal de geração de relatórios, state management
+2. **n8n-workflow-patterns** - Para criar o pattern de Scheduled Tasks e Database Operations
+3. **n8n-node-configuration** - Para configurar corretamente os nós do n8n (Webhook, Supabase, HTTP Request, Evolution API)
+
+### Implementações Realizadas
+
+#### 1. Workflow n8n: `gerador-relatorios-pdf.json`
+
+**Webhook Trigger:** `POST /generate-report`
+
+**Estrutura do Workflow:**
+```
+Webhook Trigger (POST /generate-report)
+    ↓
+Parse Input (extrair body JSON)
+    ↓
+Buscar Config (buscar report_configs no Supabase)
+    ↓
+Merge Config (combinar parâmetros do webhook com config)
+    ↓
+IF: type === 'company'
+    → Buscar Devices do Tenant
+    ↓
+Buscar Telemetry (Supabase - dados do período)
+    ↓
+Processar Dados (calcular estatísticas: média, máx, mín)
+    ↓
+Gerar HTML (template profissional inline)
+    ↓
+Converter para PDF (HTTP Request para serviço Chromium)
+    ↓
+Preparar PDF (converter para base64)
+    ↓
+IF: channels includes 'whatsapp'
+    → Preparar Destinatários WhatsApp
+    → Enviar Texto WhatsApp (Evolution API)
+    → Enviar PDF WhatsApp (Evolution API)
+    ↓
+IF: channels includes 'email'
+    → Preparar Destinatários Email
+    → Enviar Email (SendGrid)
+    ↓
+Log de Execução (salvar em report_logs)
+    ↓
+Respond to Webhook (retornar JSON)
+```
+
+**Corpo da Requisição:**
+```json
+{
+  "config_id": "uuid-config-opcional",
+  "type": "device|company",
+  "tenant_id": "uuid-tenant",
+  "device_id": "uuid-device-opcional",
+  "start_date": "2026-01-01",
+  "end_date": "2026-01-31"
+}
+```
+
+#### 2. Tabela de Log: `report_logs_table.sql`
+
+```sql
+CREATE TABLE IF NOT EXISTS report_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  config_id UUID REFERENCES report_configs(id),
+  tenant_id UUID REFERENCES tenants(id),
+  device_id TEXT,
+  type TEXT CHECK (type IN ('device', 'company')),
+  period_start DATE,
+  period_end DATE,
+  status TEXT CHECK (status IN ('success', 'failed', 'partial')),
+  whatsapp_sent BOOLEAN DEFAULT false,
+  email_sent BOOLEAN DEFAULT false,
+  whatsapp_recipients TEXT[],
+  email_recipients TEXT[],
+  error_message TEXT,
+  generated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### 3. Dashboard: `Reports.tsx` - Modal "Gerar Agora"
+
+**Novos Estados:**
+```typescript
+const [showGenerateModal, setShowGenerateModal] = useState(false);
+const [generateForm, setGenerateForm] = useState({
+    type: 'device',
+    device_id: '',
+    start_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end_date: new Date().toISOString().split('T')[0]
+});
+const [generating, setGenerating] = useState(false);
+```
+
+**Nova Função: `handleGenerateNow()`**
+- Envia POST para webhook do n8n
+- Corpo inclui: type, tenant_id, device_id (se seleciondo), start_date, end_date
+- Feedback visual durante geração (spinner)
+- Alerta de sucesso/erro
+
+**Nova UI: Modal "Gerar Relatório PDF"**
+- Select: Tipo de Relatório (Empresa Inteira / Por Dispositivo)
+- Select: Dispositivo (apenas se tipo = device)
+- Inputs: Data Início e Data Fim
+- Botão "Gerar PDF" com loading state
+
+### Fluxo de Dados
+
+```
+Dashboard (Reports.tsx)
+    ↓ handleGenerateNow() → POST /webhook/generate-report
+        ↓ JSON: { type, tenant_id, device_id, start_date, end_date }
+n8n (gerador-relatorios-pdf.json)
+    ↓ Buscar telemetry no período
+    ↓ Calcular estatísticas (avg, max, min)
+    ↓ Gerar HTML profissional
+    ↓ Converter para PDF (serviço Chromium)
+    ↓ Enviar via WhatsApp (Evolution API)
+        ↓ POST /sendText (mensagem com resumo)
+        ↓ POST /sendFile (PDF em anexo)
+    ↓ Log de execução (report_logs)
+Dashboard (alerta "Relatório gerado com sucesso!")
+```
+
+### Arquivos Criados/Modificados
+
+1. **`gerador-relatorios-pdf.json`** (NOVO)
+   - Workflow n8n completo para geração de relatórios PDF
+   - Integração com Supabase, Evolution API, SendGrid
+
+2. **`report_logs_table.sql`** (NOVO)
+   - Script SQL para criar tabela de logs de relatórios
+
+3. **`Reports.tsx`** (MODIFICADO)
+   - Adicionado modal "Gerar Agora"
+   - Novo estado: showGenerateModal, generateForm, generating
+   - Nova função: handleGenerateNow()
+   - Botão "Gerar Agora" no header substituindo "Últimos 30 Dias"
+
+---
+
+## Ação Requerida no Supabase
+
+Execute o SQL em `report_logs_table.sql` no SQL Editor do Supabase:
+```sql
+CREATE TABLE IF NOT EXISTS report_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  config_id UUID REFERENCES report_configs(id),
+  tenant_id UUID REFERENCES tenants(id),
+  device_id TEXT,
+  type TEXT CHECK (type IN ('device', 'company')),
+  period_start DATE,
+  period_end DATE,
+  status TEXT CHECK (status IN ('success', 'failed', 'partial')),
+  whatsapp_sent BOOLEAN DEFAULT false,
+  email_sent BOOLEAN DEFAULT false,
+  whatsapp_recipients TEXT[],
+  email_recipients TEXT[],
+  error_message TEXT,
+  generated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_report_logs_config ON report_logs(config_id);
+CREATE INDEX idx_report_logs_tenant ON report_logs(tenant_id);
+CREATE INDEX idx_report_logs_generated ON report_logs(generated_at DESC);
+
+ALTER TABLE report_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all for report_logs" ON report_logs FOR ALL USING (true) WITH CHECK (true);
+```
+
+---
+
+## Próximos Passos
+
+1. Importar workflow `gerador-relatorios-pdf.json` no n8n
+2. Configurar credenciais do n8n (Supabase, Evolution API)
+3. Testar geração de relatório via Dashboard
+4. Verificar recebimento do PDF no WhatsApp
+5. Build do dashboard para produção

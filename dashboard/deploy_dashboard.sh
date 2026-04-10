@@ -23,9 +23,9 @@ fi
 
 echo "Build concluído."
 
-# --- 2. Compactar o diretório de build --- 
-echo "Compactando o diretório '${BUILD_DIR}'..."
-tar -czvf "${ARCHIVE_NAME}" -C "${BUILD_DIR}" .
+# --- 2. Compactar os arquivos (dist e server.js) --- 
+echo "Compactando arquivos para deploy..."
+tar -czvf "${ARCHIVE_NAME}" "${BUILD_DIR}" server.js package.json
 echo "Compactação concluída: ${ARCHIVE_NAME}"
 
 # --- 3. Copiar o arquivo compactado para a VPS --- 
@@ -45,8 +45,8 @@ ssh "${REMOTE_USER}@${REMOTE_HOST}" << EOF
   mkdir -p "${BUILD_DIR}"
   rm -rf "${BUILD_DIR}"/*
 
-  echo "Descompactando ${ARCHIVE_NAME} para ${BUILD_DIR}/..."
-  tar -xzvf "${ARCHIVE_NAME}" -C "${BUILD_DIR}/"
+  echo "Descompactando ${ARCHIVE_NAME}..."
+  tar -xzvf "${ARCHIVE_NAME}"
 
   echo "Removendo arquivo compactado remoto: ${ARCHIVE_NAME}"
   rm "${ARCHIVE_NAME}"
