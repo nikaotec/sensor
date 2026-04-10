@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" fill="none">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#19e66f"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <rect width="120" height="40" rx="8" fill="#112118"/>
+  
+  <g filter="url(#glow)">
+    <circle cx="20" cy="20" r="10" stroke="url(#grad)" stroke-width="2" fill="none"/>
+    <path d="M20 12 L20 20 L26 20" stroke="#19e66f" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+    <circle cx="20" cy="20" r="3" fill="#19e66f"/>
+  </g>
+  
+  <g font-family="Space Grotesk, system-ui, sans-serif" font-weight="600">
+    <text x="42" y="26" fill="#ffffff" font-size="18" letter-spacing="-0.5">Smart</text>
+    <text x="88" y="26" fill="url(#grad)" font-size="18" letter-spacing="-0.5">RF</text>
+  </g>
+</svg>
