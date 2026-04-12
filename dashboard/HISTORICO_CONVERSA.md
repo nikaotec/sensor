@@ -1127,3 +1127,127 @@ CREATE POLICY "Allow all for report_logs" ON report_logs FOR ALL USING (true) WI
 3. Testar geração de relatório via Dashboard
 4. Verificar recebimento do PDF no WhatsApp
 5. Build do dashboard para produção
+
+---
+
+## Data: 11/04/2026
+
+## Alteração 1: Ícone e Título
+
+**Objetivo:** Atualizar título e ícone do projeto.
+
+**Alterações:**
+1. **`index.html`**: Alterado título para "SmartRF - Monitoramento IoT"
+2. **`index.html`**: Alterado favicon para `/logo.svg`
+
+**Skills Utilizadas:**
+- `frontend-design`: Para manter consistência com o Design System
+
+---
+
+## Alteração 2: Botão de Relatórios no Dashboard
+
+**Objetivo:** Mover botão de gerar relatório para o Dashboard em todas as abas.
+
+**Alterações:**
+1. **`Dashboard.tsx`**: Adicionado estado `showReportModal`, `reportForm`, `generatingReport`
+2. Adicionado botão "Gerar Relatório" no header
+3. Criado modal com opções: empresa, dispositivo, período
+4. **`Reports.tsx`**: Removido botão duplicado da aba Relatórios
+
+**Comportamento:**
+- Ao clicar em aba específica: modal mostra empresa fixo + hanya dispositivos daquela empresa
+- Ao clicar em "Todos" + gestor: pode selecionar qualquer empresa
+
+**Skills Utilizadas:**
+- `react-best-practices`: State management, componentização
+- `frontend-design`: UX do modal
+
+---
+
+## Alteração 3: Correção de Período no Relatório
+
+**Problema:** Usuário selecionava data 09 mas relatório mostrava desde dia 7.
+
+**Causa:** Formato de data não incluía horário completo.
+
+**Solução:**
+1. **`Dashboard.tsx`**: Adicionado `formatStartDate` e `formatEndDate` para converter datas para ISO completo:
+   - `start_date`: YYYY-MM-DD + 'T00:00:00.000Z'
+   - `end_date`: YYYY-MM-DD + 'T23:59:59.999Z'
+
+2. **`Reports.tsx`**: Mesma correção applied
+
+3. **Correção de inicialização de datas**: Substituído `new Date() - 7 * 24 * 60 * 60 * 1000` por `setDate()`:
+   ```typescript
+   const getDefaultDates = () => {
+       const end = new Date();
+       const start = new Date();
+       start.setDate(start.getDate() - 7);
+       return {
+           start_date: start.toISOString().split('T')[0],
+           end_date: end.toISOString().split('T')[0]
+       };
+   };
+   ```
+
+**Skills Utilizadas:**
+- `react-best-practices`: Treatment de dates e timezone
+- `n8n-workflow-patterns`: Entendimento do fluxo de dados
+
+---
+
+## Resumo das Skills Utilizadas Nesta Sessão
+
+| Skill | Para quê |
+|-------|----------|
+| **react-best-practices** | State management, componentização React, tratamento de datas |
+| **frontend-design** | Design system, UX dos componentes |
+| **lint-and-validate** | Verificação do build |
+| **n8n-workflow-patterns** | Entendimento do fluxo de dados |
+| **enhance-prompt** | Preparação para Stitch (não utilizado diretamente) |
+| **stitch-loop** | Build iterativo (não utilizado - MCP não configurado)
+
+---
+
+## Data: 11/04/2026 - Parte 2
+
+## Alteração: Campos de Hora no Relatório
+
+**Objetivo:** Adicionar campos de hora início e fim para pesquisa precisa no relatório.
+
+**Alterações:**
+1. **`Dashboard.tsx`**:
+   - Adicionados campos `start_time` e `end_time` no state
+   - Adicionados inputs `type="time"` no modal
+   - Atualizada função `formatDateTime()` para usar data + hora
+
+2. **`Reports.tsx`**:
+   - Mesma correção applied para consistência
+
+**Input no Modal:**
+```
+├── Data Inicial    [_____/_____/______] [__:__]
+├── Data Final      [_____/_____/______] [__:__]
+```
+
+**Formato enviado para n8n:**
+- `start_date`: `2026-04-09T08:00:00.000Z`
+- `end_date`: `2026-04-12T18:30:00.000Z`
+
+**Skills Utilizadas:**
+- `react-best-practices`: State management, componentização
+- `frontend-design`: UX dos inputs de hora
+
+---
+
+## Correções do Workflow n8n
+
+**Problema 1:** Data começando errado
+- **Solução:** Código JS não reformata datas que já têm formato ISO
+
+**Problema 2:** `toBuffer is not a function` (n8n v2.14+)
+- **Solução:** Extrair PDF de `binary[key].file` (estrutura n8n v2.14)
+
+**Problema 3:** `binary.data.toBuffer is not a function`
+- **Solução:** Buscar PDF por `mimeType === 'application/pdf'` e extrair de `file`

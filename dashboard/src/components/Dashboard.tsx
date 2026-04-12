@@ -15,7 +15,10 @@ import {
     ArrowUp,
     ArrowDown,
     Thermometer,
-    Droplets
+    Droplets,
+    CalendarRange,
+    Download,
+    X
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -27,6 +30,51 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
     const { currentTenant, availableTenants, setTenantId } = useTenant();
     const { currentUser, logout } = useAuth();
     const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
+    const [showReportModal, setShowReportModal] = React.useState(false);
+    const getDefaultDates = () => {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 7);
+        return {
+            start_date: start.toISOString().split('T')[0],
+            end_date: end.toISOString().split('T')[0],
+            start_time: '00:00',
+            end_time: '23:59'
+        };
+    };
+    const [reportForm, setReportForm] = React.useState<{
+        type: string;
+        tenant_id: string;
+        device_id: string;
+        start_date: string;
+        end_date: string;
+        start_time: string;
+        end_time: string;
+    }>({
+        type: 'company',
+        tenant_id: '',
+        device_id: '',
+        start_date: getDefaultDates().start_date,
+        end_date: getDefaultDates().end_date,
+        start_time: '00:00',
+        end_time: '23:59'
+    });
+    const [generatingReport, setGeneratingReport] = React.useState(false);
+
+    // Abre modal com empresa atual já selecionada
+    const openReportModal = () => {
+        const dates = getDefaultDates();
+        setReportForm({
+            type: 'company',
+            tenant_id: currentTenant?.id && currentTenant.id !== 'all' ? currentTenant.id : '',
+            device_id: '',
+            start_date: dates.start_date,
+            end_date: dates.end_date,
+            start_time: dates.start_time,
+            end_time: dates.end_time
+        });
+        setShowReportModal(true);
+    };
 
     // Fetch initial devices from Firebase and update with live MQTT stream
     const { devices: supabaseDevices } = useSupabaseData(currentTenant?.id || '', undefined, currentUser?.role);
@@ -74,6 +122,75 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         return <div className="flex h-screen items-center justify-center bg-slate-900 text-white">Carregando dados da Empresa...</div>;
     }
 
+    const handleGenerateReport = async () => {
+        if (reportForm.type === 'device' && !reportForm.device_id) {
+            alert('Selecione um dispositivo para gerar o relatório.');
+            return;
+        }
+
+        const selectedTenant = availableTenants.find(t => t.id === reportForm.tenant_id) || (currentTenant.id !== 'all' ? currentTenant : null);
+        const tenantId = selectedTenant?.id;
+        const companyName = selectedTenant?.name || 'Geral';
+
+        // Converter datas + horas para formato ISO completo
+        const formatDateTime = (dateStr: string, timeStr: string) => {
+            const [hours, minutes] = timeStr.split(':');
+            return dateStr + `T${hours || '00'}:${minutes || '00'}:00.000Z`;
+        };
+
+        setGeneratingReport(true);
+        try {
+            const payload: any = {
+                type: reportForm.type,
+                start_date: formatDateTime(reportForm.start_date, reportForm.start_time),
+                end_date: formatDateTime(reportForm.end_date, reportForm.end_time),
+                company_name: companyName
+            };
+
+            if (tenantId) {
+                payload.tenant_id = tenantId;
+            }
+
+            if (reportForm.type === 'device' && reportForm.device_id) {
+                const device = supabaseDevices.find(d => d.id === reportForm.device_id);
+                payload.device_id = reportForm.device_id;
+                payload.device_name = device?.name || reportForm.device_id;
+            } else {
+                const companyDevices = supabaseDevices.filter(d => d.tenantId === tenantId);
+                payload.device_id = companyDevices[0]?.id || supabaseDevices[0]?.id;
+            }
+
+            const response = await fetch('/api/n8n/webhook/generate-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.pdf_base64) {
+                    const linkSource = `data:application/pdf;base64,${result.pdf_base64}`;
+                    const downloadLink = document.createElement("a");
+                    const fileName = `relatorio_${payload.device_id || 'geral'}_${new Date().toISOString().split('T')[0]}.pdf`;
+                    downloadLink.href = linkSource;
+                    downloadLink.download = fileName;
+                    downloadLink.click();
+                    alert("Relatório gerado e baixado com sucesso!");
+                } else {
+                    alert("Relatório gerado com sucesso! Verifique seu WhatsApp.");
+                }
+            } else {
+                alert("Erro ao gerar relatório.");
+            }
+            setShowReportModal(false);
+        } catch (err) {
+            console.error('Error generating report:', err);
+            alert("Erro ao gerar relatório.");
+        } finally {
+            setGeneratingReport(false);
+        }
+    };
+
     return (
         <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
             <Sidebar activeItem="dashboard" onNavigate={onNavigate} />
@@ -98,6 +215,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                         <button className="relative p-2 text-gray-400 hover:text-primary transition-colors">
                             <Bell size={20} />
                             <span className="absolute top-1.5 right-1.5 size-2 bg-danger rounded-full border-2 border-white"></span>
+                        </button>
+                        <button
+                            onClick={openReportModal}
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-primary to-[#004299] text-white rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-[0_0_15px_rgba(19,109,236,0.3)]"
+                        >
+                            <CalendarRange size={16} />
+                            <span className="hidden sm:inline">Gerar Relatório</span>
                         </button>
                         <div className="relative">
                             <button
@@ -344,6 +468,150 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                     </div>
                 </div>
             </main>
+
+            {/* MODAL DE RELATÓRIOS */}
+            {showReportModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-md bg-[#172030] border border-white/5 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center justify-between border-b border-white/5 p-6">
+                            <h3 className="text-xl font-bold text-white">Gerar Relatório</h3>
+                            <button onClick={() => setShowReportModal(false)} className="text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
+                        </div>
+                        <div className="p-6 space-y-5">
+                            {/* Seleção de Empresa - só mostra se estiver na aba "Todos" E se for gestor */}
+                            {currentTenant?.id === 'all' && (currentUser?.role === 'manager' || currentUser?.role === 'gestor') && (
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Empresa</label>
+                                    <select
+                                        value={reportForm.tenant_id}
+                                        onChange={(e) => setReportForm({ ...reportForm, tenant_id: e.target.value, device_id: '' })}
+                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    >
+                                        <option value="">Selecione a empresa...</option>
+                                        {availableTenants.map(t => (
+                                            <option key={t.id} value={t.id}>{t.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Mostrar empresa atual se não for "Todos" */}
+                            {currentTenant?.id !== 'all' && (
+                                <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
+                                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Empresa Selecionada</p>
+                                    <p className="text-lg font-bold text-white">{currentTenant?.name}</p>
+                                </div>
+                            )}
+
+                            {/* Tipo de Relatório */}
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Escopo do Relatório</label>
+                                <select
+                                    value={reportForm.type}
+                                    onChange={(e) => setReportForm({ ...reportForm, type: e.target.value, device_id: '' })}
+                                    className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                >
+                                    <option value="company">Toda a Empresa</option>
+                                    <option value="device">Dispositivo Específico</option>
+                                </select>
+                            </div>
+
+                            {/* Seleção de Dispositivo - filtra pela empresa da aba atual ou selecionada */}
+                            {reportForm.type === 'device' && (
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Selecione o Dispositivo</label>
+                                    <select
+                                        value={reportForm.device_id}
+                                        onChange={(e) => setReportForm({ ...reportForm, device_id: e.target.value })}
+                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    >
+                                        <option value="">Escolha um sensor...</option>
+                                        {supabaseDevices
+                                            .filter(d => {
+                                                // Se está em aba específica, filtra por ela
+                                                if (currentTenant?.id && currentTenant.id !== 'all') {
+                                                    return d.tenantId === currentTenant.id;
+                                                }
+                                                // Senão, usa a empresa selecionada no modal
+                                                return !reportForm.tenant_id || d.tenantId === reportForm.tenant_id;
+                                            })
+                                            .map(d => (
+                                                <option key={d.id} value={d.id}>{d.name} ({d.location || 'Sem ala'})</option>
+                                            ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Período - Data + Hora */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Inicial</label>
+                                    <input
+                                        type="date"
+                                        value={reportForm.start_date}
+                                        onChange={(e) => setReportForm({ ...reportForm, start_date: e.target.value })}
+                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    />
+                                    <input
+                                        type="time"
+                                        value={reportForm.start_time}
+                                        onChange={(e) => setReportForm({ ...reportForm, start_time: e.target.value })}
+                                        className="w-full mt-2 bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Final</label>
+                                    <input
+                                        type="date"
+                                        value={reportForm.end_date}
+                                        onChange={(e) => setReportForm({ ...reportForm, end_date: e.target.value })}
+                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    />
+                                    <input
+                                        type="time"
+                                        value={reportForm.end_time}
+                                        onChange={(e) => setReportForm({ ...reportForm, end_time: e.target.value })}
+                                        className="w-full mt-2 bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl">
+                                <p className="text-[11px] text-primary font-medium leading-relaxed">
+                                    O PDF será processado agora e enviado para os canais configurados.
+                                </p>
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowReportModal(false)}
+                                    className="flex-1 px-4 py-3 border border-white/10 rounded-xl text-sm font-bold text-slate-300 hover:bg-white/5 transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleGenerateReport}
+                                    disabled={generatingReport || (reportForm.type === 'device' && !reportForm.device_id)}
+                                    className="flex-1 px-4 py-3 bg-primary text-white rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {generatingReport ? (
+                                        <>
+                                            <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
+                                            Processando...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Download size={16} />
+                                            Gerar PDF
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

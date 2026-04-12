@@ -17,7 +17,7 @@ import {
     Legend
 } from 'recharts';
 import {
-    CalendarRange, Download, Zap, TrendingUp,
+    Download, Zap, TrendingUp,
     AlertOctagon, Lightbulb, Plus, Edit2, Trash2,
     Clock, Smartphone, Mail, Check, X
 } from 'lucide-react';
@@ -35,12 +35,25 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
     const [showModal, setShowModal] = useState(false);
     const [editingReport, setEditingReport] = useState<any>(null);
     const [showGenerateModal, setShowGenerateModal] = useState(false);
+    const getDefaultDates = () => {
+        const end = new Date();
+        const start = new Date();
+        start.setDate(start.getDate() - 7);
+        return {
+            start_date: start.toISOString().split('T')[0],
+            end_date: end.toISOString().split('T')[0],
+            start_time: '00:00',
+            end_time: '23:59'
+        };
+    };
     const [generateForm, setGenerateForm] = useState({
         type: 'device',
         tenant_id: currentTenant?.id === 'all' ? '' : currentTenant?.id || '',
         device_id: '',
-        start_date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        end_date: new Date().toISOString().split('T')[0]
+        start_date: getDefaultDates().start_date,
+        end_date: getDefaultDates().end_date,
+        start_time: '00:00',
+        end_time: '23:59'
     });
     const [generating, setGenerating] = useState(false);
 
@@ -137,12 +150,18 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
         const tenantId = selectedTenant?.id;
         const companyName = selectedTenant?.name || 'Geral';
 
+        // Converter datas + horas para formato ISO completo
+        const formatDateTime = (dateStr: string, timeStr: string) => {
+            const [hours, minutes] = timeStr.split(':');
+            return dateStr + `T${hours || '00'}:${minutes || '00'}:00.000Z`;
+        };
+
         setGenerating(true);
         try {
             const payload: any = {
                 type: generateForm.type,
-                start_date: generateForm.start_date,
-                end_date: generateForm.end_date,
+                start_date: formatDateTime(generateForm.start_date, generateForm.start_time),
+                end_date: formatDateTime(generateForm.end_date, generateForm.end_time),
                 company_name: companyName
             };
 
@@ -213,22 +232,7 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                         <h2 className="text-2xl font-bold tracking-tight text-white font-heading">Relatórios <span className="text-primary">&</span> Insights</h2>
                         <p className="text-slate-400 text-xs font-medium uppercase tracking-[0.1em]">Ecossistema {currentTenant?.name}</p>
                     </div>
-                    <div className="flex gap-4">
-                        <button
-                            onClick={() => setShowGenerateModal(true)}
-                            className="px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-semibold text-white flex items-center gap-2 hover:bg-white/10 transition-all backdrop-blur-md active:scale-95"
-                        >
-                            <CalendarRange size={18} className="text-primary" />
-                            Gerar Agora
-                        </button>
-                        <button
-                            onClick={() => setShowGenerateModal(true)}
-                            className="px-5 py-2.5 bg-gradient-to-br from-primary to-[#004299] text-white rounded-xl text-sm font-bold flex items-center gap-2 hover:brightness-110 transition-all shadow-[0_0_20px_rgba(19,109,236,0.3)] hover:scale-[1.02] active:scale-95"
-                        >
-                            <Download size={18} />
-                            Exportar PDF
-                        </button>
-                    </div>
+                    
                 </header>
 
                 <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 py-8 custom-scrollbar">
@@ -609,21 +613,33 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Período Inicial</label>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Inicial</label>
                                     <input
                                         type="date"
                                         value={generateForm.start_date}
                                         onChange={(e) => setGenerateForm({ ...generateForm, start_date: e.target.value })}
                                         className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
                                     />
+                                    <input
+                                        type="time"
+                                        value={generateForm.start_time}
+                                        onChange={(e) => setGenerateForm({ ...generateForm, start_time: e.target.value })}
+                                        className="w-full mt-2 bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Período Final</label>
+                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Final</label>
                                     <input
                                         type="date"
                                         value={generateForm.end_date}
                                         onChange={(e) => setGenerateForm({ ...generateForm, end_date: e.target.value })}
                                         className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
+                                    />
+                                    <input
+                                        type="time"
+                                        value={generateForm.end_time}
+                                        onChange={(e) => setGenerateForm({ ...generateForm, end_time: e.target.value })}
+                                        className="w-full mt-2 bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
                                     />
                                 </div>
                             </div>
