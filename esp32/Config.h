@@ -80,7 +80,7 @@
 #define DOOR_TIME_DEFAULT 30
 #define VOLT_OUTAGE_THR 20.0
 #define ALERT_DEBOUNCE 5000
-#define ALERT_REPEAT 60000 // 1 minuto em milissegundos
+#define ALERT_REPEAT 1000 // 1 segundo para repetição contínua (temp/porta)
 
 // ---------- ESTRUTURA DE DADOS ----------
 struct SystemSettings {

@@ -64,13 +64,24 @@ void notificarUsuario(String mensagem, int tempo = 4000);
 bool isDeviceLinked();
 
 // ---------- FUNÇÕES AUXILIARES ----------
-void emitirBipe(int tempo = 100, int repeticoes = 1) {
+void emitirBipe(int tempo = 100, int repeticoes = 1, int pausa = 100) {
   for (int i = 0; i < repeticoes; i++) {
     digitalWrite(PIN_BUZZER, HIGH);
     delay(tempo);
     digitalWrite(PIN_BUZZER, LOW);
     if (i < repeticoes - 1)
-      delay(100);
+      delay(pausa);
+  }
+}
+
+// Bipes específicos para temperatura e porta (500ms ON, 300ms OFF)
+void emitirBipeAlertaCritico(int repeticoes = 2) {
+  for (int i = 0; i < repeticoes; i++) {
+    digitalWrite(PIN_BUZZER, HIGH);
+    delay(500);
+    digitalWrite(PIN_BUZZER, LOW);
+    if (i < repeticoes - 1)
+      delay(300);
   }
 }
 
@@ -183,8 +194,8 @@ void loop() {
     enviarDadosDashboard();
   }
 
-  // 2. Ler Sensores (a cada 2s)
-  if (now - lastTempCheck > 2000) {
+  // 2. Ler Sensores (a cada 1s para bipes mais frequentes)
+  if (now - lastTempCheck > 1000) {
     lastTempCheck = now;
 
     sensors.requestTemperatures();
@@ -256,6 +267,15 @@ void loop() {
       if (storage.data.chkTemp) {
         stMax = alertTempMax.check(temperaturaAtual >= storage.data.alarmMax);
         stMin = alertTempMin.check(temperaturaAtual <= storage.data.alarmMin);
+        
+        // Bipe específico para temperatura alta/baixa (repete até normalizar)
+        if (!alertasSilenciados) {
+          if (stMax == ALERT_STARTED || stMax == ALERT_REPEATED) {
+            emitirBipeAlertaCritico(2);
+          } else if (stMin == ALERT_STARTED || stMin == ALERT_REPEATED) {
+            emitirBipeAlertaCritico(2);
+          }
+        }
       }
 
       // 2. Falta de Energia
@@ -284,8 +304,13 @@ void loop() {
       if (storage.data.chkDoor) {
         AlertStatus stDoor = alertDoor.check(isDoorOpen);
         if (stDoor == ALERT_STARTED ||
-            (stDoor == ALERT_REPEATED && !alertasSilenciados))
+            (stDoor == ALERT_REPEATED && !alertasSilenciados)) {
+          // Bipe específico para porta aberta (repete até fechar)
+          if (!alertasSilenciados) {
+            emitirBipeAlertaCritico(2);
+          }
           enviarDadosMqtt("ALERTA_PORTA_ABERTA");
+        }
         if (stDoor == ALERT_NORMALIZED)
           enviarDadosMqtt("PORTA_FECHADA");
       }
@@ -787,6 +812,21 @@ void processarMensagemMqtt(String topic, String payload) {
     storage.resetMinMax(temperaturaAtual);
     notificarUsuario("Reset Max/Min", 5000);
     enviarDadosMqtt("RESET_MAX_MIN_MANUAL");
+  } else if (intencao == "alterar_nome") {
+    if (doc.containsKey("novo_nome")) {
+      String novoNome = doc["novo_nome"].as<String>();
+      novoNome = novoNome.substring(0, 31);
+      strncpy(storage.data.deviceName, novoNome.c_str(), 31);
+      storage.data.deviceName[31] = '\0';
+      storage.save();
+      String msg = "Nome: " + String(storage.data.deviceName);
+      notificarUsuario(msg, 5000);
+      enviarDadosWeb();
+      String feedbackMsg = "NOME_ALTERADO|" + String(storage.data.deviceName);
+      enviarDadosMqtt(feedbackMsg);
+    } else {
+      enviarDadosMqtt("ERRO_NOME_FALTANDO");
+    }
   } else {
     // Feedback Genérico para Debug Visual
     if (intencao.length() > 0) {
@@ -885,7 +925,13 @@ void enviarDadosMqtt(String evento) {
 
   // Feedback sonoro LOCAL para alertas (SEMPRE, antes de qualquer bloqueio)
   if (evento.startsWith("ALERTA_") && !alertasSilenciados) {
-    emitirBipe(300, 2);
+    // Temperatura alta/baixa e porta usam bipes específicos (500ms ON, 300ms OFF)
+    if (evento == "ALERTA_TEMP_ALTA" || evento == "ALERTA_TEMP_BAIXA" || evento == "ALERTA_PORTA_ABERTA") {
+      emitirBipeAlertaCritico(2);
+    } else {
+      // Outros alarmes usam bipes normais
+      emitirBipe(300, 2, 100);
+    }
 
     // Exibe mensagem de alerta no Display por 5 segundos
     String msgAlerta = "";
