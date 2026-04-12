@@ -123,6 +123,22 @@ const AppContent = () => {
     }
   };
 
+  // Handler para mudança de nome de dispositivo via MQTT
+  const handleDeviceNameChange = async (deviceId: string, newName: string) => {
+    console.log('[Nome Alterado]', deviceId, '->', newName);
+    alert(`Nome do dispositivo alterado para: ${newName}`);
+    
+    // Salvar no Supabase
+    const { error } = await supabase
+      .from('devices_status')
+      .update({ name: newName, updated_at: new Date().toISOString() })
+      .eq('id', deviceId);
+    
+    if (error) {
+      console.error('Erro ao salvar novo nome no Supabase:', error);
+    }
+  };
+
   // Monitorar Alertas MQTT Globalmente
   useMqttData(
     currentTenant?.id || 'all',
@@ -132,7 +148,8 @@ const AppContent = () => {
       playAlertSound();
       addAlert(alertPayload);
       logAlertToSupabase(alertPayload);
-    }
+    },
+    handleDeviceNameChange
   );
 
   const getAlertValue = (alert: any) => {

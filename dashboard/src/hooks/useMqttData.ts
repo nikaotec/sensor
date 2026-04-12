@@ -5,11 +5,14 @@ import type { Device } from '../data/mockData';
 // Default broker URL for WebSockets (can be passed via env variables)
 const MQTT_BROKER_URL = import.meta.env.VITE_MQTT_BROKER_URL || 'wss://nikaotech.com/mqtt';
 
+export type MqttMessageHandler = (payload: { type: string; deviceId?: string; value?: string; deviceName?: string }) => void;
+
 export const useMqttData = (
     tenantId: string | null,
     currentUserRole: string | undefined,
     initialDevices: Device[] = [],
-    onAlert?: (payload: any) => void
+    onAlert?: (payload: any) => void,
+    onDeviceNameChange?: (deviceId: string, newName: string) => void
 ) => {
     const [devices, setDevices] = useState<any[]>(initialDevices.map(d => ({ ...d, mqttUpdated: false })));
     const [isConnected, setIsConnected] = useState(false);
@@ -140,6 +143,16 @@ export const useMqttData = (
                     chkDoor: payload.CHK_DOOR !== undefined ? payload.CHK_DOOR : true,
                 };
                 payload = normalizedPayload;
+
+                // Handle special confirmation messages (NOME_ALTERADO|NovoNome)
+                const rawMsg = message.toString();
+                if (rawMsg.startsWith('NOME_ALTERADO|')) {
+                    const newName = rawMsg.split('|')[1];
+                    const deviceId = payload.id || payload.ID_DISPOSITIVO;
+                    if (deviceId && newName && onDeviceNameChange) {
+                        onDeviceNameChange(deviceId, newName);
+                    }
+                }
 
                 // Get the latest devices state without triggering re-renders
                 const currentDevices = devicesRef.current;

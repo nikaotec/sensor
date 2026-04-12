@@ -614,12 +614,14 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Inicial</label>
-                                    <input
-                                        type="date"
-                                        value={generateForm.start_date}
-                                        onChange={(e) => setGenerateForm({ ...generateForm, start_date: e.target.value })}
-                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
-                                    />
+                                    <label className="block cursor-pointer">
+                                        <input
+                                            type="date"
+                                            value={generateForm.start_date}
+                                            onChange={(e) => setGenerateForm({ ...generateForm, start_date: e.target.value })}
+                                            className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors cursor-pointer"
+                                        />
+                                    </label>
                                     <input
                                         type="time"
                                         value={generateForm.start_time}
@@ -629,12 +631,14 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Final</label>
-                                    <input
-                                        type="date"
-                                        value={generateForm.end_date}
-                                        onChange={(e) => setGenerateForm({ ...generateForm, end_date: e.target.value })}
-                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
-                                    />
+                                    <label className="block cursor-pointer">
+                                        <input
+                                            type="date"
+                                            value={generateForm.end_date}
+                                            onChange={(e) => setGenerateForm({ ...generateForm, end_date: e.target.value })}
+                                            className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors cursor-pointer"
+                                        />
+                                    </label>
                                     <input
                                         type="time"
                                         value={generateForm.end_time}

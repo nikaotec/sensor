@@ -1251,3 +1251,136 @@ CREATE POLICY "Allow all for report_logs" ON report_logs FOR ALL USING (true) WI
 
 **Problema 3:** `binary.data.toBuffer is not a function`
 - **Solução:** Buscar PDF por `mimeType === 'application/pdf'` e extrair de `file`
+
+---
+
+## Data: 12/04/2026
+
+## Feature: Alteração de Nome de Dispositivo via MQTT
+
+**Requisito:** Mudar nome do dispositivo pelo dashboard, usando MQTT diretamente (sem n8n), salvando no Supabase apenas após confirmação do dispositivo.
+
+### Análise do Sistema
+
+O ESP32 já suporta:
+- `storage.data.deviceName` - Nome do dispositivo (32 chars)
+- Endereço EEPROM: ADDR_DEVICE_NAME (48)
+- Comandos MQTT com `intencao` e `dispositivo_id`
+
+### Fluxo Implementado
+
+```
+Dashboard (DeviceDetails) - Botão editar nome
+    ↓ MQTT: esp32c3/status/action
+    { intencao: "alterar_nome", novo_nome: "Novo Nome", dispositivo_id: "MAC" }
+        ↓
+ESP32 (esp32.ino)
+    ↓ processarMensagemMqtt() → comando "alterar_nome"
+    ↓ Salvar na EEPROM via StorageManager
+    ↓ Enviar confirmação: "NOME_ALTERADO|NovoNome"
+        ↓
+Dashboard (useMqttData.ts)
+    ↓ Callback onDeviceNameChange
+    ↓ App.tsx → Salvar no Supabase ( devices_status.name )
+```
+
+### Skills Utilizadas
+
+1. **react-best-practices** - Componentização React, state management para UI de edição inline
+2. **react:components** - Componentes de input e botões com ícones
+3. **bash-linux** - Não aplicável nesta tarefa
+
+### Implementações Realizadas
+
+#### 1. ESP32 (esp32.ino)
+
+**Novo comando** `alterar_nome`:
+```cpp
+} else if (intencao == "alterar_nome") {
+  if (doc.containsKey("novo_nome")) {
+    String novoNome = doc["novo_nome"].as<String>();
+    novoNome = novoNome.substring(0, 31);
+    strncpy(storage.data.deviceName, novoNome.c_str(), 31);
+    storage.data.deviceName[31] = '\0';
+    storage.save();
+    notificarUsuario(msg, 5000);
+    enviarDadosWeb();
+    String feedbackMsg = "NOME_ALTERADO|" + String(storage.data.deviceName);
+    enviarDadosMqtt(feedbackMsg);
+  }
+}
+```
+
+#### 2. useMqttData.ts
+
+**Callback** `onDeviceNameChange`:
+- Adicionado parâmetro opcional `onDeviceNameChange` ao hook
+- Tratamento de mensagem `NOME_ALTERADO|` no handler MQTT
+- Extrai deviceId e novo nome e chama callback
+
+#### 3. App.tsx
+
+**Handler de persistência**:
+```typescript
+const handleDeviceNameChange = async (deviceId: string, newName: string) => {
+  alert(`Nome do dispositivo alterado para: ${newName}`);
+  // Salvar no Supabase
+  await supabase
+    .from('devices_status')
+    .update({ name: newName })
+    .eq('id', deviceId);
+};
+```
+
+#### 4. DeviceDetails.tsx
+
+**UI de edição inline**:
+- botão editar (Edit3) ao lado do nome do dispositivo
+- Input editável com botões Salvar (Save) e Cancelar (X)
+- Estados: `isEditingName`, `newDeviceName`, `isChangingName`
+- Função `handleChangeDeviceName` que envia comando MQTT
+
+### Arquivos Modificados
+
+1. **esp32/esp32.ino**
+   - Adicionado comando `alterar_nome`
+
+2. **dashboard/src/hooks/useMqttData.ts**
+   - Adicionado callback `onDeviceNameChange`
+   - Tratamento de `NOME_ALTERADO|`
+
+3. **dashboard/src/App.tsx**
+   - Handler `handleDeviceNameChange` para salvar no Supabase
+   - Passado para useMqttData
+
+4. **dashboard/src/components/DeviceDetails.tsx**
+   - Estados: `isEditingName`, `newDeviceName`, `isChangingName`
+   - Handler `handleChangeDeviceName`
+   - UI: botão Edit3 + input inline
+
+---
+
+## Data: 12/04/2026 - Correção UI
+
+## Problema: Campos de Data não abriam calendário ao clicar
+
+**Requisito:** Ao clicar em qualquer área do campo de data (não apenas no ícone), deveria abrir o calendário.
+
+### Solução Aplicada
+
+Envolver o input `type="date"` em um `<label>`:
+- O label captura o clique e ativa o input nativo
+- Comportamento nativo do navegador para abrir calendário
+
+### Arquivos Modificados
+
+1. **src/components/Reports.tsx**
+   - Data Initial: `<label className="block cursor-pointer"><input type="date" ... /></label>`
+   - Data Final: `<label className="block cursor-pointer"><input type="date" ... /></label>`
+
+2. **src/components/Dashboard.tsx**
+   - Mesmo padrão aplicado nos campos de período do relatório
+
+### Skill Utilizada
+
+- **react-best-practices** - Semântica HTML correta (label > input)

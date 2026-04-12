@@ -546,12 +546,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Inicial</label>
-                                    <input
-                                        type="date"
-                                        value={reportForm.start_date}
-                                        onChange={(e) => setReportForm({ ...reportForm, start_date: e.target.value })}
-                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
-                                    />
+                                    <label className="block cursor-pointer">
+                                        <input
+                                            type="date"
+                                            value={reportForm.start_date}
+                                            onChange={(e) => setReportForm({ ...reportForm, start_date: e.target.value })}
+                                            className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors cursor-pointer"
+                                        />
+                                    </label>
                                     <input
                                         type="time"
                                         value={reportForm.start_time}
@@ -561,12 +563,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Final</label>
-                                    <input
-                                        type="date"
-                                        value={reportForm.end_date}
-                                        onChange={(e) => setReportForm({ ...reportForm, end_date: e.target.value })}
-                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
-                                    />
+                                    <label className="block cursor-pointer">
+                                        <input
+                                            type="date"
+                                            value={reportForm.end_date}
+                                            onChange={(e) => setReportForm({ ...reportForm, end_date: e.target.value })}
+                                            className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors cursor-pointer"
+                                        />
+                                    </label>
                                     <input
                                         type="time"
                                         value={reportForm.end_time}

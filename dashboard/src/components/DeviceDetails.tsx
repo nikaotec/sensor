@@ -34,7 +34,10 @@ import {
     DoorOpen,
     ToggleLeft,
     ToggleRight,
-    Settings2
+    Settings2,
+    Edit3,
+    Save,
+    X
 } from 'lucide-react';
 
 interface DeviceDetailsProps {
@@ -73,6 +76,11 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const [voltCalibration, setVoltCalibration] = useState<string>('');
     const [batCalibration, setBatCalibration] = useState<string>('');
     const [tempCalibration, setTempCalibration] = useState<string>('');
+
+    // Estados para edição de nome
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [newDeviceName, setNewDeviceName] = useState('');
+    const [isChangingName, setIsChangingName] = useState(false);
 
     // Filter by tenant and deviceId
     const device = tenantDevices.find(d => d.id === deviceId);
@@ -120,7 +128,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const handleAction = async (action: string, extraPayload: any = {}, logMsg: string) => {
         if (!device || !publish || isUpdating) return;
         setIsUpdating(true);
-        const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'manager';
+        const isAdmin = currentUser?.role === 'gestor' || currentUser?.role === 'manager';
 
         const payload = {
             intencao: action,
@@ -156,6 +164,39 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
             console.error(`❌ Erro comando ${action}:`, error);
         } finally {
             setTimeout(() => setIsUpdating(false), 1000);
+        }
+    };
+
+    const handleChangeDeviceName = async () => {
+        if (!device || !publish || !newDeviceName.trim()) return;
+        if (currentUser?.role !== 'gestor' && currentUser?.role !== 'manager') return;
+        
+        const nameToSet = newDeviceName.trim().substring(0, 31);
+        setIsChangingName(true);
+        
+        const isAdmin = currentUser?.role === 'gestor' || currentUser?.role === 'manager';
+        
+        try {
+            // Enviar comando via MQTT diretamente para o dispositivo
+            const payload = {
+                intencao: 'alterar_nome',
+                novo_nome: nameToSet,
+                dispositivo_id: device.id,
+                id: device.id,
+                is_admin: isAdmin,
+                source: 'dashboard'
+            };
+            
+            publish('esp32c3/status/action', JSON.stringify(payload));
+            
+            // O feedback virá via MQTT e será tratado pelo callback onDeviceNameChange
+            //que está registrado no App.tsx
+            setIsEditingName(false);
+            console.log('Nome enviado para o dispositivo. Aguarde a confirmação...');
+        } catch (error) {
+            console.error('Erro ao mudar nome:', error);
+        } finally {
+            setTimeout(() => setIsChangingName(false), 2000);
         }
     };
 
@@ -287,8 +328,46 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                         <button onClick={() => onNavigate('dashboard')} className="p-2 hover:bg-[#2A2E24]/50 rounded-xl transition-colors text-slate-400 hover:text-white">
                             <ArrowLeft size={20} />
                         </button>
-                        <div>
-                            <h2 className="text-xl font-bold leading-none text-white tracking-tight">{device?.name || 'Dispositivo'}</h2>
+                        <div className="flex flex-col">
+                            {isEditingName ? (
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={newDeviceName}
+                                        onChange={(e) => setNewDeviceName(e.target.value)}
+                                        maxLength={31}
+                                        placeholder="Novo nome..."
+                                        className="bg-[#0a0c08] border border-primary/50 rounded-lg px-3 py-1.5 text-white text-lg font-bold w-48 focus:border-primary outline-none"
+                                        autoFocus
+                                    />
+                                    <button
+                                        onClick={handleChangeDeviceName}
+                                        disabled={isChangingName || !newDeviceName.trim()}
+                                        className="p-1.5 text-emerald-400 hover:text-emerald-300 disabled:opacity-50"
+                                    >
+                                        <Save size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => { setIsEditingName(false); setNewDeviceName(''); }}
+                                        className="p-1.5 text-slate-400 hover:text-white"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-xl font-bold leading-none text-white tracking-tight">{device?.name || 'Dispositivo'}</h2>
+                                    {(currentUser?.role === 'gestor' || currentUser?.role === 'manager') && (
+                                        <button
+                                            onClick={() => { setIsEditingName(true); setNewDeviceName(device?.name || ''); }}
+                                            className="p-1 text-slate-500 hover:text-primary transition-colors"
+                                            title="Alterar nome"
+                                        >
+                                            <Edit3 size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                             <p className="text-xs text-slate-400 mt-1">
                                 {availableTenants?.find(t => t.id === device?.tenantId)?.name || device?.tenantId || 'Empresa Desconhecida'}
                                 {device?.location ? ` • ${device.location}` : ''}
