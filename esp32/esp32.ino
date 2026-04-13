@@ -37,7 +37,7 @@ AlertManager alertDoor("PORTA_ABERTA", 2000, ALERT_REPEAT); // 2s debounce porta
 
 // ---------- ESTADO DO SISTEMA ----------
 float temperaturaAtual = 0.0;
-bool releLigado = false;
+bool releEstado[RELAY_COUNT] = {false, false, false, false};  // Estado dos 4 relés
 bool modoManual = false;
 bool alertasSilenciados =
     false; // Novo flag para silenciar alertas persistentes
@@ -45,6 +45,7 @@ unsigned long manualTimeout = 0;
 String statusSeguranca = "OK";
 String ultimoRemoteJid = "";        // remoteJid do ultimo comando recebido
 String ultimosCamposAlterados = ""; // Campos alterados na ultima configuracao
+int qtdSensoresDs18b20 = 0;       // Quantidade de sensores DS18B20 conectados
 
 // ---------- TIMERS ----------
 unsigned long lastTempCheck = 0;
@@ -98,9 +99,11 @@ String getIdDispositivo() {
 void setup() {
   Serial.begin(115200);
 
-  // Inicializa Hardware
-  pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);
+  // Inicializa Hardware - 4 relés
+  for (int i = 0; i < RELAY_COUNT; i++) {
+    pinMode(RELAY_PINS[i], OUTPUT);
+    digitalWrite(RELAY_PINS[i], LOW);
+  }
   pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
 
@@ -123,6 +126,11 @@ void setup() {
   // Sensores
   sensors.begin();
   sensors.setWaitForConversion(false);
+  
+  // Detecta dispositivos DS18B20 conectados
+  qtdSensoresDs18b20 = sensors.getDeviceCount();
+  Serial.println("Sensores DS18B20 encontrados: " + String(qtdSensoresDs18b20));
+  
   ambientSensor.begin();
   pinMode(PIN_DOOR, INPUT_PULLUP);
 
@@ -250,14 +258,29 @@ void loop() {
 
     if (!modoManual) {
 
-      // 0. Lógica do Relé (Apenas com temperatura válida)
+      // 0. Lógica dos 4 Relés (Apenas com temperatura válida)
       if (temperaturaAtual > -50 && temperaturaAtual < 80) {
-        if (temperaturaAtual >= TEMP_LIGA && !releLigado) {
-          releLigado = true;
-          digitalWrite(RELAY_PIN, HIGH);
-        } else if (temperaturaAtual <= TEMP_DESLIGA && releLigado) {
-          releLigado = false;
-          digitalWrite(RELAY_PIN, LOW);
+        for (int i = 0; i < RELAY_COUNT; i++) {
+          RelayConfig &relay = storage.data.relays[i];
+          bool estadoAtual = releEstado[i];
+          
+          if (relay.func == RELAY_FUNC_AUTO) {
+            // Controle automático por temperatura
+            if (temperaturaAtual >= relay.tempOn && !estadoAtual) {
+              releEstado[i] = true;
+              digitalWrite(RELAY_PINS[i], HIGH);
+            } else if (temperaturaAtual <= relay.tempOff && estadoAtual) {
+              releEstado[i] = false;
+              digitalWrite(RELAY_PINS[i], LOW);
+            }
+          } else if (relay.func == RELAY_FUNC_MANUAL) {
+            // Controle manual
+            if (relay.manualState != estadoAtual) {
+              releEstado[i] = relay.manualState;
+              digitalWrite(RELAY_PINS[i], relay.manualState ? HIGH : LOW);
+            }
+          }
+          // RELAY_FUNC_OFF = não faz nada
         }
       }
 
@@ -734,23 +757,61 @@ void processarMensagemMqtt(String topic, String payload) {
     enviarDadosMqtt("feedback_desvinculo");
     enviarDadosWeb();
   } else if (intencao == "ligar_rele") {
-    modoManual = true;
-    releLigado = true;
-    manualTimeout = millis();
-    digitalWrite(RELAY_PIN, HIGH);
-    notificarUsuario("Rele LIGADO Manual", 5000);
-    enviarDadosMqtt("RELE_LIGADO_MANUAL");
+    // Determina qual rele (0 por padrão, ou especificado)
+    int idx = doc.containsKey("rele_index") ? doc["rele_index"].as<int>() : 0;
+    if (idx >= 0 && idx < RELAY_COUNT) {
+      releEstado[idx] = true;
+      storage.data.relays[idx].manualState = true;
+      storage.data.relays[idx].func = RELAY_FUNC_MANUAL;
+      digitalWrite(RELAY_PINS[idx], HIGH);
+      String msg = "Rele " + String(idx + 1) + " LIGADO";
+      notificarUsuario(msg, 5000);
+      String resp = "RELE_" + String(idx) + "_ON";
+      enviarDadosMqtt(resp);
+    }
   } else if (intencao == "desligar_rele") {
-    modoManual = true;
-    releLigado = false;
-    manualTimeout = millis();
-    digitalWrite(RELAY_PIN, LOW);
-    notificarUsuario("Rele DESLIGADO Man.", 5000);
-    enviarDadosMqtt("RELE_DESDILIGADO_MANUAL");
+    int idx = doc.containsKey("rele_index") ? doc["rele_index"].as<int>() : 0;
+    if (idx >= 0 && idx < RELAY_COUNT) {
+      releEstado[idx] = false;
+      storage.data.relays[idx].manualState = false;
+      storage.data.relays[idx].func = RELAY_FUNC_MANUAL;
+      digitalWrite(RELAY_PINS[idx], LOW);
+      String msg = "Rele " + String(idx + 1) + " DESLIGADO";
+      notificarUsuario(msg, 5000);
+      String resp = "RELE_" + String(idx) + "_OFF";
+      enviarDadosMqtt(resp);
+    }
   } else if (intencao == "ativar_automatico") {
     modoManual = false;
     notificarUsuario("Modo AUTOMATICO", 5000);
     enviarDadosMqtt("MODO_AUTOMATICO_ATIVADO");
+  } else if (intencao == "configurar_rele") {
+    int idx = doc["rele_index"].as<int>();
+    if (idx >= 0 && idx < RELAY_COUNT) {
+      RelayConfig &r = storage.data.relays[idx];
+      if (doc.containsKey("nome")) {
+        String nome = doc["nome"].as<String>();
+        strncpy(r.name, nome.c_str(), 16);
+        r.name[16] = '\0';
+      }
+      if (doc.containsKey("funcao")) {
+        r.func = doc["funcao"].as<int>();
+      }
+      if (doc.containsKey("temp_on")) {
+        r.tempOn = doc["temp_on"].as<float>();
+      }
+      if (doc.containsKey("temp_off")) {
+        r.tempOff = doc["temp_off"].as<float>();
+      }
+      if (doc.containsKey("manual_state")) {
+        r.manualState = doc["manual_state"].as<bool>();
+      }
+      storage.save();
+      String msg = "Rele " + String(idx + 1) + " config.";
+      notificarUsuario(msg, 5000);
+      String resp = "RELE_" + String(idx) + "_CONFIG_OK";
+      enviarDadosMqtt(resp);
+    }
   } else if (intencao == "habilitar_tensao") {
     storage.data.chkVolt = true;
     storage.save();
@@ -872,7 +933,11 @@ void enviarDadosWeb() {
   doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
   doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
 
-  doc["RELE"] = releLigado;
+  JsonObject relays = doc.createNestedObject("RELES");
+  for (int i = 0; i < RELAY_COUNT; i++) {
+    String key = "R" + String(i);
+    relays[key] = releEstado[i];
+  }
   doc["MODO"] = modoManual ? "MANUAL" : "AUTO";
   doc["SILENCIADO"] = alertasSilenciados;
   doc["RSSI"] = network.getRSSI();
@@ -888,6 +953,7 @@ void enviarDadosWeb() {
 
   JsonObject saude = doc.createNestedObject("SAUDE_SENSORES");
   saude["DS18B20"] = (temperaturaAtual > -50 && temperaturaAtual < 80);
+  saude["DS18B20_QTD"] = qtdSensoresDs18b20;
   saude["DHT11"] = ambientSensor.isValid();
   saude["ZMPT"] = true;
   saude["BATERIA"] = (voltSensor.getBatteryVoltage() > 0);
@@ -1010,12 +1076,13 @@ void enviarDadosMqtt(String evento) {
     doc["PORTA"] = digitalRead(PIN_DOOR) == HIGH ? "ABERTA" : "FECHADA";
     doc["RSSI"] = network.getRSSI();
 
-    JsonObject saude = doc.createNestedObject("SAUDE_SENSORES");
-    saude["DS18B20"] = (temperaturaAtual > -50 && temperaturaAtual < 80);
-    saude["DHT11"] = ambientSensor.isValid();
-    saude["ZMPT"] = true;
-    saude["BATERIA"] = (voltSensor.getBatteryVoltage() > 0);
-    saude["PORTA"] = true;
+JsonObject saude = doc.createNestedObject("SAUDE_SENSORES");
+  saude["DS18B20"] = (temperaturaAtual > -50 && temperaturaAtual < 80);
+  saude["DS18B20_QTD"] = qtdSensoresDs18b20;
+  saude["DHT11"] = ambientSensor.isValid();
+  saude["ZMPT"] = true;
+  saude["BATERIA"] = (voltSensor.getBatteryVoltage() > 0);
+  saude["PORTA"] = true;
   }
 
   // Timestamp
@@ -1069,6 +1136,7 @@ void enviarDadosDashboard() {
 
   JsonObject saude = doc.createNestedObject("SAUDE_SENSORES");
   saude["DS18B20"] = (temperaturaAtual > -50 && temperaturaAtual < 80);
+  saude["DS18B20_QTD"] = qtdSensoresDs18b20;
   saude["DHT11"] = ambientSensor.isValid();
   saude["ZMPT"] = true;
   saude["BATERIA"] = (voltSensor.getBatteryVoltage() > 0);

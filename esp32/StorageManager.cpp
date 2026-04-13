@@ -24,6 +24,12 @@ void StorageManager::load() {
   EEPROM.get(ADDR_DEVICE_NAME, data.deviceName);
   EEPROM.get(ADDR_COMPANY_NAME, data.companyName);
   EEPROM.get(ADDR_DEVICE_LOCATION, data.deviceLocation);
+  
+  // Carregar relés
+  for (int i = 0; i < RELAY_COUNT; i++) {
+    int addr = ADDR_RELAY_0 + (i * 24);
+    EEPROM.get(addr, data.relays[i]);
+  }
 
   // Validação e Valores Padrão
   if (isnan(data.voltCalFactor) || data.voltCalFactor < 10.0 ||
@@ -99,6 +105,29 @@ void StorageManager::load() {
     strncpy(data.deviceLocation, "Nao Definida", 31);
     data.deviceLocation[31] = '\0';
   }
+  
+  // Padrões para relés
+  for (int i = 0; i < RELAY_COUNT; i++) {
+    if (data.relays[i].name[0] == 0 || (uint8_t)data.relays[i].name[0] == 0xFF) {
+      // Rele 0: automático padrão (30.5°C ON / 28.5°C OFF)
+      if (i == 0) {
+        strncpy(data.relays[i].name, "Rele 1", 16);
+        data.relays[i].func = RELAY_FUNC_AUTO;
+        data.relays[i].tempOn = 30.5;
+        data.relays[i].tempOff = 28.5;
+      } else {
+        // Outros relés: desativados por padrão
+        strncpy(data.relays[i].name, "Rele X", 16);
+        data.relays[i].func = RELAY_FUNC_OFF;
+        data.relays[i].tempOn = 0;
+        data.relays[i].tempOff = 0;
+      }
+      data.relays[i].manualState = false;
+      int addr = ADDR_RELAY_0 + (i * 24);
+      EEPROM.put(addr, data.relays[i]);
+      EEPROM.commit();
+    }
+  }
 }
 
 void StorageManager::save() {
@@ -118,6 +147,12 @@ void StorageManager::save() {
   EEPROM.put(ADDR_DEVICE_NAME, data.deviceName);
   EEPROM.put(ADDR_COMPANY_NAME, data.companyName);
   EEPROM.put(ADDR_DEVICE_LOCATION, data.deviceLocation);
+  
+  // Salvar relés
+  for (int i = 0; i < RELAY_COUNT; i++) {
+    int addr = ADDR_RELAY_0 + (i * 24);
+    EEPROM.put(addr, data.relays[i]);
+  }
 
   EEPROM.commit();
 }

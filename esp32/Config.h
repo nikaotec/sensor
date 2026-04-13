@@ -28,7 +28,10 @@
 
 // ---------- PINOS ----------
 #define DS18B20_PIN 13 // ou pin 04
-#define RELAY_PIN 5
+#define RELAY_PIN_0 23
+#define RELAY_PIN_1 19
+#define RELAY_PIN_2 18
+#define RELAY_PIN_3 5
 #define PIN_ZMPT 35
 #define PIN_BATTERY 34
 #define PIN_DOOR 32
@@ -68,6 +71,11 @@
 #define ADDR_DEVICE_NAME 48
 #define ADDR_COMPANY_NAME 80
 #define ADDR_DEVICE_LOCATION 112
+// Endereços dos relés (cada relé usa ~24 bytes: 17 nome + 1 func + 4 tempOn + 4 tempOff + 1 manualState)
+#define ADDR_RELAY_0 144
+#define ADDR_RELAY_1 168
+#define ADDR_RELAY_2 192
+#define ADDR_RELAY_3 216
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0
@@ -82,7 +90,26 @@
 #define ALERT_DEBOUNCE 5000
 #define ALERT_REPEAT 1000 // 1 segundo para repetição contínua (temp/porta)
 
+// ---------- RELÉS ----------
+const int RELAY_COUNT = 4;
+const int RELAY_PINS[RELAY_COUNT] = {RELAY_PIN_0, RELAY_PIN_1, RELAY_PIN_2, RELAY_PIN_3};
+
+// Funções do relé
+enum RelayFunc {
+  RELAY_FUNC_OFF = 0,     // Desativado
+  RELAY_FUNC_AUTO = 1,    // Automático (temperatura)
+  RELAY_FUNC_MANUAL = 2    // ManualLigado/Desligado
+};
+
 // ---------- ESTRUTURA DE DADOS ----------
+struct RelayConfig {
+  char name[17];           // Nome do relé (16 chars + null)
+  uint8_t func;            // Função: OFF, AUTO, MANUAL
+  float tempOn;           // Temperatura para ligar (AUTO)
+  float tempOff;          // Temperatura para desligar (AUTO)
+  bool manualState;       // Estado manual (ligado/desligado)
+};
+
 struct SystemSettings {
   float tempMaxRec;
   float tempMinRec;
@@ -102,6 +129,8 @@ struct SystemSettings {
   char deviceName[32];     // Armazenamento fixo para strings na EEPROM
   char companyName[32];    // Armazenamento fixo para strings na EEPROM
   char deviceLocation[32]; // Armazenamento fixo para strings na EEPROM
+  // Configuração dos 4 relés
+  RelayConfig relays[RELAY_COUNT];
 };
 
 #endif
