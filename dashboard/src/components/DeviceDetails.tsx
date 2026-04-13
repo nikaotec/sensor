@@ -295,24 +295,52 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     };
 
     const getEventIcon = (type: string) => {
-        if (type.includes('ALERTA')) return <AlertTriangle size={16} />;
-        if (type.includes('CONFIG')) return <RefreshCw size={16} />;
-        if (type.includes('RELE')) return <Zap size={16} />;
-        if (type.includes('PORTA')) return <RefreshCw size={16} />;
+        if (type?.includes('ALERTA_TENSAO')) return <Zap size={16} />;
+        if (type?.includes('ALERTA_TEMP')) return <Thermometer size={16} />;
+        if (type?.includes('ALERTA_PORTA') || type?.includes('PORTA')) return <DoorOpen size={16} />;
+        if (type?.includes('ALERTA_BATERIA') || type?.includes('BATERIA')) return <BatteryCharging size={16} />;
+        if (type?.includes('ALERTA')) return <AlertTriangle size={16} />;
+        if (type?.includes('CONFIG')) return <RefreshCw size={16} />;
+        if (type?.includes('RELE')) return <Zap size={16} />;
+        if (type?.includes('PORTA')) return <DoorOpen size={16} />;
         return <RotateCw size={16} />;
+    };
+
+    const getEventColor = (type: string): { bg: string; border: string; text: string; icon: string } => {
+        if (!type) return { bg: 'bg-[#0F110D]', border: 'border-[#2A2E24]', text: 'text-slate-400', icon: 'text-slate-500' };
+        
+        const upperType = type.toUpperCase();
+        
+        if (upperType.includes('TENSAO_ALTA') || upperType.includes('TENSAO_BAIXA') || 
+            upperType.includes('TEMP_ALTA') || upperType.includes('TEMP_BAIXA') ||
+            upperType.includes('PORTA_ABERTA') || upperType.includes('BATERIA_CRITICA')) {
+            return { bg: 'bg-red-950/30', border: 'border-red-600/50', text: 'text-red-400', icon: 'text-red-500' };
+        }
+        if (upperType.includes('ALERTA')) {
+            return { bg: 'bg-orange-950/30', border: 'border-orange-600/50', text: 'text-orange-400', icon: 'text-orange-500' };
+        }
+        if (upperType.includes('NORMALIZADO') || upperType.includes('RECOVER')) {
+            return { bg: 'bg-emerald-950/30', border: 'border-emerald-600/50', text: 'text-emerald-400', icon: 'text-emerald-500' };
+        }
+        if (upperType.includes('CONFIG') || upperType.includes('LIMITE')) {
+            return { bg: 'bg-blue-950/30', border: 'border-blue-600/50', text: 'text-blue-400', icon: 'text-blue-500' };
+        }
+        if (upperType.includes('RELE') || upperType.includes('MQTT')) {
+            return { bg: 'bg-purple-950/30', border: 'border-purple-600/50', text: 'text-purple-400', icon: 'text-purple-500' };
+        }
+        return { bg: 'bg-[#0F110D]', border: 'border-[#2A2E24]', text: 'text-slate-400', icon: 'text-slate-500' };
     };
 
     const formatEventTime = (timestamp: string) => {
         try {
             const date = new Date(timestamp);
-            const now = new Date();
-            const diffMs = now.getTime() - date.getTime();
-            const diffMins = Math.floor(diffMs / 60000);
-
-            if (diffMins < 1) return 'Agora mesmo';
-            if (diffMins < 60) return `${diffMins}m atrás`;
-            if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h atrás`;
-            return date.toLocaleDateString('pt-BR');
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
         } catch (e) {
             return timestamp;
         }
@@ -887,25 +915,28 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                 <h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-5 font-heading">Eventos Recentes</h4>
                                 <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                     {events && events.length > 0 ? (
-                                        events.map((e: any, i) => (
-                                            <div key={i} className="flex gap-4 p-4 rounded-xl border border-[#2A2E24] bg-[#0F110D] hover:border-primary/30 transition-colors group">
-                                                <div className="text-slate-500 group-hover:text-primary transition-colors mt-0.5">
-                                                    {getEventIcon(e.type)}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-white text-sm font-medium leading-snug break-words">{e.msg || e.message || 'Evento'}</p>
-                                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
-                                                        <span className="text-slate-400 text-[10px] uppercase tracking-widest font-bold">{formatEventTime(e.timestamp)}</span>
-                                                        {(e.userName || e.userEmail) && (
-                                                            <span className="text-primary/70 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
-                                                                • Por: {e.userName || 'Sistema'}
-                                                                <span className="text-slate-500 lowercase opacity-60">({e.userEmail})</span>
-                                                            </span>
-                                                        )}
+                                        events.map((e: any, i) => {
+                                            const colors = getEventColor(e.type);
+                                            return (
+                                                <div key={i} className={`flex gap-4 p-4 rounded-xl border ${colors.border} ${colors.bg} hover:brightness-110 transition-all group`}>
+                                                    <div className={`${colors.icon} mt-0.5 transition-colors`}>
+                                                        {getEventIcon(e.type)}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className={`${colors.text} text-sm font-medium leading-snug break-words`}>{e.msg || e.message || 'Evento'}</p>
+                                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
+                                                            <span className="text-slate-400 text-[10px] uppercase tracking-widest font-bold">{formatEventTime(e.timestamp)}</span>
+                                                            {(e.userName || e.userEmail) && (
+                                                                <span className="text-primary/70 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1">
+                                                                    • Por: {e.userName || 'Sistema'}
+                                                                    <span className="text-slate-500 lowercase opacity-60">({e.userEmail})</span>
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     ) : (
                                         <div className="py-4 text-center text-slate-500 text-xs italic">Nenhum evento registrado recentemente.</div>
                                     )}
