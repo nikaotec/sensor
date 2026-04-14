@@ -21,6 +21,10 @@ import {
     X
 } from 'lucide-react';
 
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => 
+    `${i.toString().padStart(2, '0')}:00`
+);
+
 interface DashboardProps {
     onDeviceClick: () => void;
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
@@ -40,7 +44,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
             start_date: start.toISOString().split('T')[0],
             end_date: end.toISOString().split('T')[0],
             start_time: '00:00',
-            end_time: '23:59'
+            end_time: '23:59',
+            selected_hours: [],
+            use_all_hours: true
         };
     };
     const [reportForm, setReportForm] = React.useState<{
@@ -51,6 +57,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         end_date: string;
         start_time: string;
         end_time: string;
+        selected_hours: string[];
+        use_all_hours: boolean;
     }>({
         type: 'company',
         tenant_id: '',
@@ -58,7 +66,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         start_date: getDefaultDates().start_date,
         end_date: getDefaultDates().end_date,
         start_time: '00:00',
-        end_time: '23:59'
+        end_time: '23:59',
+        selected_hours: [],
+        use_all_hours: true
     });
     const [generatingReport, setGeneratingReport] = React.useState(false);
 
@@ -72,7 +82,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
             start_date: dates.start_date,
             end_date: dates.end_date,
             start_time: dates.start_time,
-            end_time: dates.end_time
+            end_time: dates.end_time,
+            selected_hours: [],
+            use_all_hours: true
         });
         setShowReportModal(true);
     };
@@ -145,7 +157,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                 type: reportForm.type,
                 start_date: formatDateTime(reportForm.start_date, reportForm.start_time),
                 end_date: formatDateTime(reportForm.end_date, reportForm.end_time),
-                company_name: companyName
+                company_name: companyName,
+                selected_hours: reportForm.use_all_hours ? [] : reportForm.selected_hours,
+                use_all_hours: reportForm.use_all_hours
             };
 
             if (tenantId) {
@@ -598,6 +612,65 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                         />
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Horários Específicos */}
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-4 bg-primary rounded-full"></div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">5. Horários</label>
+                                </div>
+                                <div 
+                                    className={`p-3 border rounded-xl cursor-pointer transition-all ${
+                                        reportForm.use_all_hours 
+                                        ? 'bg-[#1a2332] border-white/10' 
+                                        : 'bg-[#1a2332] border-primary/30'
+                                    }`}
+                                    onClick={() => setReportForm(prev => ({ ...prev, use_all_hours: !prev.use_all_hours }))}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-slate-300">
+                                            {reportForm.use_all_hours ? 'Todos os horários' : 'Horários específicos'}
+                                        </span>
+                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                            reportForm.use_all_hours ? 'border-slate-600 bg-transparent' : 'border-primary bg-primary'
+                                        }`}>
+                                            {!reportForm.use_all_hours && <div className="w-2 h-2 bg-white rounded-full" />}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {!reportForm.use_all_hours && (
+                                    <div className="bg-[#0a1323] border border-white/10 rounded-xl p-3 max-h-40 overflow-y-auto">
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {HOUR_OPTIONS.map(hour => {
+                                                const isSelected = reportForm.selected_hours.includes(hour);
+                                                return (
+                                                    <button
+                                                        key={hour}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newHours = isSelected 
+                                                                ? reportForm.selected_hours.filter(h => h !== hour)
+                                                                : [...reportForm.selected_hours, hour].sort();
+                                                            setReportForm(prev => ({ ...prev, selected_hours: newHours }));
+                                                        }}
+                                                        className={`px-2 py-1.5 text-xs rounded-lg border transition-all ${
+                                                            isSelected 
+                                                            ? 'bg-primary/20 border-primary text-primary' 
+                                                            : 'bg-transparent border-white/10 text-slate-400 hover:border-white/30'
+                                                        }`}
+                                                    >
+                                                        {hour}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        {reportForm.selected_hours.length === 0 && (
+                                            <p className="text-xs text-orange-400 mt-2">Selecione pelo menos um horário</p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl">

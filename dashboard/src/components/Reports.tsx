@@ -35,6 +35,10 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
     const [showModal, setShowModal] = useState(false);
     const [editingReport, setEditingReport] = useState<any>(null);
     const [showGenerateModal, setShowGenerateModal] = useState(false);
+    const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => 
+        `${i.toString().padStart(2, '0')}:00`
+    );
+
     const getDefaultDates = () => {
         const end = new Date();
         const start = new Date();
@@ -43,17 +47,31 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
             start_date: start.toISOString().split('T')[0],
             end_date: end.toISOString().split('T')[0],
             start_time: '00:00',
-            end_time: '23:59'
+            end_time: '23:59',
+            selected_hours: [],
+            use_all_hours: true
         };
     };
-    const [generateForm, setGenerateForm] = useState({
+    const [generateForm, setGenerateForm] = useState<{
+        type: string;
+        tenant_id: string;
+        device_id: string;
+        start_date: string;
+        end_date: string;
+        start_time: string;
+        end_time: string;
+        selected_hours: string[];
+        use_all_hours: boolean;
+    }>({
         type: 'device',
         tenant_id: currentTenant?.id === 'all' ? '' : currentTenant?.id || '',
         device_id: '',
         start_date: getDefaultDates().start_date,
         end_date: getDefaultDates().end_date,
         start_time: '00:00',
-        end_time: '23:59'
+        end_time: '23:59',
+        selected_hours: [] as string[],
+        use_all_hours: true
     });
     const [generating, setGenerating] = useState(false);
 
@@ -162,7 +180,9 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                 type: generateForm.type,
                 start_date: formatDateTime(generateForm.start_date, generateForm.start_time),
                 end_date: formatDateTime(generateForm.end_date, generateForm.end_time),
-                company_name: companyName
+                company_name: companyName,
+                selected_hours: generateForm.use_all_hours ? [] : generateForm.selected_hours,
+                use_all_hours: generateForm.use_all_hours
             };
 
             if (tenantId) {
@@ -646,6 +666,62 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                         className="w-full mt-2 bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
                                     />
                                 </div>
+                            </div>
+
+                            {/* Horários Específicos */}
+                            <div className="space-y-3">
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Horários</label>
+                                <div 
+                                    className={`p-3 border rounded-xl cursor-pointer transition-all ${
+                                        generateForm.use_all_hours 
+                                        ? 'bg-[#1a2332] border-white/10' 
+                                        : 'bg-[#1a2332] border-primary/30'
+                                    }`}
+                                    onClick={() => setGenerateForm(prev => ({ ...prev, use_all_hours: !prev.use_all_hours }))}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-slate-300">
+                                            {generateForm.use_all_hours ? 'Todos os horários' : 'Horários específicos'}
+                                        </span>
+                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
+                                            generateForm.use_all_hours ? 'border-slate-600 bg-transparent' : 'border-primary bg-primary'
+                                        }`}>
+                                            {!generateForm.use_all_hours && <div className="w-2 h-2 bg-white rounded-full" />}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {!generateForm.use_all_hours && (
+                                    <div className="bg-[#0a1323] border border-white/10 rounded-xl p-3 max-h-40 overflow-y-auto">
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {HOUR_OPTIONS.map(hour => {
+                                                const isSelected = generateForm.selected_hours.includes(hour);
+                                                return (
+                                                    <button
+                                                        key={hour}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const newHours = isSelected 
+                                                                ? generateForm.selected_hours.filter(h => h !== hour)
+                                                                : [...generateForm.selected_hours, hour].sort();
+                                                            setGenerateForm(prev => ({ ...prev, selected_hours: newHours }));
+                                                        }}
+                                                        className={`px-2 py-1.5 text-xs rounded-lg border transition-all ${
+                                                            isSelected 
+                                                            ? 'bg-primary/20 border-primary text-primary' 
+                                                            : 'bg-transparent border-white/10 text-slate-400 hover:border-white/30'
+                                                        }`}
+                                                    >
+                                                        {hour}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        {generateForm.selected_hours.length === 0 && (
+                                            <p className="text-xs text-orange-400 mt-2">Selecione pelo menos um horário</p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl">
