@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import mqtt from 'mqtt';
 import type { Device } from '../data/mockData';
+import { supabase } from '../supabase/config';
 
 // Default broker URL for WebSockets (can be passed via env variables)
 const MQTT_BROKER_URL = import.meta.env.VITE_MQTT_BROKER_URL || 'wss://nikaotech.com/mqtt';
@@ -32,7 +33,7 @@ export const useMqttData = (
                     if (existing) {
                         return {
                             ...initD,
-                            // Preserve MQTT updates for name/location if they arrived
+                            // Banco de dados tem prioridade — preservar nome do Supabase sobre o MQTT
                             name: existing.name || initD.name,
                             location: existing.location || initD.location,
                             status: existing.status || initD.status,
@@ -147,10 +148,25 @@ export const useMqttData = (
                 // Handle special confirmation messages (NOME_ALTERADO|NovoNome)
                 const rawMsg = message.toString();
                 if (rawMsg.startsWith('NOME_ALTERADO|')) {
-                    const newName = rawMsg.split('|')[1];
+                    const newName = rawMsg.split('|')[1]?.trim();
                     const deviceId = payload.id || payload.ID_DISPOSITIVO;
-                    if (deviceId && newName && onDeviceNameChange) {
-                        onDeviceNameChange(deviceId, newName);
+                    if (deviceId && newName) {
+                        // 1. Atualizar estado local via callback
+                        if (onDeviceNameChange) {
+                            onDeviceNameChange(deviceId, newName);
+                        }
+                        // 2. Persistir no Supabase (devices_status.name)
+                        supabase
+                            .from('devices_status')
+                            .update({ name: newName, updated_at: new Date().toISOString() })
+                            .eq('id', deviceId)
+                            .then(({ error }) => {
+                                if (error) {
+                                    console.error('[MQTT] Falha ao salvar nome no Supabase:', error.message);
+                                } else {
+                                    console.log(`[MQTT] Nome salvo no banco: ${deviceId} → "${newName}"`);
+                                }
+                            });
                     }
                 }
 
@@ -198,7 +214,8 @@ export const useMqttData = (
                         const existing = newDevices[existingDeviceIndex];
                         newDevices[existingDeviceIndex] = {
                             ...existing,
-                            name: payload.device_name || existing.name,
+                            // Nome: banco de dados tem prioridade sobre MQTT (fonte da verdade = devices_status.name)
+                            name: existing.name || payload.device_name || existing.id,
                             location: payload.ala !== undefined ? payload.ala : existing.location,
                             status: 'online',
                             lastSeen: new Date().toISOString(),

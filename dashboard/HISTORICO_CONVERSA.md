@@ -1384,3 +1384,280 @@ Envolver o input `type="date"` em um `<label>`:
 ### Skill Utilizada
 
 - **react-best-practices** - Semântica HTML correta (label > input)
+
+---
+
+## Data: 13/04/2026
+
+## Feature: Cores por Tipo de Evento no Card de Eventos
+
+**Requisito:** Adicionar cores diferentes aos eventos dependendo do tipo e mostrar data/hora completa ao invés de "Xh atrás".
+
+### Skills Utilizadas
+
+- **react-best-practices** - State management, componentização React
+
+### Implementações Realizadas
+
+#### 1. Cores por Tipo de Evento (`getEventColor`)
+
+**Função adicionada em `DeviceDetails.tsx`:**
+
+```typescript
+const getEventColor = (type: string): { bg: string; border: string; text: string; icon: string } => {
+    const upperType = type.toUpperCase();
+    
+    // Críticos - Vermelho
+    if (upperType.includes('TENSAO_ALTA') || upperType.includes('TENSAO_BAIXA') || 
+        upperType.includes('TEMP_ALTA') || upperType.includes('TEMP_BAIXA') ||
+        upperType.includes('PORTA_ABERTA') || upperType.includes('BATERIA_CRITICA')) {
+        return { bg: 'bg-red-950/30', border: 'border-red-600/50', text: 'text-red-400', icon: 'text-red-500' };
+    }
+    // Alertas gerais - Laranja
+    if (upperType.includes('ALERTA')) {
+        return { bg: 'bg-orange-950/30', border: 'border-orange-600/50', text: 'text-orange-400', icon: 'text-orange-500' };
+    }
+    // Normalizado - Verde
+    if (upperType.includes('NORMALIZADO') || upperType.includes('RECOVER')) {
+        return { bg: 'bg-emerald-950/30', border: 'border-emerald-600/50', text: 'text-emerald-400', icon: 'text-emerald-500' };
+    }
+    // Configuração - Azul
+    if (upperType.includes('CONFIG') || upperType.includes('LIMITE')) {
+        return { bg: 'bg-blue-950/30', border: 'border-blue-600/50', text: 'text-blue-400', icon: 'text-blue-500' };
+    }
+    // Relé/MQTT - Roxo
+    if (upperType.includes('RELE') || upperType.includes('MQTT')) {
+        return { bg: 'bg-purple-950/30', border: 'border-purple-600/50', text: 'text-purple-400', icon: 'text-purple-500' };
+    }
+    // Default - Cinza
+    return { bg: 'bg-[#0F110D]', border: 'border-[#2A2E24]', text: 'text-slate-400', icon: 'text-slate-500' };
+};
+```
+
+#### 2. Ícones Específicos por Tipo (`getEventIcon`)
+
+- Tensão → Zap (⚡)
+- Temperatura → Thermometer (🌡️)
+- Porta → DoorOpen (🚪)
+- Bateria → BatteryCharging (🔋)
+- Alertas → AlertTriangle (⚠️)
+
+#### 3. Formato de Data/Hora Completo (`formatEventTime`)
+
+**Antes:** `2h atrás` ou `Agora mesmo`
+
+**Depois:** `13/04/2026 14:30:45` (dia/mês/ano hora:minuto:segundo)
+
+### Arquivos Modificados
+
+1. **`src/components/DeviceDetails.tsx`**
+   - Nova função `getEventColor` para cores dinâmicas
+   - Nova função `getEventIcon` para ícones específicos
+   - Atualizada função `formatEventTime` para data/hora completa
+   - Aplicadas cores nos cards de eventos via `getEventColor(e.type)`
+
+---
+
+## Feature: Sidebar Expansível/Recolhível
+
+**Requisito:** A sidebar lateral esquerda do dashboard deve ser expansível e colapsável.
+
+### Skills Utilizadas
+
+- **react-best-practices** - State management, componentização React
+
+### Implementações Realizadas
+
+#### 1. Sidebar.tsx - Props de Controle
+
+**Novas props adicionadas:**
+```typescript
+interface SidebarProps {
+    activeItem: ...;
+    onNavigate: ...;
+    isCollapsed?: boolean;
+    onToggleCollapse?: (collapsed: boolean) => void;
+}
+```
+
+**Novos estados:**
+```typescript
+const [internalCollapsed, setInternalCollapsed] = useState(false);
+const isCollapsed = externalCollapsed ?? internalCollapsed;
+```
+
+**Botão de toggle:**
+```typescript
+<button onClick={() => setCollapsed(!isCollapsed)} title={isCollapsed ? "Expandir menu" : "Recolher menu"}>
+    {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+</button>
+```
+
+**Comportamento:**
+- Sidebar colapsada: ~64px (apenas ícones)
+- Sidebar expandida: ~80px (mobile) / ~256px (desktop)
+- Texto dos menus oculto quando colapsado
+- Box "Sistema Ativo" oculto quando colapsado
+
+#### 2. Dashboard.tsx - Estado Centralizado
+
+**Novo estado:**
+```typescript
+const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+```
+
+**Prop passada para Sidebar:**
+```typescript
+<Sidebar 
+    activeItem="dashboard" 
+    onNavigate={onNavigate} 
+    isCollapsed={sidebarCollapsed} 
+    onToggleCollapse={setSidebarCollapsed} 
+/>
+```
+
+### Arquivos Modificados
+
+1. **`src/components/Sidebar.tsx`**
+   - Adicionados ícones ChevronLeft, ChevronRight
+   - Adicionadas props isCollapsed e onToggleCollapse
+   - Implementada lógica de collapse com estado interno
+   - UI adapta ao estado collapsed
+
+2. **`src/components/Dashboard.tsx`**
+   - Adicionado estado sidebarCollapsed
+   - Passa props para Sidebar
+
+---
+
+## Build Verificado
+
+Todos os builds foram executados com sucesso:
+- ✅ Cores por tipo de evento
+- ✅ Data/hora completa
+- ✅ Sidebar expansível
+
+---
+
+## Feature: Botão de Toggle da Sidebar Melhorado
+
+**Problema:** O botão de expandir/recolher sidebar estava visualmente básico e feio.
+
+**Solução:** Melhoria visual usando ícones profissionais `PanelLeftClose`/`PanelLeftOpen` do lucide-react com efeitos de hover e bordas.
+
+### Skill Utilizada
+
+- **enhance-prompt** - Para identificar melhorias visuais e UI/UX keywords
+
+### Implementação
+
+**Ícones trocados:**
+- Antes: `ChevronLeft` / `ChevronRight` (pequenos, genéricos)
+- Depois: `PanelLeftClose` / `PanelLeftOpen` (maiores, mais visuais)
+
+**Estilo melhorado:**
+```typescript
+className="mx-auto mb-3 p-2 rounded-lg bg-[#2A2E24]/80 hover:bg-[#3A3E34] text-slate-400 hover:text-primary border border-[#2A2E24] hover:border-primary/30 transition-all duration-200 group"
+```
+
+**Efeitos:**
+- Hover com transição suave
+- Borda iluminada com primary ao hover
+- Tamanho maior (p-2 vs p-1.5)
+- Ícones maiores (size 18 vs 16)
+
+### Arquivos Modificados
+
+1. **`src/components/Sidebar.tsx`**
+   - Novos imports: PanelLeftClose, PanelLeftOpen
+   - Botão reformulado com estilos aprimorados
+
+---
+
+## Feature: Botão de Toggle Reposicionado
+
+**Problema:** Botão de expandir/recolher estava mal posicionado (entre o logo e os menus).
+
+**Solução:** 
+- Botão movido para o rodapé da sidebar (próximo ao box "Sistema Ativo")
+- Integração com o próprio box "Sistema Ativo"
+- Adicionado texto "Recolher Menu" quando expandido
+
+### Skill Utilizada
+
+- **enhance-prompt** - Para melhor posicionamento e hierarquia visual
+
+### Estrutura Nova
+
+```
+┌─────────────────────┐
+│  Logo + Nome        │
+├─────────────────────┤
+│  📊 Dashboard       │
+│  💻 Dispositivos    │
+│  🔔 Alertas         │
+│  📄 Relatórios      │
+│  ⚙️ Configurações   │
+├─────────────────────┤
+│  ┌───────────────┐  │
+│  │ 🔄 Recolher   │  │  ← Botão integrado ao footer
+│  │   Menu       │  │
+│  ├───────────────┤  │
+│  │ ● Sistema    │  │
+│  │   Ativo      │  │
+│  └───────────────┘  │
+└─────────────────────┘
+```
+
+### Arquivos Modificados
+
+1. **`src/components/Sidebar.tsx`**
+   - Botão movido para dentro da seção de footer
+   - Integrado visualmente com box "Sistema Ativo"
+
+---
+
+## Feature: Modal de Relatório com Ordenação Visual
+
+**Requisito:** Reorganizar campos do modal de relatório na ordem:
+1. Empresa
+2. Dispositivo  
+3. Período
+
+**Problema:** Campos sem hierarquia visual clara.
+
+### Skill Utilizada
+
+- **frontend-design** - Hierarquia visual, UX psychology, progress disclosure
+
+### Implementação
+
+**Ordem visual estabelecida com numeração:**
+```typescript
+<div className="flex items-center gap-2">
+    <div className="w-1 h-4 bg-primary rounded-full"></div>
+    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">1. Empresa</label>
+</div>
+```
+
+**Melhorias:**
+- Indicadores visuais numerados (1, 2, 3, 4)
+- Barra vertical primary para cada seção
+- Espaçamento consistente entre campos
+- Labels organizados acima dos inputs
+- Dispositivos ordenados alfabeticamente
+
+**Ordem final no modal:**
+1. **Empresa** - Seleção ou display fixo
+2. **Escopo** - Empresa inteira ou dispositivo específico
+3. **Dispositivo** - Lista ordenada alfabeticamente
+4. **Período** - Data início/fim com horário
+
+### Arquivos Modificados
+
+1. **`src/components/Dashboard.tsx`**
+   - Campos reordenados com numeração visual
+   - Labels com barra indicadora
+   - Dispositivos `.sort()` por nome
+
+

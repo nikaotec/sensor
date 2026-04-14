@@ -30,6 +30,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
     const { currentTenant, availableTenants, setTenantId } = useTenant();
     const { currentUser, logout } = useAuth();
     const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
     const [showReportModal, setShowReportModal] = React.useState(false);
     const getDefaultDates = () => {
         const end = new Date();
@@ -193,7 +194,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
 
     return (
         <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
-            <Sidebar activeItem="dashboard" onNavigate={onNavigate} />
+            <Sidebar activeItem="dashboard" onNavigate={onNavigate} isCollapsed={sidebarCollapsed} onToggleCollapse={setSidebarCollapsed} />
 
             <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden relative bg-background-light text-text-dark">
                 {/* HEADER */}
@@ -480,8 +481,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                         <div className="p-6 space-y-5">
                             {/* Seleção de Empresa - só mostra se estiver na aba "Todos" E se for gestor */}
                             {currentTenant?.id === 'all' && (currentUser?.role === 'manager' || currentUser?.role === 'gestor') && (
-                                <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Empresa</label>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1 h-4 bg-primary rounded-full"></div>
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">1. Empresa</label>
+                                    </div>
                                     <select
                                         value={reportForm.tenant_id}
                                         onChange={(e) => setReportForm({ ...reportForm, tenant_id: e.target.value, device_id: '' })}
@@ -498,28 +502,37 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                             {/* Mostrar empresa atual se não for "Todos" */}
                             {currentTenant?.id !== 'all' && (
                                 <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl">
-                                    <p className="text-xs text-slate-400 font-medium uppercase tracking-wider mb-1">Empresa Selecionada</p>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <div className="w-1 h-3 bg-primary rounded-full"></div>
+                                        <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Empresa</p>
+                                    </div>
                                     <p className="text-lg font-bold text-white">{currentTenant?.name}</p>
                                 </div>
                             )}
 
                             {/* Tipo de Relatório */}
-                            <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Escopo do Relatório</label>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-4 bg-primary rounded-full"></div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">2. Escopo do Relatório</label>
+                                </div>
                                 <select
                                     value={reportForm.type}
                                     onChange={(e) => setReportForm({ ...reportForm, type: e.target.value, device_id: '' })}
                                     className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
                                 >
-                                    <option value="company">Toda a Empresa</option>
-                                    <option value="device">Dispositivo Específico</option>
+                                    <option value="company">📊 Toda a Empresa</option>
+                                    <option value="device">💻 Dispositivo Específico</option>
                                 </select>
                             </div>
 
                             {/* Seleção de Dispositivo - filtra pela empresa da aba atual ou selecionada */}
                             {reportForm.type === 'device' && (
-                                <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Selecione o Dispositivo</label>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-1 h-4 bg-primary rounded-full"></div>
+                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Dispositivo</label>
+                                    </div>
                                     <select
                                         value={reportForm.device_id}
                                         onChange={(e) => setReportForm({ ...reportForm, device_id: e.target.value })}
@@ -535,6 +548,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                                 // Senão, usa a empresa selecionada no modal
                                                 return !reportForm.tenant_id || d.tenantId === reportForm.tenant_id;
                                             })
+                                            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
                                             .map(d => (
                                                 <option key={d.id} value={d.id}>{d.name} ({d.location || 'Sem ala'})</option>
                                             ))}
@@ -543,40 +557,46 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                             )}
 
                             {/* Período - Data + Hora */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Inicial</label>
-                                    <label className="block cursor-pointer">
-                                        <input
-                                            type="date"
-                                            value={reportForm.start_date}
-                                            onChange={(e) => setReportForm({ ...reportForm, start_date: e.target.value })}
-                                            className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors cursor-pointer"
-                                        />
-                                    </label>
-                                    <input
-                                        type="time"
-                                        value={reportForm.start_time}
-                                        onChange={(e) => setReportForm({ ...reportForm, start_time: e.target.value })}
-                                        className="w-full mt-2 bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
-                                    />
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1 h-4 bg-primary rounded-full"></div>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">4. Período</label>
                                 </div>
-                                <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Final</label>
-                                    <label className="block cursor-pointer">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-[10px] text-slate-500 mb-1.5">Data Início</label>
+                                        <label className="block cursor-pointer">
+                                            <input
+                                                type="date"
+                                                value={reportForm.start_date}
+                                                onChange={(e) => setReportForm({ ...reportForm, start_date: e.target.value })}
+                                                className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-primary outline-none transition-colors cursor-pointer"
+                                            />
+                                        </label>
                                         <input
-                                            type="date"
-                                            value={reportForm.end_date}
-                                            onChange={(e) => setReportForm({ ...reportForm, end_date: e.target.value })}
-                                            className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors cursor-pointer"
+                                            type="time"
+                                            value={reportForm.start_time}
+                                            onChange={(e) => setReportForm({ ...reportForm, start_time: e.target.value })}
+                                            className="w-full mt-2 bg-[#0a1323] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-primary outline-none transition-colors"
                                         />
-                                    </label>
-                                    <input
-                                        type="time"
-                                        value={reportForm.end_time}
-                                        onChange={(e) => setReportForm({ ...reportForm, end_time: e.target.value })}
-                                        className="w-full mt-2 bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
-                                    />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] text-slate-500 mb-1.5">Data Fim</label>
+                                        <label className="block cursor-pointer">
+                                            <input
+                                                type="date"
+                                                value={reportForm.end_date}
+                                                onChange={(e) => setReportForm({ ...reportForm, end_date: e.target.value })}
+                                                className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-primary outline-none transition-colors cursor-pointer"
+                                            />
+                                        </label>
+                                        <input
+                                            type="time"
+                                            value={reportForm.end_time}
+                                            onChange={(e) => setReportForm({ ...reportForm, end_time: e.target.value })}
+                                            className="w-full mt-2 bg-[#0a1323] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-primary outline-none transition-colors"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
