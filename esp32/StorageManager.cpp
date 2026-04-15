@@ -24,11 +24,24 @@ void StorageManager::load() {
   EEPROM.get(ADDR_DEVICE_NAME, data.deviceName);
   EEPROM.get(ADDR_COMPANY_NAME, data.companyName);
   EEPROM.get(ADDR_DEVICE_LOCATION, data.deviceLocation);
-  
+
   // Carregar relés
   for (int i = 0; i < RELAY_COUNT; i++) {
     int addr = ADDR_RELAY_0 + (i * 24);
     EEPROM.get(addr, data.relays[i]);
+
+    // MIGRATION: Force update existing devices from old limits (30.5/28.5) to
+    // new motor limits (7.5/2.5)
+    if (i == 0 && data.relays[i].func == RELAY_FUNC_AUTO &&
+        abs(data.relays[i].tempOn - 30.5) < 0.1 &&
+        abs(data.relays[i].tempOff - 28.5) < 0.1) {
+      data.relays[i].tempOn = 7.5;
+      data.relays[i].tempOff = 2.5;
+      EEPROM.put(addr, data.relays[i]);
+      EEPROM.commit();
+      Serial.println(
+          "[STORAGE] Migrated Relay 0 limits from 30.5/28.5 to 7.5/2.5");
+    }
   }
 
   // Validação e Valores Padrão
@@ -105,16 +118,17 @@ void StorageManager::load() {
     strncpy(data.deviceLocation, "Nao Definida", 31);
     data.deviceLocation[31] = '\0';
   }
-  
+
   // Padrões para relés
   for (int i = 0; i < RELAY_COUNT; i++) {
-    if (data.relays[i].name[0] == 0 || (uint8_t)data.relays[i].name[0] == 0xFF) {
-      // Rele 0: automático padrão (30.5°C ON / 28.5°C OFF)
+    if (data.relays[i].name[0] == 0 ||
+        (uint8_t)data.relays[i].name[0] == 0xFF) {
+      // Rele 0: automático padrão (Motor: 7.5°C ON / 2.5°C OFF)
       if (i == 0) {
         strncpy(data.relays[i].name, "Rele 1", 16);
         data.relays[i].func = RELAY_FUNC_AUTO;
-        data.relays[i].tempOn = 30.5;
-        data.relays[i].tempOff = 28.5;
+        data.relays[i].tempOn = 7.5;
+        data.relays[i].tempOff = 2.5;
       } else {
         // Outros relés: desativados por padrão
         strncpy(data.relays[i].name, "Rele X", 16);
@@ -147,7 +161,7 @@ void StorageManager::save() {
   EEPROM.put(ADDR_DEVICE_NAME, data.deviceName);
   EEPROM.put(ADDR_COMPANY_NAME, data.companyName);
   EEPROM.put(ADDR_DEVICE_LOCATION, data.deviceLocation);
-  
+
   // Salvar relés
   for (int i = 0; i < RELAY_COUNT; i++) {
     int addr = ADDR_RELAY_0 + (i * 24);

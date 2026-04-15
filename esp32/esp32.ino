@@ -37,7 +37,8 @@ AlertManager alertDoor("PORTA_ABERTA", 2000, ALERT_REPEAT); // 2s debounce porta
 
 // ---------- ESTADO DO SISTEMA ----------
 float temperaturaAtual = 0.0;
-bool releEstado[RELAY_COUNT] = {false, false, false, false};  // Estado dos 4 relés
+bool releEstado[RELAY_COUNT] = {false, false, false,
+                                false}; // Estado dos 4 relés
 bool modoManual = false;
 bool alertasSilenciados =
     false; // Novo flag para silenciar alertas persistentes
@@ -45,7 +46,7 @@ unsigned long manualTimeout = 0;
 String statusSeguranca = "OK";
 String ultimoRemoteJid = "";        // remoteJid do ultimo comando recebido
 String ultimosCamposAlterados = ""; // Campos alterados na ultima configuracao
-int qtdSensoresDs18b20 = 0;       // Quantidade de sensores DS18B20 conectados
+int qtdSensoresDs18b20 = 0;         // Quantidade de sensores DS18B20 conectados
 
 // ---------- TIMERS ----------
 unsigned long lastTempCheck = 0;
@@ -126,11 +127,11 @@ void setup() {
   // Sensores
   sensors.begin();
   sensors.setWaitForConversion(false);
-  
+
   // Detecta dispositivos DS18B20 conectados
   qtdSensoresDs18b20 = sensors.getDeviceCount();
   Serial.println("Sensores DS18B20 encontrados: " + String(qtdSensoresDs18b20));
-  
+
   ambientSensor.begin();
   pinMode(PIN_DOOR, INPUT_PULLUP);
 
@@ -163,7 +164,7 @@ void loop() {
       else if (ev == BTN_PRESSED_DOWN)
         display.menuNext();
       else if (ev == BTN_PRESSED_ENTER) {
-        bool relayStatus = releLigado;
+        bool relayStatus = releEstado[0];
         int res =
             display.menuEnter(storage.data.alarmMax, storage.data.alarmMin,
                               storage.data.chkVolt, relayStatus);
@@ -173,9 +174,9 @@ void loop() {
           enviarDadosMqtt("feedback_configuracao");
 
           // Trata teste de relé especificamente
-          if (relayStatus != releLigado) {
-            releLigado = relayStatus;
-            digitalWrite(RELAY_PIN, releLigado ? HIGH : LOW);
+          if (relayStatus != releEstado[0]) {
+            releEstado[0] = relayStatus;
+            digitalWrite(RELAY_PINS[0], releEstado[0] ? HIGH : LOW);
             modoManual = true; // Força modo manual para teste
           }
         } else if (res == 2) {
@@ -263,7 +264,7 @@ void loop() {
         for (int i = 0; i < RELAY_COUNT; i++) {
           RelayConfig &relay = storage.data.relays[i];
           bool estadoAtual = releEstado[i];
-          
+
           if (relay.func == RELAY_FUNC_AUTO) {
             // Controle automático por temperatura
             if (temperaturaAtual >= relay.tempOn && !estadoAtual) {
@@ -290,7 +291,7 @@ void loop() {
       if (storage.data.chkTemp) {
         stMax = alertTempMax.check(temperaturaAtual >= storage.data.alarmMax);
         stMin = alertTempMin.check(temperaturaAtual <= storage.data.alarmMin);
-        
+
         // Bipe específico para temperatura alta/baixa (repete até normalizar)
         if (!alertasSilenciados) {
           if (stMax == ALERT_STARTED || stMax == ALERT_REPEATED) {
@@ -422,7 +423,7 @@ void loop() {
     // 4. Atualizar Display
     display.update(temperaturaAtual, storage.data.tempMaxRec,
                    storage.data.tempMinRec, voltSensor.getVoltage(),
-                   network.isWifiConnected(), modoManual, releLigado,
+                   network.isWifiConnected(), modoManual, releEstado[0],
                    (alertTempMax.isActive() || alertTempMin.isActive() ||
                     alertVoltMax.isActive() || alertVoltMin.isActive() ||
                     alertBatLow.isActive() || alertPower.isActive() ||
@@ -452,6 +453,9 @@ void notificarUsuario(String mensagem, int tempo) {
   doc["CONTEUDO"] = mensagem;
   doc["HORA"] = network.getCurrentTime();
   doc["DISPOSITIVO"] = storage.data.deviceName;
+  doc["ID_DISPOSITIVO"] = getIdDispositivo();
+  doc["EMPRESA"] = storage.data.companyName;
+  doc["ALA"] = storage.data.deviceLocation;
 
   String output;
   serializeJson(doc, output);
@@ -991,8 +995,10 @@ void enviarDadosMqtt(String evento) {
 
   // Feedback sonoro LOCAL para alertas (SEMPRE, antes de qualquer bloqueio)
   if (evento.startsWith("ALERTA_") && !alertasSilenciados) {
-    // Temperatura alta/baixa e porta usam bipes específicos (500ms ON, 300ms OFF)
-    if (evento == "ALERTA_TEMP_ALTA" || evento == "ALERTA_TEMP_BAIXA" || evento == "ALERTA_PORTA_ABERTA") {
+    // Temperatura alta/baixa e porta usam bipes específicos (500ms ON, 300ms
+    // OFF)
+    if (evento == "ALERTA_TEMP_ALTA" || evento == "ALERTA_TEMP_BAIXA" ||
+        evento == "ALERTA_PORTA_ABERTA") {
       emitirBipeAlertaCritico(2);
     } else {
       // Outros alarmes usam bipes normais
@@ -1076,13 +1082,13 @@ void enviarDadosMqtt(String evento) {
     doc["PORTA"] = digitalRead(PIN_DOOR) == HIGH ? "ABERTA" : "FECHADA";
     doc["RSSI"] = network.getRSSI();
 
-JsonObject saude = doc.createNestedObject("SAUDE_SENSORES");
-  saude["DS18B20"] = (temperaturaAtual > -50 && temperaturaAtual < 80);
-  saude["DS18B20_QTD"] = qtdSensoresDs18b20;
-  saude["DHT11"] = ambientSensor.isValid();
-  saude["ZMPT"] = true;
-  saude["BATERIA"] = (voltSensor.getBatteryVoltage() > 0);
-  saude["PORTA"] = true;
+    JsonObject saude = doc.createNestedObject("SAUDE_SENSORES");
+    saude["DS18B20"] = (temperaturaAtual > -50 && temperaturaAtual < 80);
+    saude["DS18B20_QTD"] = qtdSensoresDs18b20;
+    saude["DHT11"] = ambientSensor.isValid();
+    saude["ZMPT"] = true;
+    saude["BATERIA"] = (voltSensor.getBatteryVoltage() > 0);
+    saude["PORTA"] = true;
   }
 
   // Timestamp
@@ -1130,7 +1136,7 @@ void enviarDadosDashboard() {
   doc["TENSAO"] = serialized(String(voltSensor.getVoltage(), 1));
   doc["UPTIME_MIN"] = millis() / 60000;
   doc["WIFI_RSSI"] = network.getRSSI();
-  doc["RELE_STATUS"] = digitalRead(RELAY_PIN) == LOW ? "ON" : "OFF";
+  doc["RELE_STATUS"] = digitalRead(RELAY_PINS[0]) == LOW ? "ON" : "OFF";
   doc["UPTIME"] = millis() / 1000;
   doc["PROTOCOLO"] = "MQTT/WSS";
 
