@@ -29,13 +29,11 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
         const allowedTenantIds = availableTenants.map(t => t.id);
         const allowedTenantNames = availableTenants.map(t => t.name);
 
-        const assignedDevices = tenantDevices.filter(d =>
-            d && d.tenantId &&
-            d.tenantId.trim() !== "" &&
-            d.tenantId.toLowerCase() !== "unknown" &&
-            d.tenantId.toLowerCase() !== "empresa_default" &&
-            d.tenantId.toLowerCase() !== "nikaotec"
-        );
+        const assignedDevices = tenantDevices.filter(d => {
+            if (!d || !d.tenantId) return false;
+            const t = String(d.tenantId).trim().toLowerCase();
+            return t !== "" && t !== "unknown" && t !== "empresa_default" && t !== "nikaotec" && t !== "null" && t !== "undefined";
+        });
 
         if (currentTenant && currentTenant.id !== 'all') {
             return assignedDevices.filter(d => d.tenantId === currentTenant.id || d.tenantId === currentTenant.name);
@@ -70,7 +68,7 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
             <Sidebar activeItem="device-list" onNavigate={onNavigate} />
 
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background-dark">
-                <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-[#1A1D17]/80 backdrop-blur-md border-b border-[#2A2E24] sticky top-0 z-30 shadow-sm">
+                <header className="h-20 flex-shrink-0 flex items-center justify-between px-4 sm:px-8 bg-[#1A1D17]/80 backdrop-blur-md border-b border-[#2A2E24] sticky top-0 z-30 shadow-sm">
                     <div className="flex items-center gap-3">
                         <h2 className="text-xl font-bold text-white tracking-tight">Dispositivos de {currentTenant.name}</h2>
                         {mqttConnected && (
@@ -104,7 +102,7 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 pb-24 sm:pb-8 custom-scrollbar 2xl:max-w-[1600px] 2xl:mx-auto w-full">
                     <div className="max-w-7xl mx-auto">
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                             {filteredDevices.length === 0 ? (

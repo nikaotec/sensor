@@ -4,6 +4,7 @@ import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import { useMqttData } from '../hooks/useMqttData';
+import { supabase } from '../supabase/config';
 import {
     Search,
     Bell,
@@ -18,21 +19,27 @@ import {
     Droplets,
     CalendarRange,
     Download,
-    X
+    X,
+    Check,
+    Clock,
+    Activity,
+    Shield
 } from 'lucide-react';
 
-const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => 
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) =>
     `${i.toString().padStart(2, '0')}:00`
 );
 
 interface DashboardProps {
-    onDeviceClick: () => void;
+    onDeviceClick: (deviceId: string) => void;
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
     const { currentTenant, availableTenants, setTenantId } = useTenant();
     const { currentUser, logout } = useAuth();
+    const isAdmin = currentUser?.role === 'admin';
+    const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
     const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
     const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
     const [showReportModal, setShowReportModal] = React.useState(false);
@@ -57,6 +64,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         end_date: string;
         start_time: string;
         end_time: string;
+        report_preset: string;
         selected_hours: string[];
         use_all_hours: boolean;
     }>({
@@ -67,6 +75,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         end_date: getDefaultDates().end_date,
         start_time: '00:00',
         end_time: '23:59',
+        report_preset: 'custom',
         selected_hours: [],
         use_all_hours: true
     });
@@ -83,6 +92,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
             end_date: dates.end_date,
             start_time: dates.start_time,
             end_time: dates.end_time,
+            report_preset: 'custom',
             selected_hours: [],
             use_all_hours: true
         });
@@ -93,7 +103,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
     const { devices: supabaseDevices } = useSupabaseData(currentTenant?.id || '', undefined, currentUser?.role);
     const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData('all', currentUser?.role, supabaseDevices);
 
-    const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
+
 
     // Filtro refinado para respeitar a aba selecionada e permissões de role
     const displayDevices = React.useMemo(() => {
@@ -101,13 +111,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         if (!tenantDevices || tenantDevices.length === 0) return [];
 
         // Filtra dispositivos não vinculados SEMPRE
-        const assignedDevices = tenantDevices.filter(d =>
-            d && d.tenantId &&
-            d.tenantId.trim() !== "" &&
-            d.tenantId.toLowerCase() !== "unknown" &&
-            d.tenantId.toLowerCase() !== "empresa_default" &&
-            d.tenantId.toLowerCase() !== "nikaotec"
-        );
+        const assignedDevices = tenantDevices.filter(d => {
+            if (!d || !d.tenantId) return false;
+            const t = String(d.tenantId).trim().toLowerCase();
+            return t !== "" && t !== "unknown" && t !== "empresa_default" && t !== "nikaotec" && t !== "null" && t !== "undefined";
+        });
 
         // Se está em uma aba de empresa específica (não "all"), filtra apenas por ela
         if (currentTenant && currentTenant.id !== 'all') {
@@ -136,43 +144,104 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
     }
 
     const handleGenerateReport = async () => {
-        if (reportForm.type === 'device' && !reportForm.device_id) {
-            alert('Selecione um dispositivo para gerar o relatório.');
-            return;
-        }
 
         const selectedTenant = availableTenants.find(t => t.id === reportForm.tenant_id) || (currentTenant.id !== 'all' ? currentTenant : null);
         const tenantId = selectedTenant?.id;
         const companyName = selectedTenant?.name || 'Geral';
 
-        // Converter datas + horas para formato ISO completo
+        // Converter datas + horas para fuso horário local e retornar ISO UTC
         const formatDateTime = (dateStr: string, timeStr: string) => {
-            const [hours, minutes] = timeStr.split(':');
-            return dateStr + `T${hours || '00'}:${minutes || '00'}:00.000Z`;
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            const [year, month, day] = dateStr.split('-').map(Number);
+            // data local baseada nos componentes da string
+            const date = new Date(year, month - 1, day, hours || 0, minutes || 0);
+            return date.toISOString();
         };
+
+        // Aplica preset de horários
+        let effectiveForm = { ...reportForm };
+        if (reportForm.report_preset === 'daily_8_16') {
+            effectiveForm.use_all_hours = false;
+            effectiveForm.selected_hours = ['08:00', '16:00'];
+        } else if (reportForm.report_preset === 'month_8_16') {
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            effectiveForm.start_date = firstDay.toISOString().split('T')[0];
+            effectiveForm.end_date = lastDay.toISOString().split('T')[0];
+            effectiveForm.start_time = '00:00';
+            effectiveForm.end_time = '23:59';
+            effectiveForm.use_all_hours = false;
+            effectiveForm.selected_hours = ['08:00', '16:00'];
+        }
+
+        const effectiveType = reportForm.device_id ? 'device' : 'company';
 
         setGeneratingReport(true);
         try {
+            const startISO = formatDateTime(effectiveForm.start_date, effectiveForm.start_time);
+            const endISO = formatDateTime(effectiveForm.end_date, effectiveForm.end_time);
+
+            // Determinar IDs dos dispositivos envolvidos para checagem de dados
+            let targetDeviceIds: string[] = [];
+            const targetTenantId = reportForm.tenant_id || (currentTenant.id !== 'all' ? currentTenant.id : '');
+
+            if (effectiveType === 'device') {
+                targetDeviceIds = reportForm.device_id ? [reportForm.device_id] : [];
+            } else {
+                const companyDevices = (targetTenantId && targetTenantId !== '')
+                    ? supabaseDevices.filter(d => d.tenantId === targetTenantId)
+                    : displayDevices; // Se "Todos", usa todos os visíveis
+                targetDeviceIds = companyDevices.map(d => d.id);
+            }
+
+            // Validar se há dispositivos para o relatório
+            if (targetDeviceIds.length === 0) {
+                const selTenant = availableTenants.find(t => t.id === reportForm.tenant_id);
+                const selectedTenantName = selTenant ? selTenant.name : (targetTenantId ? "da empresa selecionada" : "disponível");
+                alert(`Nenhum dispositivo encontrado para ${selectedTenantName}. Adicione dispositivos ou escolha outra empresa.`);
+                setGeneratingReport(false);
+                return;
+            }
+
+            // 1. Checar se existem registros no Supabase para o período
+            const { count, error: countError } = await supabase
+                .from('telemetry')
+                .select('*', { count: 'exact', head: true })
+                .in('device_id', targetDeviceIds)
+                .gte('timestamp', startISO)
+                .lte('timestamp', endISO);
+
+            if (countError) console.error('Erro ao checar registros:', countError);
+
+            if (!count || count === 0) {
+                alert(`Nenhum registro de telemetria encontrado para o período selecionado (${effectiveForm.start_date} a ${effectiveForm.end_date}). O relatório não pôde ser gerado.`);
+                setGeneratingReport(false);
+                return;
+            }
+
             const payload: any = {
-                type: reportForm.type,
-                start_date: formatDateTime(reportForm.start_date, reportForm.start_time),
-                end_date: formatDateTime(reportForm.end_date, reportForm.end_time),
+                type: effectiveType,
+                start_date: startISO,
+                end_date: endISO,
                 company_name: companyName,
-                selected_hours: reportForm.use_all_hours ? [] : reportForm.selected_hours,
-                use_all_hours: reportForm.use_all_hours
+                selected_hours: effectiveForm.use_all_hours ? [] : effectiveForm.selected_hours,
+                use_all_hours: effectiveForm.use_all_hours,
+                report_preset: effectiveForm.report_preset
             };
 
             if (tenantId) {
                 payload.tenant_id = tenantId;
             }
 
-            if (reportForm.type === 'device' && reportForm.device_id) {
+            if (effectiveType === 'device') {
                 const device = supabaseDevices.find(d => d.id === reportForm.device_id);
                 payload.device_id = reportForm.device_id;
                 payload.device_name = device?.name || reportForm.device_id;
             } else {
-                const companyDevices = supabaseDevices.filter(d => d.tenantId === tenantId);
-                payload.device_id = companyDevices[0]?.id || supabaseDevices[0]?.id;
+                payload.device_ids = targetDeviceIds;
+                payload.device_name = 'Todos os dispositivos';
+                payload.ala = 'Geral';
             }
 
             const response = await fetch('/api/n8n/webhook/generate-report', {
@@ -195,7 +264,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                     alert("Relatório gerado com sucesso! Verifique seu WhatsApp.");
                 }
             } else {
-                alert("Erro ao gerar relatório.");
+                alert("Erro ao gerar relatório. Verifique os dados e tente novamente.");
             }
             setShowReportModal(false);
         } catch (err) {
@@ -212,7 +281,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
 
             <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden relative bg-background-light text-text-dark">
                 {/* HEADER */}
-                <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+                <header className="h-20 flex-shrink-0 flex items-center justify-between px-4 sm:px-8 bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30 shadow-sm">
                     <div className="flex items-center gap-4">
                         <h2 className="text-xl font-bold text-text-dark tracking-tight">Monitoramento <span className="text-text-primary text-sm font-normal ml-2">Câmeras Frias de Vacinas</span></h2>
                         {mqttConnected && (
@@ -282,7 +351,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 py-6 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 py-6 pb-24 sm:pb-6 custom-scrollbar 2xl:max-w-[1600px] 2xl:mx-auto w-full">
                     {/* TABS E STATUS */}
                     <div className="flex flex-col gap-6 mb-8">
                         {/* Tabs */}
@@ -302,16 +371,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                     {t.name}
                                 </button>
                             ))}
-                            <button className="flex items-center gap-2 px-3 py-1.5 ml-2 text-xs font-semibold bg-white border border-gray-200 text-text-primary hover:text-primary hover:border-primary/30 rounded-lg transition-colors whitespace-nowrap shadow-sm">
-                                <span>+</span>
-                                <span>Nova Empresa</span>
-                            </button>
+
                         </div>
                     </div>
 
 
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {displayDevices.length === 0 ? (
+                        {!(isAdmin || isManager) ? (
+                            <div className="col-span-1 md:col-span-2 xl:col-span-3 py-12 flex flex-col items-center justify-center text-slate-500 bg-[#1A1D17] rounded-2xl border border-[#2A2E24]">
+                                <Shield className="mb-4 opacity-50 text-amber-500" size={48} />
+                                <p className="text-lg font-medium text-slate-300">Acesso Restrito</p>
+                                <p className="text-sm">Você não tem permissão para visualizar os dispositivos.</p>
+                            </div>
+                        ) : displayDevices.length === 0 ? (
                             <div className="col-span-1 md:col-span-2 xl:col-span-3 py-12 flex flex-col items-center justify-center text-slate-500 bg-[#1A1D17] rounded-2xl border border-[#2A2E24]">
                                 <ServerCrash size={48} className="mb-4 opacity-50" />
                                 <p className="text-lg">Nenhum dispositivo encontrado para esta empresa.</p>
@@ -353,7 +425,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                 return (
                                     <div
                                         key={device.id}
-                                        onClick={onDeviceClick}
+                                        onClick={() => onDeviceClick(device.id)}
                                         className={`bg-[#1A1D17] rounded-2xl border shadow-lg p-6 relative flex flex-col cursor-pointer transition-all group overflow-hidden ${isOffline
                                             ? 'border-red-400/30 opacity-80 grayscale-[0.5] hover:border-red-400/50'
                                             : 'border-[#2A2E24] hover:border-primary/50'
@@ -442,7 +514,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                             </div>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4 mb-6 z-10">
+                                        <div className="grid grid-cols-2 gap-4 mb-4 z-10">
                                             <div className="bg-[#0F110D] rounded-xl p-4 border border-[#2A2E24] flex items-center gap-3">
                                                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20">
                                                     <BatteryCharging size={16} />
@@ -467,6 +539,52 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                             </div>
                                         </div>
 
+                                        {/* Status dos Relés (Indicadores visuais) - Apenas para Gestores */}
+                                        {isManager && (
+                                            <div className="mb-6 bg-[#0F110D]/30 border border-[#2A2E24] rounded-xl p-3 z-10">
+                                                <div className="flex items-center gap-2 mb-2.5 px-1">
+                                                    <div className="w-1 h-3 bg-primary rounded-full shadow-[0_0_8px_rgba(151,215,0,0.5)]"></div>
+                                                    <h3 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none">Status do Equipamento</h3>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    {[
+                                                        { id: 0, port: 23 },
+                                                        { id: 1, port: 19 },
+                                                        { id: 2, port: 18 },
+                                                        { id: 3, port: 5 }
+                                                    ].map((rele) => {
+                                                        const state: any = device?.telemetry ? (device.telemetry as any)[`rele${rele.id}`] ?? (rele.id === 0 ? (device.telemetry as any).rele : undefined) : undefined;
+                                                        const isOn = state === true || state === 1 || state === 'on';
+
+                                                        return (
+                                                            <div
+                                                                key={rele.id}
+                                                                className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all duration-300 ${isOn
+                                                                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                                                                    : 'bg-slate-900/40 border-[#2A2E24]'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className={`w-1.5 h-1.5 rounded-full ${isOn ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-slate-600'}`}></div>
+                                                                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">R-{rele.id}</span>
+                                                                </div>
+                                                                <div className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${isOn ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'}`}>
+                                                                    {isOn ? (
+                                                                        <>
+                                                                            <Activity size={8} className="animate-pulse" />
+                                                                            <span>LIG</span>
+                                                                        </>
+                                                                    ) : (
+                                                                        <span>DESL</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="mt-auto pt-4 border-t border-[#2A2E24] flex items-center justify-between z-10">
                                             <div className="flex items-center gap-2 text-slate-500">
                                                 <Wifi size={14} className={device.telemetry.signal && device.telemetry.signal > -75 ? 'text-primary' : 'text-amber-500'} />
@@ -487,12 +605,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
             {/* MODAL DE RELATÓRIOS */}
             {showReportModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-md bg-[#172030] border border-white/5 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="flex items-center justify-between border-b border-white/5 p-6">
+                    <div className="w-full max-w-md max-h-[90vh] flex flex-col bg-[#172030] border border-white/5 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="flex-shrink-0 flex items-center justify-between border-b border-white/5 p-6 shadow-sm z-10 bg-[#172030]">
                             <h3 className="text-xl font-bold text-white">Gerar Relatório</h3>
                             <button onClick={() => setShowReportModal(false)} className="text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
                         </div>
-                        <div className="p-6 space-y-5">
+                        <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
                             {/* Seleção de Empresa - só mostra se estiver na aba "Todos" E se for gestor */}
                             {currentTenant?.id === 'all' && (currentUser?.role === 'manager' || currentUser?.role === 'gestor') && (
                                 <div className="space-y-3">
@@ -524,59 +642,41 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                 </div>
                             )}
 
-                            {/* Tipo de Relatório */}
-                            <div className="space-y-3">
+                            {/* Seleção de Dispositivo - filtra pela empresa da aba atual ou selecionada */}
+                            <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
                                 <div className="flex items-center gap-2">
                                     <div className="w-1 h-4 bg-primary rounded-full"></div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">2. Escopo do Relatório</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">2. Dispositivo</label>
                                 </div>
                                 <select
-                                    value={reportForm.type}
-                                    onChange={(e) => setReportForm({ ...reportForm, type: e.target.value, device_id: '' })}
+                                    value={reportForm.device_id}
+                                    onChange={(e) => setReportForm({ ...reportForm, device_id: e.target.value })}
                                     className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
                                 >
-                                    <option value="company">📊 Toda a Empresa</option>
-                                    <option value="device">💻 Dispositivo Específico</option>
+                                    <option value="">Todos os dispositivos</option>
+                                    {supabaseDevices
+                                        .filter(d => {
+                                            // Se está em aba específica, filtra por ela
+                                            if (currentTenant?.id && currentTenant.id !== 'all') {
+                                                return d.tenantId === currentTenant.id;
+                                            }
+                                            // Senão, usa a empresa selecionada no modal
+                                            return !reportForm.tenant_id || d.tenantId === reportForm.tenant_id;
+                                        })
+                                        .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                                        .map(d => (
+                                            <option key={d.id} value={d.id}>{d.name} ({d.location || 'Sem ala'})</option>
+                                        ))}
                                 </select>
                             </div>
-
-                            {/* Seleção de Dispositivo - filtra pela empresa da aba atual ou selecionada */}
-                            {reportForm.type === 'device' && (
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-1 h-4 bg-primary rounded-full"></div>
-                                        <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Dispositivo</label>
-                                    </div>
-                                    <select
-                                        value={reportForm.device_id}
-                                        onChange={(e) => setReportForm({ ...reportForm, device_id: e.target.value })}
-                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
-                                    >
-                                        <option value="">Escolha um sensor...</option>
-                                        {supabaseDevices
-                                            .filter(d => {
-                                                // Se está em aba específica, filtra por ela
-                                                if (currentTenant?.id && currentTenant.id !== 'all') {
-                                                    return d.tenantId === currentTenant.id;
-                                                }
-                                                // Senão, usa a empresa selecionada no modal
-                                                return !reportForm.tenant_id || d.tenantId === reportForm.tenant_id;
-                                            })
-                                            .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-                                            .map(d => (
-                                                <option key={d.id} value={d.id}>{d.name} ({d.location || 'Sem ala'})</option>
-                                            ))}
-                                    </select>
-                                </div>
-                            )}
 
                             {/* Período - Data + Hora */}
                             <div className="space-y-3">
                                 <div className="flex items-center gap-2">
                                     <div className="w-1 h-4 bg-primary rounded-full"></div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">4. Período</label>
+                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Período</label>
                                 </div>
-                                <div className="grid grid-cols-2 gap-3">
+                                <div className="grid grid-cols-[1fr_auto_1fr] gap-3">
                                     <div>
                                         <label className="block text-[10px] text-slate-500 mb-1.5">Data Início</label>
                                         <label className="block cursor-pointer">
@@ -594,6 +694,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                             className="w-full mt-2 bg-[#0a1323] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:border-primary outline-none transition-colors"
                                         />
                                     </div>
+
+                                    {/* Linha Divisória Vertical */}
+                                    <div className="flex flex-col items-center justify-center pt-6 pb-2">
+                                        <div className="w-px h-full bg-white/10"></div>
+                                    </div>
+
                                     <div>
                                         <label className="block text-[10px] text-slate-500 mb-1.5">Data Fim</label>
                                         <label className="block cursor-pointer">
@@ -616,58 +722,118 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
 
                             {/* Horários Específicos */}
                             <div className="space-y-3">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1 h-4 bg-primary rounded-full"></div>
-                                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">5. Horários</label>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Atalhos de Horário</label>
+
+                                {/* PRESETS DE HORÁRIO FIXO - 8h e 16h */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setReportForm(prev => ({
+                                            ...prev,
+                                            report_preset: prev.report_preset === 'daily_8_16' ? 'custom' : 'daily_8_16',
+                                            use_all_hours: false,
+                                            selected_hours: ['08:00', '16:00']
+                                        }))}
+                                        className={`relative p-3 rounded-xl border text-left transition-all ${reportForm.report_preset === 'daily_8_16'
+                                            ? 'bg-primary/10 border-primary/60 shadow-lg shadow-primary/10'
+                                            : 'bg-[#0d1b2a] border-white/10 hover:border-white/20'
+                                            }`}
+                                    >
+                                        {reportForm.report_preset === 'daily_8_16' && (
+                                            <div className="absolute top-2 right-2 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                                <Check size={10} className="text-white" />
+                                            </div>
+                                        )}
+                                        <p className={`text-[11px] font-bold ${reportForm.report_preset === 'daily_8_16' ? 'text-primary' : 'text-slate-300'}`}>📅 Diário</p>
+                                        <p className="text-[10px] text-slate-500 mt-0.5">08h e 16h do período selecionado</p>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setReportForm(prev => ({
+                                            ...prev,
+                                            report_preset: prev.report_preset === 'month_8_16' ? 'custom' : 'month_8_16',
+                                            use_all_hours: false,
+                                            selected_hours: ['08:00', '16:00']
+                                        }))}
+                                        className={`relative p-3 rounded-xl border text-left transition-all ${reportForm.report_preset === 'month_8_16'
+                                            ? 'bg-emerald-500/10 border-emerald-500/60 shadow-lg shadow-emerald-500/10'
+                                            : 'bg-[#0d1b2a] border-white/10 hover:border-white/20'
+                                            }`}
+                                    >
+                                        {reportForm.report_preset === 'month_8_16' && (
+                                            <div className="absolute top-2 right-2 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                                                <Check size={10} className="text-white" />
+                                            </div>
+                                        )}
+                                        <p className={`text-[11px] font-bold ${reportForm.report_preset === 'month_8_16' ? 'text-emerald-400' : 'text-slate-300'}`}>🗓️ Mensal</p>
+                                        <p className="text-[10px] text-slate-500 mt-0.5">08h e 16h do mês atual</p>
+                                    </button>
                                 </div>
-                                <div 
-                                    className={`p-3 border rounded-xl cursor-pointer transition-all ${
-                                        reportForm.use_all_hours 
-                                        ? 'bg-[#1a2332] border-white/10' 
-                                        : 'bg-[#1a2332] border-primary/30'
-                                    }`}
-                                    onClick={() => setReportForm(prev => ({ ...prev, use_all_hours: !prev.use_all_hours }))}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-slate-300">
-                                            {reportForm.use_all_hours ? 'Todos os horários' : 'Horários específicos'}
-                                        </span>
-                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                            reportForm.use_all_hours ? 'border-slate-600 bg-transparent' : 'border-primary bg-primary'
+
+                                {/* Aviso quando preset está ativo */}
+                                {(reportForm.report_preset === 'daily_8_16' || reportForm.report_preset === 'month_8_16') && (
+                                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium ${reportForm.report_preset === 'month_8_16'
+                                        ? 'bg-emerald-500/5 border border-emerald-500/20 text-emerald-400'
+                                        : 'bg-primary/5 border border-primary/20 text-primary'
                                         }`}>
-                                            {!reportForm.use_all_hours && <div className="w-2 h-2 bg-white rounded-full" />}
-                                        </div>
+                                        <Clock size={12} className="shrink-0" />
+                                        {reportForm.report_preset === 'month_8_16'
+                                            ? `Datas ajustadas para o mês atual. Horários: 08:00 e 16:00.`
+                                            : `Apenas leituras de 08:00 e 16:00 no período selecionado.`}
                                     </div>
-                                </div>
-                                
-                                {!reportForm.use_all_hours && (
-                                    <div className="bg-[#0a1323] border border-white/10 rounded-xl p-3 max-h-40 overflow-y-auto">
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {HOUR_OPTIONS.map(hour => {
-                                                const isSelected = reportForm.selected_hours.includes(hour);
-                                                return (
-                                                    <button
-                                                        key={hour}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newHours = isSelected 
-                                                                ? reportForm.selected_hours.filter(h => h !== hour)
-                                                                : [...reportForm.selected_hours, hour].sort();
-                                                            setReportForm(prev => ({ ...prev, selected_hours: newHours }));
-                                                        }}
-                                                        className={`px-2 py-1.5 text-xs rounded-lg border transition-all ${
-                                                            isSelected 
-                                                            ? 'bg-primary/20 border-primary text-primary' 
-                                                            : 'bg-transparent border-white/10 text-slate-400 hover:border-white/30'
-                                                        }`}
-                                                    >
-                                                        {hour}
-                                                    </button>
-                                                );
-                                            })}
+                                )}
+
+                                {/* Seletor avançado - apenas no modo custom */}
+                                {reportForm.report_preset === 'custom' && (
+                                    <div className="space-y-2">
+                                        <div
+                                            className={`p-3 border rounded-xl cursor-pointer transition-all ${reportForm.use_all_hours
+                                                ? 'bg-[#1a2332] border-white/10'
+                                                : 'bg-[#1a2332] border-primary/30'
+                                                }`}
+                                            onClick={() => setReportForm(prev => ({ ...prev, use_all_hours: !prev.use_all_hours }))}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-slate-300">
+                                                    {reportForm.use_all_hours ? 'Todos os horários' : 'Horários específicos'}
+                                                </span>
+                                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${reportForm.use_all_hours ? 'border-slate-600 bg-transparent' : 'border-primary bg-primary'
+                                                    }`}>
+                                                    {!reportForm.use_all_hours && <div className="w-2 h-2 bg-white rounded-full" />}
+                                                </div>
+                                            </div>
                                         </div>
-                                        {reportForm.selected_hours.length === 0 && (
-                                            <p className="text-xs text-orange-400 mt-2">Selecione pelo menos um horário</p>
+
+                                        {!reportForm.use_all_hours && (
+                                            <div className="bg-[#0a1323] border border-white/10 rounded-xl p-3 max-h-40 overflow-y-auto">
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    {HOUR_OPTIONS.map(hour => {
+                                                        const isSelected = reportForm.selected_hours.includes(hour);
+                                                        return (
+                                                            <button
+                                                                key={hour}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newHours = isSelected
+                                                                        ? reportForm.selected_hours.filter(h => h !== hour)
+                                                                        : [...reportForm.selected_hours, hour].sort();
+                                                                    setReportForm(prev => ({ ...prev, selected_hours: newHours }));
+                                                                }}
+                                                                className={`px-2 py-1.5 text-xs rounded-lg border transition-all ${isSelected
+                                                                    ? 'bg-primary/20 border-primary text-primary'
+                                                                    : 'bg-transparent border-white/10 text-slate-400 hover:border-white/30'
+                                                                    }`}
+                                                            >
+                                                                {hour}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {reportForm.selected_hours.length === 0 && (
+                                                    <p className="text-xs text-orange-400 mt-2">Selecione pelo menos um horário</p>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 )}
@@ -689,7 +855,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                 </button>
                                 <button
                                     onClick={handleGenerateReport}
-                                    disabled={generatingReport || (reportForm.type === 'device' && !reportForm.device_id)}
+                                    disabled={generatingReport}
                                     className="flex-1 px-4 py-3 bg-primary text-white rounded-xl text-sm font-bold hover:brightness-110 transition-all shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     {generatingReport ? (

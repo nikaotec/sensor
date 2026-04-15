@@ -68,6 +68,7 @@ export interface Device {
             ambient?: boolean;
         };
     };
+    localUpdateTimestamp?: number;
 }
 
 export interface Alert {

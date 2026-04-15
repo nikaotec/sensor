@@ -1,10 +1,29 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import mqtt from 'mqtt';
 import type { Device } from '../data/mockData';
 import { supabase } from '../supabase/config';
 
 // Default broker URL for WebSockets (can be passed via env variables)
 const MQTT_BROKER_URL = import.meta.env.VITE_MQTT_BROKER_URL || 'wss://nikaotech.com/mqtt';
+
+type LockedData = {
+    tenantId?: string;
+    name?: string;
+    timestamp: number;
+};
+
+const getLockedData = (deviceId: string): LockedData | null => {
+    try {
+        const lockStr = localStorage.getItem(`device_lock_${deviceId}`);
+        if (lockStr) {
+            const lockData = JSON.parse(lockStr);
+            if (Date.now() - lockData.timestamp < 30000) { // 30 second global lock
+                return lockData;
+            }
+        }
+    } catch (e) { }
+    return null;
+};
 
 export type MqttMessageHandler = (payload: { type: string; deviceId?: string; value?: string; deviceName?: string }) => void;
 
@@ -27,23 +46,37 @@ export const useMqttData = (
     useEffect(() => {
         if (initialDevices.length > 0) {
             setDevices((prevDevices) => {
-                // Merge initialDevices with prevDevices (preserving MQTT telemetry/location)
-                return initialDevices.map(initD => {
-                    const existing = prevDevices.find(d => d.id === initD.id);
-                    if (existing) {
-                        return {
+                // Start with all existing devices to ensure we don't lose pure MQTT devices
+                const newDevices = [...prevDevices];
+                const seenIds = new Set<string>();
+
+                // Merge initialDevices from Supabase, applying DB priority
+                initialDevices.forEach(initD => {
+                    seenIds.add(initD.id);
+                    const existingIndex = newDevices.findIndex(d => d.id === initD.id);
+
+                    if (existingIndex >= 0) {
+                        const existing = newDevices[existingIndex];
+                        const lockedData = getLockedData(initD.id);
+
+                        newDevices[existingIndex] = {
                             ...initD,
+                            tenantId: lockedData?.tenantId !== undefined ? lockedData.tenantId : initD.tenantId,
+
                             // Banco de dados tem prioridade — preservar nome do Supabase sobre o MQTT
-                            name: existing.name || initD.name,
+                            name: lockedData?.name !== undefined ? lockedData.name : (existing.name || initD.name),
                             location: existing.location || initD.location,
                             status: existing.status || initD.status,
                             lastSeen: existing.lastSeen || initD.lastSeen,
                             telemetry: existing.telemetry || initD.telemetry,
                             mqttUpdated: Object.hasOwn(existing, 'mqttUpdated') ? existing.mqttUpdated : false
                         };
+                    } else {
+                        newDevices.push({ ...initD, mqttUpdated: false });
                     }
-                    return { ...initD, mqttUpdated: false };
                 });
+
+                return newDevices;
             });
         }
     }, [initialDevices]);
@@ -104,6 +137,13 @@ export const useMqttData = (
             try {
                 let payload = JSON.parse(message.toString());
 
+                // FILTRO: Mensagens de notificação de display (MENSAGEM_DISPLAY)
+                // não são telemetria e podem criar cards fantasmas após reset.
+                // Ignorar estas mensagens completamente para atualização de estado.
+                if (payload.TIPO === 'MENSAGEM_DISPLAY') {
+                    return;
+                }
+
                 // Normalize payload from general streams (Capital vs lowercase formats)
                 // Merge raw payload with normalized fields to avoid losing tech data (IP, Uptime, etc)
                 const normalizedPayload = {
@@ -142,6 +182,13 @@ export const useMqttData = (
                     chkBat: payload.CHK_BAT !== undefined ? payload.CHK_BAT : true,
                     chkTemp: payload.CHK_TEMP !== undefined ? payload.CHK_TEMP : true,
                     chkDoor: payload.CHK_DOOR !== undefined ? payload.CHK_DOOR : true,
+                    // Relés (Processa o objeto RELES: { R0, R1, R2, R3 })
+                    rele0: payload.RELES?.R0 !== undefined ? payload.RELES.R0 :
+                        (payload.rele0 !== undefined ? payload.rele0 : payload.rele),
+                    rele1: payload.RELES?.R1 !== undefined ? payload.RELES.R1 : payload.rele1,
+                    rele2: payload.RELES?.R2 !== undefined ? payload.RELES.R2 : payload.rele2,
+                    rele3: payload.RELES?.R3 !== undefined ? payload.RELES.R3 : payload.rele3,
+                    rele: payload.RELES?.R0 !== undefined ? payload.RELES.R0 : payload.rele,
                 };
                 payload = normalizedPayload;
 
@@ -193,12 +240,17 @@ export const useMqttData = (
 
                 setDevices((prevDevices) => {
                     const existingDeviceIndex = prevDevices.findIndex(d =>
+                        // 1. Prioridade absoluta para ID real (MAC Address)
                         (payload.id && d.id === payload.id) ||
-                        (!payload.id && d.name === payload.device_name && d.tenantId === payload.company)
+                        // 2. Fallback por nome/empresa se ID estiver ausente nas mensagens anteriores ou no registro temporário
+                        ((!payload.id || d.id.startsWith('mqtt-')) &&
+                            d.name === payload.device_name &&
+                            d.tenantId === payload.company)
                     );
 
                     const existing = existingDeviceIndex >= 0 ? prevDevices[existingDeviceIndex] : null;
-                    const resolvedCompany = (existing ? existing.tenantId : payload.company) || 'Unknown';
+                    const lockedDataForExisting = existing ? getLockedData(existing.id) : null;
+                    const resolvedCompany = lockedDataForExisting?.tenantId !== undefined ? lockedDataForExisting.tenantId : ((existing ? existing.tenantId : payload.company) || 'Unknown');
 
                     // Case-insensitive comparison for company filtering
                     const belongsToCurrentView = tenantId === 'all' ||
@@ -214,8 +266,8 @@ export const useMqttData = (
                         const existing = newDevices[existingDeviceIndex];
                         newDevices[existingDeviceIndex] = {
                             ...existing,
-                            // Nome: banco de dados tem prioridade sobre MQTT (fonte da verdade = devices_status.name)
-                            name: existing.name || payload.device_name || existing.id,
+                            // Use o lock name override se existir, senao prioriza name local > Supabase > MQTT payload
+                            name: lockedDataForExisting?.name !== undefined ? lockedDataForExisting.name : (existing.name || payload.device_name || payload.DISPOSITIVO),
                             location: payload.ala !== undefined ? payload.ala : existing.location,
                             status: 'online',
                             lastSeen: new Date().toISOString(),
@@ -232,7 +284,11 @@ export const useMqttData = (
                                 protocolo: payload.PROTOCOLO ?? existing.telemetry.protocolo,
                                 modo: payload.MODO ?? existing.telemetry.modo,
                                 saude: payload.SAUDE_SENSORES ?? existing.telemetry.saude,
-                                rele: payload.RELE ?? existing.telemetry.rele,
+                                rele: payload.rele ?? existing.telemetry.rele,
+                                rele0: payload.rele0 ?? existing.telemetry.rele0,
+                                rele1: payload.rele1 ?? existing.telemetry.rele1,
+                                rele2: payload.rele2 ?? existing.telemetry.rele2,
+                                rele3: payload.rele3 ?? existing.telemetry.rele3,
                                 alarmMax: payload.alarmMax ?? existing.telemetry.alarmMax,
                                 alarmMin: payload.alarmMin ?? existing.telemetry.alarmMin,
                                 voltMaxLimit: payload.voltMaxLimit ?? existing.telemetry.voltMaxLimit,
@@ -252,9 +308,14 @@ export const useMqttData = (
                         };
                         return newDevices;
                     } else {
-                        // Dynamically add new device observed in MQTT stream if it belongs to current view
+                        // Apenas adiciona novo dispositivo se tiver ID real (não anônimo)
+                        // Qualquer ESP32 com ID real é bem-vindo (novo dispositivo na rede)
+                        if (!payload.id) {
+                            return prevDevices;
+                        }
+
                         const newDevice: any = {
-                            id: payload.id || `mqtt-${Math.random().toString(36).substr(2, 9)}`,
+                            id: payload.id,
                             tenantId: payload.company || 'Unknown',
                             name: payload.device_name || 'Desconhecido',
                             type: 'sensor_temp',
@@ -273,7 +334,11 @@ export const useMqttData = (
                                 protocolo: payload.PROTOCOLO,
                                 modo: payload.MODO,
                                 saude: payload.SAUDE_SENSORES,
-                                rele: payload.RELE,
+                                rele: payload.rele,
+                                rele0: payload.rele0,
+                                rele1: payload.rele1,
+                                rele2: payload.rele2,
+                                rele3: payload.rele3,
                                 alarmMax: payload.alarmMax,
                                 alarmMin: payload.alarmMin,
                                 voltMaxLimit: payload.voltMaxLimit,
@@ -327,5 +392,33 @@ export const useMqttData = (
         }
     };
 
-    return { devices, isConnected, publish };
+    const updateDeviceLocal = useCallback((deviceId: string, updates: Partial<Device>) => {
+        if (updates.tenantId || updates.name) {
+            try {
+                const currentLock = getLockedData(deviceId) || { timestamp: 0 };
+                localStorage.setItem(`device_lock_${deviceId}`, JSON.stringify({
+                    ...currentLock,
+                    tenantId: updates.tenantId !== undefined ? updates.tenantId : currentLock.tenantId,
+                    name: updates.name !== undefined ? updates.name : currentLock.name,
+                    timestamp: Date.now()
+                }));
+            } catch (e) { }
+        }
+
+        setDevices(prev => {
+            const newDevices = prev.map(d => {
+                if (d.id === deviceId) {
+                    return {
+                        ...d,
+                        ...updates,
+                        localUpdateTimestamp: Date.now()
+                    };
+                }
+                return d;
+            });
+            return newDevices;
+        });
+    }, []);
+
+    return { devices, isConnected, publish, updateDeviceLocal };
 };

@@ -28,7 +28,7 @@ const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {
 
             <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden relative bg-background-light text-text-dark">
                 {/* HEADER */}
-                <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+                <header className="h-20 flex-shrink-0 flex items-center justify-between px-4 sm:px-8 bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-30 shadow-sm">
                     <div>
                         <h2 className="text-xl font-bold text-text-dark tracking-tight">Configurações do Sistema</h2>
                         <p className="text-slate-500 text-xs font-normal">Gerencie integrações e limites globais do ecossistema {currentTenant.name}.</p>

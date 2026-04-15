@@ -35,7 +35,7 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
     const [showModal, setShowModal] = useState(false);
     const [editingReport, setEditingReport] = useState<any>(null);
     const [showGenerateModal, setShowGenerateModal] = useState(false);
-    const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => 
+    const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) =>
         `${i.toString().padStart(2, '0')}:00`
     );
 
@@ -62,6 +62,7 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
         end_time: string;
         selected_hours: string[];
         use_all_hours: boolean;
+        report_preset: 'custom' | 'daily_8_16' | 'month_8_16';
     }>({
         type: 'device',
         tenant_id: currentTenant?.id === 'all' ? '' : currentTenant?.id || '',
@@ -71,7 +72,8 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
         start_time: '00:00',
         end_time: '23:59',
         selected_hours: [] as string[],
-        use_all_hours: true
+        use_all_hours: true,
+        report_preset: 'custom'
     });
     const [generating, setGenerating] = useState(false);
 
@@ -158,10 +160,6 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
     };
 
     const handleGenerateNow = async () => {
-        if (generateForm.type === 'device' && !generateForm.device_id) {
-            alert('Selecione um dispositivo para gerar o relatório.');
-            return;
-        }
 
         // Get selected tenant details
         const selectedTenant = availableTenants.find(t => t.id === generateForm.tenant_id) || (currentTenant.id !== 'all' ? currentTenant : null);
@@ -174,31 +172,55 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
             return dateStr + `T${hours || '00'}:${minutes || '00'}:00.000Z`;
         };
 
+        // Aplica preset de horários
+        let effectiveForm = { ...generateForm };
+        if (generateForm.report_preset === 'daily_8_16') {
+            // Relatório com leituras de 8h e 16h no período selecionado
+            effectiveForm.use_all_hours = false;
+            effectiveForm.selected_hours = ['08:00', '16:00'];
+        } else if (generateForm.report_preset === 'month_8_16') {
+            // Mês todo: do dia 1 ao último dia do mês atual, apenas 8h e 16h
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            effectiveForm.start_date = firstDay.toISOString().split('T')[0];
+            effectiveForm.end_date = lastDay.toISOString().split('T')[0];
+            effectiveForm.start_time = '00:00';
+            effectiveForm.end_time = '23:59';
+            effectiveForm.use_all_hours = false;
+            effectiveForm.selected_hours = ['08:00', '16:00'];
+        }
+
+        const effectiveType = generateForm.device_id ? 'device' : 'company';
+
         setGenerating(true);
         try {
             const payload: any = {
-                type: generateForm.type,
-                start_date: formatDateTime(generateForm.start_date, generateForm.start_time),
-                end_date: formatDateTime(generateForm.end_date, generateForm.end_time),
+                type: effectiveType,
+                start_date: formatDateTime(effectiveForm.start_date, effectiveForm.start_time),
+                end_date: formatDateTime(effectiveForm.end_date, effectiveForm.end_time),
                 company_name: companyName,
-                selected_hours: generateForm.use_all_hours ? [] : generateForm.selected_hours,
-                use_all_hours: generateForm.use_all_hours
+                selected_hours: effectiveForm.use_all_hours ? [] : effectiveForm.selected_hours,
+                use_all_hours: effectiveForm.use_all_hours,
+                report_preset: effectiveForm.report_preset
             };
 
             if (tenantId) {
                 payload.tenant_id = tenantId;
             }
 
-            if (generateForm.type === 'device' && generateForm.device_id) {
+            if (effectiveType === 'device') {
                 const device = devices.find(d => d.id === generateForm.device_id);
                 payload.device_id = generateForm.device_id;
                 payload.device_name = device?.name || generateForm.device_id;
                 payload.device_code = device?.id || generateForm.device_id;
                 payload.ala = device?.location || 'Não informada';
             } else {
-                // For company type, use first device of that company if available for triggering n8n
-                const companyDevices = devices.filter(d => d.tenantId === tenantId);
-                payload.device_id = companyDevices[0]?.id || devices[0]?.id;
+                // Para relatório de empresa: envia TODOS os device_ids daquela empresa
+                const companyDevices = tenantId ? devices.filter(d => d.tenantId === tenantId) : [];
+                payload.device_ids = companyDevices.map(d => d.id);
+                payload.device_name = 'Todos os dispositivos';
+                payload.ala = 'Geral';
             }
 
             console.log('Gerando relatório:', payload);
@@ -247,15 +269,15 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
 
             <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden relative bg-[#0a1323]">
                 {/* HEADER */}
-                <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-[#0a1323]/40 backdrop-blur-xl border-b border-white/5 sticky top-0 z-30">
+                <header className="h-20 flex-shrink-0 flex items-center justify-between px-4 sm:px-8 bg-[#0a1323]/40 backdrop-blur-xl border-b border-white/5 sticky top-0 z-30">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight text-white font-heading">Relatórios <span className="text-primary">&</span> Insights</h2>
                         <p className="text-slate-400 text-xs font-medium uppercase tracking-[0.1em]">Ecossistema {currentTenant?.name}</p>
                     </div>
-                    
+
                 </header>
 
-                <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 py-8 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 py-8 pb-24 sm:pb-8 custom-scrollbar 2xl:max-w-[1600px] 2xl:mx-auto w-full">
                     {/* AI INSIGHTS PULSE CARD */}
                     <div className="mb-10 group relative">
                         <div className="absolute -inset-1 bg-gradient-to-r from-primary/50 to-purple-500/50 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
@@ -478,12 +500,12 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
             {/* MODALS */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-md bg-[#172030] border border-white/5 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="flex items-center justify-between border-b border-white/5 p-6">
+                    <div className="w-full max-w-md max-h-[90vh] flex flex-col bg-[#172030] border border-white/5 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="flex-shrink-0 flex items-center justify-between border-b border-white/5 p-6 shadow-sm z-10 bg-[#172030]">
                             <h3 className="text-xl font-bold text-white">{editingReport ? 'Editar Agendamento' : 'Novo Agendamento'}</h3>
                             <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
                         </div>
-                        <form onSubmit={handleSave} className="p-6 space-y-4">
+                        <form onSubmit={handleSave} className="p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
                             <div>
                                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nome do Agendamento</label>
                                 <input name="name" defaultValue={editingReport?.name} placeholder="Ex: Relatório Mensal" required className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors" />
@@ -542,11 +564,17 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                 </div>
                             )}
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-[1fr_auto_1fr] gap-4">
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Horário</label>
                                     <input name="schedule_time" type="time" defaultValue={editingReport?.schedule_time || '08:00'} required className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors" />
                                 </div>
+
+                                {/* Linha Divisória Vertical */}
+                                <div className="flex flex-col items-center justify-center pt-6 pb-2">
+                                    <div className="w-px h-full bg-white/10"></div>
+                                </div>
+
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Dia do Envio</label>
                                     <input name="schedule_day" type="number" min="0" max="31" defaultValue={editingReport?.schedule_day || 0} className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-2.5 text-white focus:border-primary outline-none transition-colors" />
@@ -578,12 +606,12 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
 
             {showGenerateModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="w-full max-w-md bg-[#172030] border border-white/5 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-                        <div className="flex items-center justify-between border-b border-white/5 p-6">
+                    <div className="w-full max-w-md max-h-[90vh] flex flex-col bg-[#172030] border border-white/5 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="flex-shrink-0 flex items-center justify-between border-b border-white/5 p-6 shadow-sm z-10 bg-[#172030]">
                             <h3 className="text-xl font-bold text-white">Gerar Relatório Instantâneo</h3>
                             <button onClick={() => setShowGenerateModal(false)} className="text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
                         </div>
-                        <div className="p-6 space-y-5">
+                        <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar flex-1">
                             {/* Role-based Company Selector */}
                             {(currentUser?.role === 'manager' || currentUser?.role === 'gestor' || availableTenants.length > 1) && (
                                 <div className="animate-in slide-in-from-top-2 duration-300">
@@ -601,37 +629,23 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                 </div>
                             )}
 
-                            <div>
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Escopo do Relatório</label>
+                            <div className="animate-in slide-in-from-top-2 duration-300">
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Dispositivo</label>
                                 <select
-                                    value={generateForm.type}
-                                    onChange={(e) => setGenerateForm({ ...generateForm, type: e.target.value, device_id: '' })}
+                                    value={generateForm.device_id}
+                                    onChange={(e) => setGenerateForm({ ...generateForm, device_id: e.target.value })}
                                     className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
                                 >
-                                    <option value="company">Toda a Empresa (Frotal)</option>
-                                    <option value="device">Dispositivo Específico</option>
+                                    <option value="">Todos os dispositivos</option>
+                                    {devices
+                                        .filter(d => !generateForm.tenant_id || d.tenantId === generateForm.tenant_id)
+                                        .map(d => (
+                                            <option key={d.id} value={d.id}>{d.name} ({d.location || 'Sem ala'})</option>
+                                        ))}
                                 </select>
                             </div>
 
-                            {generateForm.type === 'device' && (
-                                <div className="animate-in slide-in-from-top-2 duration-300">
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Selecione o Dispositivo</label>
-                                    <select
-                                        value={generateForm.device_id}
-                                        onChange={(e) => setGenerateForm({ ...generateForm, device_id: e.target.value })}
-                                        className="w-full bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
-                                    >
-                                        <option value="">Escolha um sensor...</option>
-                                        {devices
-                                            .filter(d => !generateForm.tenant_id || d.tenantId === generateForm.tenant_id)
-                                            .map(d => (
-                                                <option key={d.id} value={d.id}>{d.name} ({d.location || 'Sem ala'})</option>
-                                            ))}
-                                    </select>
-                                </div>
-                            )}
-
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-[1fr_auto_1fr] gap-4">
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Inicial</label>
                                     <label className="block cursor-pointer">
@@ -649,6 +663,12 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                         className="w-full mt-2 bg-[#0a1323] border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary outline-none transition-colors"
                                     />
                                 </div>
+
+                                {/* Linha Divisória Vertical */}
+                                <div className="flex flex-col items-center justify-center pt-6 pb-2">
+                                    <div className="w-px h-full bg-white/10"></div>
+                                </div>
+
                                 <div>
                                     <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data Final</label>
                                     <label className="block cursor-pointer">
@@ -670,55 +690,118 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
 
                             {/* Horários Específicos */}
                             <div className="space-y-3">
-                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Horários</label>
-                                <div 
-                                    className={`p-3 border rounded-xl cursor-pointer transition-all ${
-                                        generateForm.use_all_hours 
-                                        ? 'bg-[#1a2332] border-white/10' 
-                                        : 'bg-[#1a2332] border-primary/30'
-                                    }`}
-                                    onClick={() => setGenerateForm(prev => ({ ...prev, use_all_hours: !prev.use_all_hours }))}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-slate-300">
-                                            {generateForm.use_all_hours ? 'Todos os horários' : 'Horários específicos'}
-                                        </span>
-                                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${
-                                            generateForm.use_all_hours ? 'border-slate-600 bg-transparent' : 'border-primary bg-primary'
-                                        }`}>
-                                            {!generateForm.use_all_hours && <div className="w-2 h-2 bg-white rounded-full" />}
-                                        </div>
-                                    </div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Atalhos de Horário</label>
+
+                                {/* PRESETS DE HORÁRIO FIXO - 8h e 16h */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setGenerateForm(prev => ({
+                                            ...prev,
+                                            report_preset: prev.report_preset === 'daily_8_16' ? 'custom' : 'daily_8_16',
+                                            use_all_hours: false,
+                                            selected_hours: ['08:00', '16:00']
+                                        }))}
+                                        className={`relative p-3 rounded-xl border text-left transition-all ${generateForm.report_preset === 'daily_8_16'
+                                            ? 'bg-primary/10 border-primary/60 shadow-lg shadow-primary/10'
+                                            : 'bg-[#0d1b2a] border-white/10 hover:border-white/20'
+                                            }`}
+                                    >
+                                        {generateForm.report_preset === 'daily_8_16' && (
+                                            <div className="absolute top-2 right-2 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                                                <Check size={10} className="text-white" />
+                                            </div>
+                                        )}
+                                        <p className={`text-[11px] font-bold ${generateForm.report_preset === 'daily_8_16' ? 'text-primary' : 'text-slate-300'}`}>📅 Diário</p>
+                                        <p className="text-[10px] text-slate-500 mt-0.5">08h e 16h do período selecionado</p>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setGenerateForm(prev => ({
+                                            ...prev,
+                                            report_preset: prev.report_preset === 'month_8_16' ? 'custom' : 'month_8_16',
+                                            use_all_hours: false,
+                                            selected_hours: ['08:00', '16:00']
+                                        }))}
+                                        className={`relative p-3 rounded-xl border text-left transition-all ${generateForm.report_preset === 'month_8_16'
+                                            ? 'bg-emerald-500/10 border-emerald-500/60 shadow-lg shadow-emerald-500/10'
+                                            : 'bg-[#0d1b2a] border-white/10 hover:border-white/20'
+                                            }`}
+                                    >
+                                        {generateForm.report_preset === 'month_8_16' && (
+                                            <div className="absolute top-2 right-2 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                                                <Check size={10} className="text-white" />
+                                            </div>
+                                        )}
+                                        <p className={`text-[11px] font-bold ${generateForm.report_preset === 'month_8_16' ? 'text-emerald-400' : 'text-slate-300'}`}>🗓️ Mensal</p>
+                                        <p className="text-[10px] text-slate-500 mt-0.5">08h e 16h do mês atual</p>
+                                    </button>
                                 </div>
-                                
-                                {!generateForm.use_all_hours && (
-                                    <div className="bg-[#0a1323] border border-white/10 rounded-xl p-3 max-h-40 overflow-y-auto">
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {HOUR_OPTIONS.map(hour => {
-                                                const isSelected = generateForm.selected_hours.includes(hour);
-                                                return (
-                                                    <button
-                                                        key={hour}
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newHours = isSelected 
-                                                                ? generateForm.selected_hours.filter(h => h !== hour)
-                                                                : [...generateForm.selected_hours, hour].sort();
-                                                            setGenerateForm(prev => ({ ...prev, selected_hours: newHours }));
-                                                        }}
-                                                        className={`px-2 py-1.5 text-xs rounded-lg border transition-all ${
-                                                            isSelected 
-                                                            ? 'bg-primary/20 border-primary text-primary' 
-                                                            : 'bg-transparent border-white/10 text-slate-400 hover:border-white/30'
-                                                        }`}
-                                                    >
-                                                        {hour}
-                                                    </button>
-                                                );
-                                            })}
+
+                                {/* Aviso quando preset está ativo */}
+                                {(generateForm.report_preset === 'daily_8_16' || generateForm.report_preset === 'month_8_16') && (
+                                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium ${generateForm.report_preset === 'month_8_16'
+                                        ? 'bg-emerald-500/5 border border-emerald-500/20 text-emerald-400'
+                                        : 'bg-primary/5 border border-primary/20 text-primary'
+                                        }`}>
+                                        <Clock size={12} className="shrink-0" />
+                                        {generateForm.report_preset === 'month_8_16'
+                                            ? `Datas ajustadas para o mês atual. Horários: 08:00 e 16:00.`
+                                            : `Apenas leituras de 08:00 e 16:00 no período selecionado.`}
+                                    </div>
+                                )}
+
+                                {/* Seletor avançado - apenas no modo custom */}
+                                {generateForm.report_preset === 'custom' && (
+                                    <div className="space-y-2">
+                                        <div
+                                            className={`p-3 border rounded-xl cursor-pointer transition-all ${generateForm.use_all_hours
+                                                ? 'bg-[#1a2332] border-white/10'
+                                                : 'bg-[#1a2332] border-primary/30'
+                                                }`}
+                                            onClick={() => setGenerateForm(prev => ({ ...prev, use_all_hours: !prev.use_all_hours }))}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm text-slate-300">
+                                                    {generateForm.use_all_hours ? 'Todos os horários' : 'Horários específicos'}
+                                                </span>
+                                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${generateForm.use_all_hours ? 'border-slate-600 bg-transparent' : 'border-primary bg-primary'
+                                                    }`}>
+                                                    {!generateForm.use_all_hours && <div className="w-2 h-2 bg-white rounded-full" />}
+                                                </div>
+                                            </div>
                                         </div>
-                                        {generateForm.selected_hours.length === 0 && (
-                                            <p className="text-xs text-orange-400 mt-2">Selecione pelo menos um horário</p>
+
+                                        {!generateForm.use_all_hours && (
+                                            <div className="bg-[#0a1323] border border-white/10 rounded-xl p-3 max-h-40 overflow-y-auto">
+                                                <div className="grid grid-cols-4 gap-2">
+                                                    {HOUR_OPTIONS.map(hour => {
+                                                        const isSelected = generateForm.selected_hours.includes(hour);
+                                                        return (
+                                                            <button
+                                                                key={hour}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newHours = isSelected
+                                                                        ? generateForm.selected_hours.filter(h => h !== hour)
+                                                                        : [...generateForm.selected_hours, hour].sort();
+                                                                    setGenerateForm(prev => ({ ...prev, selected_hours: newHours }));
+                                                                }}
+                                                                className={`px-2 py-1.5 text-xs rounded-lg border transition-all ${isSelected
+                                                                    ? 'bg-primary/20 border-primary text-primary'
+                                                                    : 'bg-transparent border-white/10 text-slate-400 hover:border-white/30'
+                                                                    }`}
+                                                            >
+                                                                {hour}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {generateForm.selected_hours.length === 0 && (
+                                                    <p className="text-xs text-orange-400 mt-2">Selecione pelo menos um horário</p>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 )}
@@ -763,5 +846,4 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
         </div>
     );
 };
-
 export default Reports;

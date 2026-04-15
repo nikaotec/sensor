@@ -29,29 +29,29 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Aceita até 13 dígitos: +55 (2) + DDD (2) + 9 dígitos = 13 dígitos
 const formatPhone = (value: string): string => {
     const digits = value.replace(/\D/g, '');
-    
+
     if (digits.length <= 0) return '';
-    
+
     // Limita a 13 dígitos (sem o +)
     const limited = digits.slice(0, 13);
-    
+
     let result = '+' + limited;
-    
+
     if (limited.length > 2) {
         // Insere espaço após DDI
         result = '+' + limited.slice(0, 2) + ' ' + limited.slice(2);
     }
-    
+
     if (limited.length > 4) {
         // Insere espaço após DDD
         result = '+' + limited.slice(0, 2) + ' ' + limited.slice(2, 4) + ' ' + limited.slice(4);
     }
-    
+
     if (limited.length > 9) {
         // Insere hífen antes dos últimos 4 dígitos
         result = '+' + limited.slice(0, 2) + ' ' + limited.slice(2, 4) + ' ' + limited.slice(4, 9) + '-' + limited.slice(9);
     }
-    
+
     return result;
 };
 
@@ -73,7 +73,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     // Data hooks
     const { users, isLoading: loadingUsers } = useUsers(currentUser?.role);
     const { devices: supabaseDevices } = useSupabaseData('all', undefined, currentUser?.role);
-    const { devices: mqttDevices, publish: mqttPublish } = useMqttData('all', currentUser?.role, supabaseDevices);
+    const { devices: mqttDevices, publish: mqttPublish, updateDeviceLocal } = useMqttData('all', currentUser?.role, supabaseDevices);
 
     const [selectedTenants, setSelectedTenants] = useState<{ [key: string]: string }>({});
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -95,10 +95,19 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const [editUserRole, setEditUserRole] = useState<'manager' | 'admin' | 'user'>('user');
     const [editUserTenants, setEditUserTenants] = useState<string[]>([]);
 
-    const unlinkedDevices = mqttDevices.filter(d => {
-        const tid = d.tenantId || (d as any).tenant_id;
-        return !tid || tid === "Unknown" || tid === "empresa_default" || tid === "Nikaotec";
-    });
+    // Dispositivos pendentes = dispositivos ATIVOS no MQTT sem empresa válida
+    // + dispositivos do Supabase com tenant_id=null que podem estar offline
+    const UNLINKED_IDS = [null, undefined, '', 'Unknown', 'empresa_default', 'Nikaotec'];
+
+    const mqttUnlinked = mqttDevices.filter(d => UNLINKED_IDS.includes(d.tenantId as any));
+
+    // Adiciona dispositivos do Supabase com tenant_id=null que não estão no MQTT
+    const mqttIds = new Set(mqttDevices.map(d => d.id));
+    const supabasePending = supabaseDevices.filter(d =>
+        UNLINKED_IDS.includes(d.tenantId as any) && !mqttIds.has(d.id)
+    );
+
+    const unlinkedDevices = [...mqttUnlinked, ...supabasePending];
 
     const popoverRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -195,12 +204,17 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
             // 2. Envia comando MQTT para o ESP32 gravar na EEPROM
             const mqttPayload = JSON.stringify({
                 intencao: 'vincular_dispositivo',
+                id: deviceId,
+                dispositivo_id: deviceId,
                 is_admin: true,
+                source: 'dashboard',
                 empresa: tenant.name,
                 nome: device?.name || 'Sensor',
                 ala: device?.location || 'Nao Definida'
             });
             mqttPublish('esp32c3/status/action', mqttPayload);
+
+            updateDeviceLocal(deviceId, { tenantId: tId });
 
             showMessage('success', `Dispositivo vinculado à empresa ${tenant.name}!`);
         } catch (err: any) {
@@ -310,16 +324,30 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     };
 
     const handleResetDevice = async (deviceId: string) => {
-        if (!window.confirm("Deseja resetar o vínculo deste dispositivo? Ele voltará para a lista de pendentes.")) return;
-        try {
-            // Tenta encontrar a empresa master para resetar, ou remove o vínculo se permitido
-            const nikaoTenant = availableTenants.find(t => t.name.toLowerCase().includes('nikao'));
+        if (!window.confirm("Deseja resetar o vínculo deste dispositivo? Ele voltará para a lista de pendentes e todas as configurações de nome e empresa serão removidas do hardware.")) return;
 
+        try {
+            // 1. Enviar comando MQTT para o hardware se desvincular internamente
+            const mqttPayload = JSON.stringify({
+                intencao: 'desvincular_dispositivo',
+                id: deviceId,
+                dispositivo_id: deviceId,
+                is_admin: true,
+                source: 'dashboard'
+            });
+            mqttPublish('esp32c3/status/action', mqttPayload);
+
+            // 2. Atualizar o Supabase para remover o vínculo com o tenant
             const { error } = await supabase.from('devices_status').update({
-                tenant_id: nikaoTenant?.id || null // Usa o UUID real ou null
+                tenant_id: null,
+                updated_at: new Date().toISOString()
             }).eq('id', deviceId);
+
             if (error) throw error;
-            showMessage('success', "Vínculo do dispositivo resetado.");
+
+            updateDeviceLocal(deviceId, { tenantId: 'Unknown' });
+
+            showMessage('success', "Dispositivo desvinculado com sucesso. A tela foi atualizada para pendente.");
         } catch (err: any) {
             console.error("Erro ao resetar:", err);
             showMessage('error', `Erro ao resetar: ${err.message}`);
@@ -369,7 +397,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     return (
         <div className="flex-1 h-screen flex flex-col bg-[#0A0C08] overflow-hidden">
             {/* Header Moderno */}
-            <header className="h-20 flex-shrink-0 flex items-center justify-between px-8 bg-black/40 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
+            <header className="h-20 flex-shrink-0 flex items-center justify-between px-4 sm:px-8 bg-black/40 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
                 <div className="flex items-center gap-4">
                     <div className="bg-primary/20 p-2.5 rounded-2xl border border-primary/30">
                         <Settings2 size={24} className="text-primary" />
@@ -426,7 +454,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                 </aside>
 
                 {/* Conteúdo Principal */}
-                <main className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                <main className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 sm:pb-8 custom-scrollbar 2xl:max-w-[1600px] 2xl:mx-auto w-full">
                     <motion.div
                         key={activeTab}
                         initial={{ opacity: 0, y: 10 }}
@@ -563,6 +591,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                                                             onClick={(e) => {
                                                                                                 e.stopPropagation();
                                                                                                 handleToggleUserTenant(u.id, t.id, u.tenant_ids || []);
+                                                                                                setOpenTenantPopoverFor(null);
                                                                                             }}
                                                                                             className={`w-full flex items-center justify-between p-2 rounded-lg text-[10px] font-bold transition-all ${(u.tenant_ids || []).includes(t.id)
                                                                                                 ? 'bg-primary/10 text-primary'
@@ -613,11 +642,11 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                         <form onSubmit={handleCreateUser} className="space-y-6">
                                             <FormInput label="Nome Completo" value={newUserName} onChange={setNewUserName} placeholder="Ex: João Silva" required />
                                             <FormInput label="E-mail" type="email" value={newUserEmail} onChange={setNewUserEmail} placeholder="joao@email.com" required />
-                                            <FormInput 
-                                                label="Telefone" 
-                                                value={newUserPhone} 
-                                                onChange={handlePhoneChange(setNewUserPhone)} 
-                                                placeholder="+55 81 99999-9999" 
+                                            <FormInput
+                                                label="Telefone"
+                                                value={newUserPhone}
+                                                onChange={handlePhoneChange(setNewUserPhone)}
+                                                placeholder="+55 81 99999-9999"
                                             />
 
                                             <div>
@@ -916,7 +945,7 @@ const EditUserModal = ({
                 <div className="space-y-5">
                     <FormInput label="Nome Completo" value={name} onChange={setName} placeholder="Ex: João Silva" required />
                     <FormInput label="E-mail" type="email" value={email} onChange={setEmail} placeholder="joao@email.com" required />
-                    
+
                     {/* Campo telefone especial - não usa FormInput pois precisa de formatação */}
                     <div>
                         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Telefone</label>

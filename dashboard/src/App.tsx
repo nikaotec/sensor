@@ -127,13 +127,13 @@ const AppContent = () => {
   const handleDeviceNameChange = async (deviceId: string, newName: string) => {
     console.log('[Nome Alterado]', deviceId, '->', newName);
     alert(`Nome do dispositivo alterado para: ${newName}`);
-    
+
     // Salvar no Supabase
     const { error } = await supabase
       .from('devices_status')
       .update({ name: newName, updated_at: new Date().toISOString() })
       .eq('id', deviceId);
-    
+
     if (error) {
       console.error('Erro ao salvar novo nome no Supabase:', error);
     }
@@ -248,7 +248,18 @@ const AppContent = () => {
         ))}
       </div>
 
-      {currentScreen === 'dashboard' && <Dashboard onDeviceClick={() => handleNavigation('device-list')} onNavigate={handleNavigation} />}
+      {currentScreen === 'dashboard' && (
+        <Dashboard
+          onDeviceClick={(deviceId) => {
+            if (currentUser?.role === 'admin') {
+              navigateToDeviceDetails(deviceId);
+            } else {
+              handleNavigation('device-list');
+            }
+          }}
+          onNavigate={handleNavigation}
+        />
+      )}
       {currentScreen === 'login' && <Login onLogin={handleLogin} onSignUpClick={navigateToSignUp} />}
       {currentScreen === 'signup' && <SignUp onLoginClick={navigateToLogin} onSignUp={handleSignUp} />}
       {currentScreen === 'device-list' && <DeviceList onDeviceClick={navigateToDeviceDetails} onNavigate={handleNavigation} />}
