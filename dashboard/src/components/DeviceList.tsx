@@ -7,7 +7,7 @@ import { useMqttData } from '../hooks/useMqttData';
 import { Search, AlertTriangle, BatteryCharging, Zap, Wifi, ServerCrash, Thermometer, Droplets } from 'lucide-react';
 
 interface DeviceListProps {
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
     onDeviceClick: (deviceId: string) => void;
 }
 

@@ -9,7 +9,10 @@
       "name": "MQTT Trigger",
       "type": "n8n-nodes-base.mqttTrigger",
       "typeVersion": 1,
-      "position": [240, 300]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
@@ -20,7 +23,10 @@
       "name": "Parse Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300]
+      "position": [
+        460,
+        300
+      ]
     },
     {
       "parameters": {
@@ -41,7 +47,10 @@
       "name": "Validate Data",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [680, 300]
+      "position": [
+        680,
+        300
+      ]
     },
     {
       "parameters": {
@@ -49,22 +58,70 @@
         "tableId": "devices_status",
         "fieldsUi": {
           "fieldValues": [
-            { "fieldId": "id", "fieldValue": "={{$json.ID_DISPOSITIVO}}" },
-            { "fieldId": "name", "fieldValue": "={{$json.DISPOSITIVO}}" },
-            { "fieldId": "temperature", "fieldValue": "={{parseFloat($json.TEMP_C)}}" },
-            { "fieldId": "temp_max", "fieldValue": "={{parseFloat($json.TEMP_MAX)}}" },
-            { "fieldId": "temp_min", "fieldValue": "={{parseFloat($json.TEMP_MIN)}}" },
-            { "fieldId": "voltage", "fieldValue": "={{parseFloat($json.VOLTAGEM)}}" },
-            { "fieldId": "humidity", "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}" },
-            { "fieldId": "battery", "fieldValue": "={{parseFloat($json.BATERIA || 0)}}" },
-            { "fieldId": "status", "fieldValue": "online" },
-            { "fieldId": "last_seen", "fieldValue": "={{new Date().toISOString()}}" },
-            { "fieldId": "tenant_id", "fieldValue": "={{$json.EMPRESA || 'Unknown'}}" },
-            { "fieldId": "updated_at", "fieldValue": "={{new Date().toISOString()}}" },
-            { "fieldId": "chk_volt", "fieldValue": "={{$json.CHK_VOLT !== undefined ? $json.CHK_VOLT : true}}" },
-            { "fieldId": "chk_bat", "fieldValue": "={{$json.CHK_BAT !== undefined ? $json.CHK_BAT : true}}" },
-            { "fieldId": "chk_temp", "fieldValue": "={{$json.CHK_TEMP !== undefined ? $json.CHK_TEMP : true}}" },
-            { "fieldId": "chk_door", "fieldValue": "={{$json.CHK_DOOR !== undefined ? $json.CHK_DOOR : true}}" }
+            {
+              "fieldId": "id",
+              "fieldValue": "={{$json.ID_DISPOSITIVO}}"
+            },
+            {
+              "fieldId": "name",
+              "fieldValue": "={{$json.DISPOSITIVO}}"
+            },
+            {
+              "fieldId": "temperature",
+              "fieldValue": "={{parseFloat($json.TEMP_C)}}"
+            },
+            {
+              "fieldId": "temp_max",
+              "fieldValue": "={{parseFloat($json.TEMP_MAX)}}"
+            },
+            {
+              "fieldId": "temp_min",
+              "fieldValue": "={{parseFloat($json.TEMP_MIN)}}"
+            },
+            {
+              "fieldId": "voltage",
+              "fieldValue": "={{parseFloat($json.VOLTAGEM)}}"
+            },
+            {
+              "fieldId": "humidity",
+              "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}"
+            },
+            {
+              "fieldId": "battery",
+              "fieldValue": "={{parseFloat($json.BATERIA || 0)}}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "online"
+            },
+            {
+              "fieldId": "last_seen",
+              "fieldValue": "={{new Date().toISOString()}}"
+            },
+            {
+              "fieldId": "tenant_id",
+              "fieldValue": "={{$json.EMPRESA || 'Unknown'}}"
+            },
+            {
+              "fieldId": "updated_at",
+              "fieldValue": "={{new Date().toISOString()}}"
+            },
+            {
+              "fieldId": "chk_volt",
+              "fieldValue": "={{$json.CHK_VOLT !== undefined ? $json.CHK_VOLT : true}}"
+            },
+            {
+              "fieldId": "chk_bat",
+              "fieldValue": "={{$json.CHK_BAT !== undefined ? $json.CHK_BAT : true}}"
+            },
+            {
+              "fieldId": "chk_temp",
+              "fieldValue": "={{$json.CHK_TEMP !== undefined ? $json.CHK_TEMP : true}}"
+            },
+            {
+              "fieldId": "chk_door",
+              "fieldValue": "={{$json.CHK_DOOR !== undefined ? $json.CHK_DOOR : true}}"
+            }
           ]
         },
         "conflictFields": "id"
@@ -73,7 +130,10 @@
       "name": "Upsert Supabase Device Status",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [900, 150]
+      "position": [
+        900,
+        150
+      ]
     },
     {
       "parameters": {
@@ -81,14 +141,38 @@
         "tableId": "telemetry",
         "fieldsUi": {
           "fieldValues": [
-            { "fieldId": "device_id", "fieldValue": "={{$json.ID_DISPOSITIVO}}" },
-            { "fieldId": "temperature", "fieldValue": "={{parseFloat($json.TEMP_C)}}" },
-            { "fieldId": "temp_max", "fieldValue": "={{parseFloat($json.TEMP_MAX)}}" },
-            { "fieldId": "temp_min", "fieldValue": "={{parseFloat($json.TEMP_MIN)}}" },
-            { "fieldId": "voltage", "fieldValue": "={{parseFloat($json.VOLTAGEM)}}" },
-            { "fieldId": "humidity", "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}" },
-            { "fieldId": "battery", "fieldValue": "={{parseFloat($json.BATERIA || 0)}}" },
-            { "fieldId": "timestamp", "fieldValue": "={{ new Date().toISOString() }}" }
+            {
+              "fieldId": "device_id",
+              "fieldValue": "={{$json.ID_DISPOSITIVO}}"
+            },
+            {
+              "fieldId": "temperature",
+              "fieldValue": "={{parseFloat($json.TEMP_C)}}"
+            },
+            {
+              "fieldId": "temp_max",
+              "fieldValue": "={{parseFloat($json.TEMP_MAX)}}"
+            },
+            {
+              "fieldId": "temp_min",
+              "fieldValue": "={{parseFloat($json.TEMP_MIN)}}"
+            },
+            {
+              "fieldId": "voltage",
+              "fieldValue": "={{parseFloat($json.VOLTAGEM)}}"
+            },
+            {
+              "fieldId": "humidity",
+              "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}"
+            },
+            {
+              "fieldId": "battery",
+              "fieldValue": "={{parseFloat($json.BATERIA || 0)}}"
+            },
+            {
+              "fieldId": "timestamp",
+              "fieldValue": "={{ new Date().toISOString() }}"
+            }
           ]
         }
       },
@@ -96,18 +180,24 @@
       "name": "Insert Telemetry Log",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [1120, 300]
+      "position": [
+        1120,
+        300
+      ]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "return {\n  json: {\n    id: $input.item.json.ID_DISPOSITIVO,\n    company: $input.item.json.EMPRESA || \"empresa_default\",\n    ala: \"Setor Principal\",\n    device_name: $input.item.json.DISPOSITIVO || $input.item.json.ID_DISPOSITIVO,\n    temp: parseFloat($input.item.json.TEMP_ATUAL || 0),\n    tempMax: parseFloat($input.item.json.MAX || $input.item.json.TEMP_ATUAL || 0),\n    tempMin: parseFloat($input.item.json.MIN || $input.item.json.TEMP_ATUAL || 0),\n    batteryVoltage: parseFloat($input.item.json.BATERIA || 0),\n    inputVoltage: parseFloat($input.item.json.VOLTAGEM || 0),\n    signal: parseInt($input.item.json.RSSI || 0)\n  }\n};"
+        "jsCode": "return {\n  json: {\n    id: $input.item.json.ID_DISPOSITIVO,\n    company: $input.item.json.EMPRESA || \"empresa_default\",\n    ala: \"Setor Principal\",\n    device_name: $input.item.json.DISPOSITIVO || $input.item.json.ID_DISPOSITIVO,\n    temp: parseFloat($input.item.json.TEMP_C || 0),\n    tempMax: parseFloat($input.item.json.TEMP_MAX || $input.item.json.TEMP_C || 0),\n    tempMin: parseFloat($input.item.json.TEMP_MIN || $input.item.json.TEMP_C || 0),\n    batteryVoltage: parseFloat($input.item.json.BATERIA || 0),\n    inputVoltage: parseFloat($input.item.json.VOLTAGEM || 0),\n    signal: parseInt($input.item.json.RSSI || 0)\n  }\n};"
       },
       "id": "format-dash-main",
       "name": "Format for Dashboard",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [900, 500]
+      "position": [
+        900,
+        500
+      ]
     },
     {
       "parameters": {
@@ -119,16 +209,20 @@
       "name": "Publish to Dashboard",
       "type": "n8n-nodes-base.mqtt",
       "typeVersion": 1,
-      "position": [1120, 500]
+      "position": [
+        1120,
+        500
+      ]
     },
     {
       "parameters": {
         "conditions": {
           "string": [
-            { "value1": "={{ $json.TIPO }}", "operation": "equals", "value2": "DASHBOARD_PERIODIC" },
-            { "value1": "={{ $json.TIPO }}", "operation": "equals", "value2": "periodico" },
-            { "value1": "={{ $json.TIPO }}", "operation": "equals", "value2": "horario" },
-            { "value1": "={{ $json.TIPO }}", "operation": "equals", "value2": "historico" }
+            {
+              "value1": "={{ $json.TIPO }}",
+              "operation": "equals",
+              "value2": "relatorio_diario"
+            }
           ]
         }
       },
@@ -136,29 +230,80 @@
       "name": "Filter Telemetry",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [900, 300]
+      "position": [
+        900,
+        300
+      ]
     }
   ],
   "connections": {
     "MQTT Trigger": {
-      "main": [[{ "node": "Parse Payload", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Parse Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse Payload": {
-      "main": [[{ "node": "Validate Data", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Validate Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Validate Data": {
-      "main": [[
-        { "node": "Upsert Supabase Device Status", "type": "main", "index": 0 },
-        { "node": "Filter Telemetry", "type": "main", "index": 0 },
-        { "node": "Format for Dashboard", "type": "main", "index": 0 }
-      ]]
+      "main": [
+        [
+          {
+            "node": "Upsert Supabase Device Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Filter Telemetry",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Format for Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Format for Dashboard": {
-      "main": [[{ "node": "Publish to Dashboard", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Publish to Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Filter Telemetry": {
-      "main": [[{ "node": "Insert Telemetry Log", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Insert Telemetry Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1"
+  }
 }

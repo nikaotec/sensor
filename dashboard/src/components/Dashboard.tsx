@@ -32,7 +32,7 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) =>
 
 interface DashboardProps {
     onDeviceClick: (deviceId: string) => void;
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {

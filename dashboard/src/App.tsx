@@ -9,6 +9,7 @@ import Reports from './components/Reports'
 import DeviceList from './components/DeviceList'
 import Settings from './components/Settings'
 import ManagerPanel from './components/ManagerPanel'
+import AdminUserPanel from './components/AdminUserPanel'
 import { TenantProvider, useTenant } from './contexts/TenantContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -17,7 +18,7 @@ import { X, AlertOctagon } from 'lucide-react'
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext'
 import { supabase } from './supabase/config'
 
-type Screen = 'login' | 'signup' | 'dashboard' | 'device-list' | 'device-details' | 'alerts' | 'reports' | 'settings' | 'manager-panel'
+type Screen = 'login' | 'signup' | 'dashboard' | 'device-list' | 'device-details' | 'alerts' | 'reports' | 'settings' | 'manager-panel' | 'admin-users'
 
 // Component to handle screen rendering and navigation inside the provider
 const AppContent = () => {
@@ -180,9 +181,8 @@ const AppContent = () => {
   const navigateToLogin = () => setCurrentScreen('login')
   const navigateToSignUp = () => setCurrentScreen('signup')
 
-  // Generic navigation handler for Sidebar
-  const handleNavigation = (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => {
-    setCurrentScreen(screen as any);
+  const handleNavigation = (screen: Screen) => {
+    setCurrentScreen(screen);
   }
 
   const navigateToDeviceDetails = (deviceId: string) => {
@@ -268,6 +268,7 @@ const AppContent = () => {
       {currentScreen === 'reports' && <Reports onNavigate={handleNavigation} />}
       {currentScreen === 'settings' && <Settings onNavigate={handleNavigation} />}
       {currentScreen === 'manager-panel' && <ManagerPanel onNavigate={handleNavigation} />}
+      {currentScreen === 'admin-users' && <AdminUserPanel onNavigate={handleNavigation} />}
     </div>
   )
 }

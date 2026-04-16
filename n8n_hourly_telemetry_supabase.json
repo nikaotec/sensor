@@ -1,11 +1,10 @@
 {
-    "name": "IoT Sensor - Hourly Logging to Supabase",
+    "name": "IoT Sensor - Hourly Logging to Supabase (FIXED)",
     "nodes": [
         {
             "parameters": {
                 "topics": "esp32c3/data"
             },
-            "id": "mqtt-trigger-hourly",
             "name": "MQTT Trigger",
             "type": "n8n-nodes-base.mqttTrigger",
             "typeVersion": 1,
@@ -16,13 +15,11 @@
         },
         {
             "parameters": {
-                "mode": "runOnceForEachItem",
                 "jsCode": "const payloadString = $input.item.json.message;\ntry {\n  const payload = JSON.parse(payloadString);\n  return { json: payload };\n} catch(e) {\n  return { json: { error: 'Invalid JSON', payload: payloadString } };\n}"
             },
-            "id": "parse-payload-hourly",
             "name": "Parse Payload",
             "type": "n8n-nodes-base.code",
-            "typeVersion": 2,
+            "typeVersion": 1,
             "position": [
                 420,
                 300
@@ -33,14 +30,12 @@
                 "conditions": {
                     "string": [
                         {
-                            "value1": "={{ $json.TIPO }}",
-                            "operation": "equals",
-                            "value2": "periodico"
+                            "value1": "={{$json.TIPO}}",
+                            "value2": "relatorio_diario"
                         }
                     ]
                 }
             },
-            "id": "filter-periodic-hourly",
             "name": "Filter Periodic",
             "type": "n8n-nodes-base.if",
             "typeVersion": 1,
@@ -57,40 +52,39 @@
                     "fieldValues": [
                         {
                             "fieldId": "device_id",
-                            "fieldValue": "={{ $json.ID_DISPOSITIVO }}"
+                            "fieldValue": "={{$json.ID_DISPOSITIVO}}"
                         },
                         {
                             "fieldId": "temperature",
-                            "fieldValue": "={{ parseFloat($json.TEMP_C) }}"
+                            "fieldValue": "={{parseFloat($json.TEMP_C)}}"
                         },
                         {
                             "fieldId": "temp_max",
-                            "fieldValue": "={{ parseFloat($json.TEMP_MAX) }}"
+                            "fieldValue": "={{parseFloat($json.TEMP_MAX)}}"
                         },
                         {
                             "fieldId": "temp_min",
-                            "fieldValue": "={{ parseFloat($json.TEMP_MIN) }}"
+                            "fieldValue": "={{parseFloat($json.TEMP_MIN)}}"
                         },
                         {
                             "fieldId": "voltage",
-                            "fieldValue": "={{ parseFloat($json.VOLTAGEM) }}"
+                            "fieldValue": "={{parseFloat($json.VOLTAGEM)}}"
                         },
                         {
                             "fieldId": "humidity",
-                            "fieldValue": "={{ parseFloat($json.UMIDADE || 0) }}"
+                            "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}"
                         },
                         {
                             "fieldId": "battery",
-                            "fieldValue": "={{ parseFloat($json.BATERIA || 0) }}"
+                            "fieldValue": "={{parseFloat($json.BATERIA || 0)}}"
                         },
                         {
                             "fieldId": "timestamp",
-                            "fieldValue": "={{ new Date().toISOString() }}"
+                            "fieldValue": "={{new Date().toISOString()}}"
                         }
                     ]
                 }
             },
-            "id": "insert-supabase-hourly",
             "name": "Insert Hourly Log",
             "type": "n8n-nodes-base.supabase",
             "typeVersion": 1,
@@ -134,8 +128,5 @@
                 ]
             ]
         }
-    },
-    "settings": {
-        "executionOrder": "v1"
     }
 }

@@ -1,4 +1,6 @@
-{
+import json
+
+original = """{
     "name": "IoT Sensor - Hourly Snapshot (Supabase)",
     "nodes": [
         {
@@ -39,7 +41,7 @@
         {
             "parameters": {
                 "mode": "runOnceForEachItem",
-                "jsCode": "const device = $input.item.json;\n\nreturn [{\n  json: {\n    device_id: device.id,\n    temperature: device.temperature || 0,\n    temp_max: device.temp_max !== undefined ? device.temp_max : (device.temperature || 0),\n    temp_min: device.temp_min !== undefined ? device.temp_min : (device.temperature || 0),\n    humidity: device.humidity || 0,\n    voltage: device.voltage || 0,\n    battery: device.battery || 0,\n    timestamp: new Date().toISOString()\n  }\n}];"
+                "jsCode": "const device = $input.item.json;\\n\\nreturn [{\\n  json: {\\n    device_id: device.id,\\n    temperature: device.temperature || 0,\\n    temp_max: device.temp_max !== undefined ? device.temp_max : (device.temperature || 0),\\n    temp_min: device.temp_min !== undefined ? device.temp_min : (device.temperature || 0),\\n    humidity: device.humidity || 0,\\n    voltage: device.voltage || 0,\\n    battery: device.battery || 0,\\n    timestamp: new Date().toISOString()\\n  }\\n}];"
             },
             "id": "format-telemetry",
             "name": "Format Telemetry",
@@ -139,4 +141,7 @@
     "settings": {
         "executionOrder": "v1"
     }
-}
+}"""
+
+with open('/media/venancio/f429fc29-48c2-4ca6-975a-6363fef9fc8414/home/antonio/Documentos/projetos/n8n/workflows/sensor/n8n_hourly_snapshot_supabase.json', 'w', encoding='utf-8') as f:
+    f.write(original)
