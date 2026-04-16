@@ -410,7 +410,12 @@ void loop() {
       static int lastProcessedHour = -1;
       if (t.tm_hour != lastProcessedHour) {
         lastProcessedHour = t.tm_hour;
-        enviarDadosMqtt("periodico");
+        // Se já enviou relatorio_diario nesta hora (8 ou 16), o periodico é
+        // redundante por que o relatorio_diario já contém todos os campos e é
+        // salvo pelo n8n.
+        if (t.tm_hour != 8 && t.tm_hour != 16) {
+          enviarDadosMqtt("periodico");
+        }
       }
     }
 

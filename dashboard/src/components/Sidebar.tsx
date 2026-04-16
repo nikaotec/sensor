@@ -11,12 +11,13 @@ import {
     LayoutDashboard,
     Shield,
     PanelLeftClose,
-    PanelLeftOpen
+    PanelLeftOpen,
+    Users
 } from 'lucide-react';
 
 interface SidebarProps {
-    activeItem: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel';
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
+    activeItem: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users';
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
     isCollapsed?: boolean;
     onToggleCollapse?: (collapsed: boolean) => void;
 }
@@ -29,7 +30,8 @@ const iconMap = {
     reports: FileBarChart,
     settings: Settings,
     'device-details': Cpu,
-    'manager-panel': Shield
+    'manager-panel': Shield,
+    'admin-users': Users
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, isCollapsed: externalCollapsed, onToggleCollapse }) => {
@@ -71,7 +73,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, isCollapsed: 
         return true;
     });
 
-    const finalMenuItems = isManager ? [...menuItems, 'manager-panel' as const] : menuItems;
+    let finalMenuItems: ('dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'manager-panel' | 'admin-users')[] = [...menuItems];
+
+    if (isManager) {
+        finalMenuItems.push('manager-panel');
+    }
+
+    if (isAdmin) {
+        finalMenuItems.push('admin-users');
+    }
 
     return (
         <>

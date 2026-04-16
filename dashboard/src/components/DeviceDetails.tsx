@@ -42,7 +42,7 @@ import {
 
 interface DeviceDetailsProps {
     deviceId: string;
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
 }
 
 const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) => {

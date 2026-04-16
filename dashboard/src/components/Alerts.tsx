@@ -7,7 +7,7 @@ import { supabase } from '../supabase/config';
 import { BellRing, ShieldAlert, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface AlertsProps {
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
     onDeviceClick?: (deviceId: string) => void;
 }
 

@@ -84,6 +84,8 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const [newUserEmail, setNewUserEmail] = useState('');
     const [newUserName, setNewUserName] = useState('');
     const [newUserPhone, setNewUserPhone] = useState('');
+    const [newUserWhatsapp, setNewUserWhatsapp] = useState('');
+    const [newUserReceiveWhatsapp, setNewUserReceiveWhatsapp] = useState(false);
     const [newUserRole, setNewUserRole] = useState<'manager' | 'admin' | 'user'>('user');
     const [newUserTenants, setNewUserTenants] = useState<string[]>([]);
 
@@ -92,6 +94,8 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const [editUserName, setEditUserName] = useState('');
     const [editUserEmail, setEditUserEmail] = useState('');
     const [editUserPhone, setEditUserPhone] = useState('');
+    const [editUserWhatsapp, setEditUserWhatsapp] = useState('');
+    const [editUserReceiveWhatsapp, setEditUserReceiveWhatsapp] = useState(false);
     const [editUserRole, setEditUserRole] = useState<'manager' | 'admin' | 'user'>('user');
     const [editUserTenants, setEditUserTenants] = useState<string[]>([]);
 
@@ -158,6 +162,8 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                 name: newUserName,
                 email: newUserEmail.toLowerCase(),
                 phone: newUserPhone || null,
+                whatsapp: newUserWhatsapp || null,
+                receive_notifications: newUserReceiveWhatsapp,
                 role: newUserRole,
                 tenant_ids: newUserTenants,
                 created_at: new Date().toISOString(),
@@ -169,6 +175,8 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
             setNewUserName('');
             setNewUserEmail('');
             setNewUserPhone('');
+            setNewUserWhatsapp('');
+            setNewUserReceiveWhatsapp(false);
             setNewUserRole('user');
             setNewUserTenants([]);
         } catch (err: any) {
@@ -261,6 +269,8 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         setEditUserName(user.name || '');
         setEditUserEmail(user.email || '');
         setEditUserPhone(user.phone || '');
+        setEditUserWhatsapp(user.whatsapp || '');
+        setEditUserReceiveWhatsapp(user.receive_notifications || false);
         setEditUserRole(user.role === 'gestor' ? 'manager' : (user.role || 'user'));
         setEditUserTenants(user.tenant_ids || []);
     };
@@ -280,8 +290,11 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                 name: editUserName,
                 email: editUserEmail.toLowerCase(),
                 phone: editUserPhone || null,
+                whatsapp: editUserWhatsapp || null,
+                receive_notifications: editUserReceiveWhatsapp,
                 role: editUserRole,
-                tenant_ids: editUserTenants
+                tenant_ids: editUserTenants,
+                updated_at: new Date().toISOString()
             }).eq('id', editingUser.id);
 
             if (error) throw error;
@@ -472,6 +485,10 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                             setEmail={setEditUserEmail}
                             phone={editUserPhone}
                             setPhone={setEditUserPhone}
+                            whatsapp={editUserWhatsapp}
+                            setWhatsapp={setEditUserWhatsapp}
+                            receiveWhatsapp={editUserReceiveWhatsapp}
+                            setReceiveWhatsapp={setEditUserReceiveWhatsapp}
                             role={editUserRole}
                             setRole={setEditUserRole}
                             tenants={editUserTenants}
@@ -648,6 +665,27 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                 onChange={handlePhoneChange(setNewUserPhone)}
                                                 placeholder="+55 81 99999-9999"
                                             />
+
+                                            <FormInput
+                                                label="WhatsApp (para alertas)"
+                                                value={newUserWhatsapp}
+                                                onChange={handlePhoneChange(setNewUserWhatsapp)}
+                                                placeholder="+55 81 99999-9999"
+                                            />
+
+                                            <div className="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5">
+                                                <div>
+                                                    <p className="text-sm font-bold text-white">Notificações WhatsApp</p>
+                                                    <p className="text-[10px] text-slate-500">Enviar alertas críticos via WhatsApp</p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setNewUserReceiveWhatsapp(!newUserReceiveWhatsapp)}
+                                                    className={`relative inline-flex h-6 w-12 rounded-full border-2 transition-colors ${newUserReceiveWhatsapp ? 'bg-primary border-transparent' : 'bg-[#0F110D] border-white/10'}`}
+                                                >
+                                                    <span className={`h-5 w-5 transform rounded-full bg-white transition duration-200 ${newUserReceiveWhatsapp ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                                                </button>
+                                            </div>
 
                                             <div>
                                                 <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Cargo do Sistema</label>
@@ -914,6 +952,10 @@ const EditUserModal = ({
     setEmail,
     phone,
     setPhone,
+    whatsapp,
+    setWhatsapp,
+    receiveWhatsapp,
+    setReceiveWhatsapp,
     role,
     setRole,
     tenants,
@@ -956,6 +998,30 @@ const EditUserModal = ({
                             className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-700"
                             placeholder="+55 81 99999-9999"
                         />
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">WhatsApp</label>
+                        <input
+                            type="tel"
+                            value={whatsapp}
+                            onChange={handlePhoneChange(setWhatsapp)}
+                            className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-700"
+                            placeholder="+55 81 99999-9999"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5">
+                        <div>
+                            <p className="text-sm font-bold text-white">Notificações WhatsApp</p>
+                            <p className="text-[10px] text-slate-500">O usuário receberá alertas via WhatsApp</p>
+                        </div>
+                        <button
+                            onClick={() => setReceiveWhatsapp(!receiveWhatsapp)}
+                            className={`relative inline-flex h-6 w-12 rounded-full border-2 transition-colors ${receiveWhatsapp ? 'bg-primary border-transparent' : 'bg-[#0F110D] border-white/10'}`}
+                        >
+                            <span className={`h-5 w-5 transform rounded-full bg-white transition duration-200 ${receiveWhatsapp ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                        </button>
                     </div>
 
                     <div>

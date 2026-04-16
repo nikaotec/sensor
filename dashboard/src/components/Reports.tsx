@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 interface ReportsProps {
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
 }
 
 const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
