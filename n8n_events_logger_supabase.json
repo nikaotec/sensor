@@ -1,161 +1,161 @@
 {
-  "name": "IoT Sensor - Hourly Logging to Supabase (FIXED)",
-  "nodes": [
-    {
-      "parameters": {
-        "topics": "esp32c3/data",
-        "options": {}
-      },
-      "name": "MQTT Trigger",
-      "type": "n8n-nodes-base.mqttTrigger",
-      "typeVersion": 1,
-      "position": [
-        32,
-        416
-      ],
-      "id": "0a0ea303-c0a3-4270-931e-f488d75b9f7c",
-      "credentials": {
-        "mqtt": {
-          "id": "C0yMLysRivZyCkLe",
-          "name": "MQTT account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const payloadString = $input.item.json.message;\ntry {\n  const payload = JSON.parse(payloadString);\n  return { json: payload };\n} catch(e) {\n  return { json: { error: 'Invalid JSON', payload: payloadString } };\n}"
-      },
-      "name": "Parse Payload",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 1,
-      "position": [
-        256,
-        416
-      ],
-      "id": "8ea1964e-661d-48bd-9362-23900f2a95e4"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{$json.TIPO}}",
-              "value2": "periodico"
+    "name": "IoT Sensor - Hourly Logging to Supabase (FIXED)",
+    "nodes": [
+        {
+            "parameters": {
+                "topics": "esp32c3/data",
+                "options": {}
+            },
+            "name": "MQTT Trigger",
+            "type": "n8n-nodes-base.mqttTrigger",
+            "typeVersion": 1,
+            "position": [
+                32,
+                416
+            ],
+            "id": "0a0ea303-c0a3-4270-931e-f488d75b9f7c",
+            "credentials": {
+                "mqtt": {
+                    "id": "C0yMLysRivZyCkLe",
+                    "name": "MQTT account"
+                }
             }
-          ]
-        }
-      },
-      "name": "Filter Periodic",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        480,
-        416
-      ],
-      "id": "e1c6e42c-1b29-4fda-9847-576c5ff4eeb4"
-    },
-    {
-      "parameters": {
-        "tableId": "telemetry",
-        "fieldsUi": {
-          "fieldValues": [
-            {
-              "fieldId": "device_id",
-              "fieldValue": "={{$json.ID_DISPOSITIVO}}"
+        },
+        {
+            "parameters": {
+                "jsCode": "const payloadString = $input.item.json.message;\ntry {\n  const payload = JSON.parse(payloadString);\n  return { json: payload };\n} catch(e) {\n  return { json: { error: 'Invalid JSON', payload: payloadString } };\n}"
             },
-            {
-              "fieldId": "temperature",
-              "fieldValue": "={{parseFloat($json.TEMP_C)}}"
+            "name": "Parse Payload",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                256,
+                416
+            ],
+            "id": "8ea1964e-661d-48bd-9362-23900f2a95e4"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.TIPO}}",
+                            "value2": "periodico"
+                        }
+                    ]
+                }
             },
-            {
-              "fieldId": "temp_max",
-              "fieldValue": "={{parseFloat($json.TEMP_MAX)}}"
+            "name": "Filter Periodic",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                480,
+                416
+            ],
+            "id": "e1c6e42c-1b29-4fda-9847-576c5ff4eeb4"
+        },
+        {
+            "parameters": {
+                "tableId": "telemetry",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "device_id",
+                            "fieldValue": "={{$json.ID_DISPOSITIVO}}"
+                        },
+                        {
+                            "fieldId": "temperature",
+                            "fieldValue": "={{parseFloat($json.TEMP_C)}}"
+                        },
+                        {
+                            "fieldId": "temp_max",
+                            "fieldValue": "={{parseFloat($json.TEMP_MAX)}}"
+                        },
+                        {
+                            "fieldId": "temp_min",
+                            "fieldValue": "={{parseFloat($json.TEMP_MIN)}}"
+                        },
+                        {
+                            "fieldId": "voltage",
+                            "fieldValue": "={{parseFloat($json.VOLTAGEM)}}"
+                        },
+                        {
+                            "fieldId": "humidity",
+                            "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}"
+                        },
+                        {
+                            "fieldId": "battery",
+                            "fieldValue": "={{parseFloat($json.BATERIA || 0)}}"
+                        },
+                        {
+                            "fieldId": "timestamp",
+                            "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toISO() }}"
+                        }
+                    ]
+                }
             },
-            {
-              "fieldId": "temp_min",
-              "fieldValue": "={{parseFloat($json.TEMP_MIN)}}"
-            },
-            {
-              "fieldId": "voltage",
-              "fieldValue": "={{parseFloat($json.VOLTAGEM)}}"
-            },
-            {
-              "fieldId": "humidity",
-              "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}"
-            },
-            {
-              "fieldId": "battery",
-              "fieldValue": "={{parseFloat($json.BATERIA || 0)}}"
-            },
-            {
-              "fieldId": "timestamp",
-              "fieldValue": "={{new Date().toISOString()}}"
+            "name": "Insert Hourly Log",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [
+                704,
+                400
+            ],
+            "id": "af5afe43-7e7c-40c8-a891-220c5302135b",
+            "credentials": {
+                "supabaseApi": {
+                    "id": "mwfq69YpUvhBFjds",
+                    "name": "supabase_sensor"
+                }
             }
-          ]
         }
-      },
-      "name": "Insert Hourly Log",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        704,
-        400
-      ],
-      "id": "af5afe43-7e7c-40c8-a891-220c5302135b",
-      "credentials": {
-        "supabaseApi": {
-          "id": "mwfq69YpUvhBFjds",
-          "name": "supabase_sensor"
+    ],
+    "pinData": {},
+    "connections": {
+        "MQTT Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Payload",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Payload": {
+            "main": [
+                [
+                    {
+                        "node": "Filter Periodic",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter Periodic": {
+            "main": [
+                [
+                    {
+                        "node": "Insert Hourly Log",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
         }
-      }
-    }
-  ],
-  "pinData": {},
-  "connections": {
-    "MQTT Trigger": {
-      "main": [
-        [
-          {
-            "node": "Parse Payload",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
     },
-    "Parse Payload": {
-      "main": [
-        [
-          {
-            "node": "Filter Periodic",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "active": true,
+    "settings": {
+        "executionOrder": "v1",
+        "binaryMode": "separate"
     },
-    "Filter Periodic": {
-      "main": [
-        [
-          {
-            "node": "Insert Hourly Log",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  },
-  "active": true,
-  "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
-  },
-  "versionId": "12e2a346-a030-4f6a-840d-af8cc4e8663a",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "bc109d15d9fa8da9009a5e445f23723e6adc4d7512780536cd9da35901fe78b0"
-  },
-  "id": "Qvjm4DMnrEJpJ8cC",
-  "tags": []
+    "versionId": "12e2a346-a030-4f6a-840d-af8cc4e8663a",
+    "meta": {
+        "templateCredsSetupCompleted": true,
+        "instanceId": "bc109d15d9fa8da9009a5e445f23723e6adc4d7512780536cd9da35901fe78b0"
+    },
+    "id": "Qvjm4DMnrEJpJ8cC",
+    "tags": []
 }

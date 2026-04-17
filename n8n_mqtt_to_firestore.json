@@ -86,7 +86,7 @@
             },
             {
               "fieldId": "lastSeen",
-              "fieldValue": "={{new Date().toISOString()}}"
+              "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toISO() }}"
             },
             {
               "fieldId": "tenantId",
@@ -133,11 +133,11 @@
             },
             {
               "fieldId": "timestamp",
-              "fieldValue": "={{ new Date() }}"
+              "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toISO() }}"
             },
             {
               "fieldId": "expireAt",
-              "fieldValue": "={{ new Date(Date.now() + 24 * 60 * 60 * 1000) }}"
+              "fieldValue": "={{ $now.setZone('America/Sao_Paulo').plus({ days: 1 }).toISO() }}"
             },
             {
               "fieldId": "tenantId",

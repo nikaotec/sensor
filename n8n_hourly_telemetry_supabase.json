@@ -80,7 +80,7 @@
                         },
                         {
                             "fieldId": "timestamp",
-                            "fieldValue": "={{new Date().toISOString()}}"
+                            "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toISO() }}"
                         }
                     ]
                 }

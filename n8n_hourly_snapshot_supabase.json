@@ -39,7 +39,7 @@
         {
             "parameters": {
                 "mode": "runOnceForEachItem",
-                "jsCode": "const device = $input.item.json;\n\nreturn [{\n  json: {\n    device_id: device.id,\n    temperature: device.temperature || 0,\n    temp_max: device.temp_max !== undefined ? device.temp_max : (device.temperature || 0),\n    temp_min: device.temp_min !== undefined ? device.temp_min : (device.temperature || 0),\n    humidity: device.humidity || 0,\n    voltage: device.voltage || 0,\n    battery: device.battery || 0,\n    timestamp: new Date().toISOString()\n  }\n}];"
+                "jsCode": "const device = $input.item.json;\n\nreturn [{\n  json: {\n    device_id: device.id,\n    temperature: device.temperature || 0,\n    temp_max: device.temp_max !== undefined ? device.temp_max : (device.temperature || 0),\n    temp_min: device.temp_min !== undefined ? device.temp_min : (device.temperature || 0),\n    humidity: device.humidity || 0,\n    voltage: device.voltage || 0,\n    battery: device.battery || 0,\n    timestamp: DateTime.now().setZone('America/Sao_Paulo').toISO()\n  }\n}];"
             },
             "id": "format-telemetry",
             "name": "Format Telemetry",

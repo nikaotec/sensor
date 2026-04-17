@@ -96,7 +96,7 @@
             },
             {
               "fieldId": "last_seen",
-              "fieldValue": "={{new Date().toISOString()}}"
+              "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toISO() }}"
             },
             {
               "fieldId": "tenant_id",
@@ -104,7 +104,7 @@
             },
             {
               "fieldId": "updated_at",
-              "fieldValue": "={{new Date().toISOString()}}"
+              "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toISO() }}"
             },
             {
               "fieldId": "chk_volt",
@@ -171,7 +171,7 @@
             },
             {
               "fieldId": "timestamp",
-              "fieldValue": "={{ new Date().toISOString() }}"
+              "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toISO() }}"
             }
           ]
         }

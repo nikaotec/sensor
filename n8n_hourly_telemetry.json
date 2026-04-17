@@ -1,4 +1,4 @@
- {
+{
     "name": "IoT Sensor - Hourly Logging to Firestore",
     "nodes": [
         {
@@ -82,11 +82,11 @@
                         },
                         {
                             "fieldId": "timestamp",
-                            "fieldValue": "={{ new Date().toISOString() }}"
+                            "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toISO() }}"
                         },
                         {
                             "fieldId": "expireAt",
-                            "fieldValue": "={{ new Date(new Date().getTime() + (24 * 60 * 60 * 1000)) }}"
+                            "fieldValue": "={{ $now.setZone('America/Sao_Paulo').plus({ days: 1 }).toISO() }}"
                         },
                         {
                             "fieldId": "tenantId",

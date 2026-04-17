@@ -16,7 +16,10 @@
       "name": "Schedule Hourly",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
-      "position": [250, 300]
+      "position": [
+        250,
+        300
+      ]
     },
     {
       "parameters": {
@@ -29,18 +32,24 @@
       "name": "Get Devices",
       "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
       "typeVersion": 1,
-      "position": [450, 300]
+      "position": [
+        450,
+        300
+      ]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const device = $input.item.json;\n\nconst docId = $input.item.id;\n\nreturn [{\n  json: {\n    deviceId: docId,\n    deviceName: device.name || docId,\n    temperature: device.temperature || device.temp || 0,\n    humidity: device.humidity || 0,\n    voltage: device.voltage || 0,\n    battery: device.battery || 0,\n    timestamp: new Date().toISOString(),\n    expireAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),\n    tenantId: device.tenantId || 'Unknown',\n    source: 'hourly_snapshot'\n  }\n}];"
+        "jsCode": "const device = $input.item.json;\n\nconst docId = $input.item.id;\n\nreturn [{\n  json: {\n    deviceId: docId,\n    deviceName: device.name || docId,\n    temperature: device.temperature || device.temp || 0,\n    humidity: device.humidity || 0,\n    voltage: device.voltage || 0,\n    battery: device.battery || 0,\n    timestamp: DateTime.now().setZone('America/Sao_Paulo').toISO(),\n    expireAt: DateTime.now().setZone('America/Sao_Paulo').plus({ days: 1 }).toISO(),\n    tenantId: device.tenantId || 'Unknown',\n    source: 'hourly_snapshot'\n  }\n}];"
       },
       "id": "format-telemetry",
       "name": "Format Telemetry",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [650, 300]
+      "position": [
+        650,
+        300
+      ]
     },
     {
       "parameters": {
@@ -96,18 +105,45 @@
       "name": "Save Telemetry",
       "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
       "typeVersion": 1,
-      "position": [850, 300]
+      "position": [
+        850,
+        300
+      ]
     }
   ],
   "connections": {
     "Schedule Hourly": {
-      "main": [[{ "node": "Get Devices", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Devices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Devices": {
-      "main": [[{ "node": "Format Telemetry", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Format Telemetry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Format Telemetry": {
-      "main": [[{ "node": "Save Telemetry", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Save Telemetry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
