@@ -77,7 +77,11 @@ app.post('/api/sensors', (req, res) => {
     }
 
     const now = new Date();
-    const formattedTime = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const formattedTime = now.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo'
+    });
     const currentTemp = data?.data?.temperature ?? data?.temperature;
 
     let updatedHistory = [...(existingContent.history || [])];

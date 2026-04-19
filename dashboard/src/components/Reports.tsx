@@ -26,6 +26,8 @@ interface ReportsProps {
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
 }
 
+const REPORT_WEBHOOK_URL = '/api/n8n/webhook-test/generate-report';
+
 const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
     const { currentTenant, availableTenants } = useTenant();
     const { currentUser } = useAuth();
@@ -40,12 +42,14 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
     );
 
     const getDefaultDates = () => {
-        const end = new Date();
+        const todaySP = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
         const start = new Date();
         start.setDate(start.getDate() - 7);
+        const startSP = start.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+
         return {
-            start_date: start.toISOString().split('T')[0],
-            end_date: end.toISOString().split('T')[0],
+            start_date: startSP,
+            end_date: todaySP,
             start_time: '00:00',
             end_time: '23:59',
             selected_hours: [],
@@ -166,25 +170,33 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
         const tenantId = selectedTenant?.id;
         const companyName = selectedTenant?.name || 'Geral';
 
-        // Converter datas + horas para formato ISO completo
+        // Converter datas + horas para formato ISO completo com offset de SP
         const formatDateTime = (dateStr: string, timeStr: string) => {
             const [hours, minutes] = timeStr.split(':');
-            return dateStr + `T${hours || '00'}:${minutes || '00'}:00.000Z`;
+            return dateStr + `T${hours || '00'}:${minutes || '00'}:00.000-03:00`;
         };
 
         // Aplica preset de horários
         let effectiveForm = { ...generateForm };
+        const todaySP = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+
         if (generateForm.report_preset === 'daily_8_16') {
-            // Relatório com leituras de 8h e 16h no período selecionado
+            // Relatório com leituras de 8h e 16h do dia ATUAL (ou selecionado)
+            // Se o usuário não mudou a data, força hoje
+            if (effectiveForm.end_date === getDefaultDates().end_date) {
+                effectiveForm.start_date = todaySP;
+                effectiveForm.end_date = todaySP;
+            }
             effectiveForm.use_all_hours = false;
             effectiveForm.selected_hours = ['08:00', '16:00'];
         } else if (generateForm.report_preset === 'month_8_16') {
-            // Mês todo: do dia 1 ao último dia do mês atual, apenas 8h e 16h
-            const now = new Date();
-            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            effectiveForm.start_date = firstDay.toISOString().split('T')[0];
-            effectiveForm.end_date = lastDay.toISOString().split('T')[0];
+            // Mês todo: do dia 1 ao último dia do mês atual (Fuso SP)
+            const nowSP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+            const firstDay = new Date(nowSP.getFullYear(), nowSP.getMonth(), 1);
+            const lastDay = new Date(nowSP.getFullYear(), nowSP.getMonth() + 1, 0);
+
+            effectiveForm.start_date = firstDay.toLocaleDateString('en-CA');
+            effectiveForm.end_date = lastDay.toLocaleDateString('en-CA');
             effectiveForm.start_time = '00:00';
             effectiveForm.end_time = '23:59';
             effectiveForm.use_all_hours = false;
@@ -225,7 +237,7 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
 
             console.log('Gerando relatório:', payload);
 
-            const response = await fetch('/api/n8n/webhook/generate-report', {
+            const response = await fetch(REPORT_WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -240,7 +252,8 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                 if (result.pdf_base64) {
                     const linkSource = `data:application/pdf;base64,${result.pdf_base64}`;
                     const downloadLink = document.createElement("a");
-                    const fileName = `relatorio_${payload.device_id || 'geral'}_${new Date().toISOString().split('T')[0]}.pdf`;
+                    const todaySP = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+                    const fileName = `relatorio_${payload.device_id || 'geral'}_${todaySP}.pdf`;
 
                     downloadLink.href = linkSource;
                     downloadLink.download = fileName;
@@ -457,7 +470,7 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                                             onClick={async () => {
                                                                 if (window.confirm("Deseja gerar e enviar este relatório agora?")) {
                                                                     try {
-                                                                        await fetch('/api/n8n/webhook/generate-report', {
+                                                                        await fetch(REPORT_WEBHOOK_URL, {
                                                                             method: 'POST',
                                                                             headers: { 'Content-Type': 'application/json' },
                                                                             body: JSON.stringify({ config_id: config.id, type: config.type, tenant_id: config.tenant_id })

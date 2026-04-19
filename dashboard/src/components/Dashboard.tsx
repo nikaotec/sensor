@@ -26,6 +26,8 @@ import {
     Shield
 } from 'lucide-react';
 
+const REPORT_WEBHOOK_URL = '/api/n8n/webhook-test/generate-report';
+
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) =>
     `${i.toString().padStart(2, '0')}:00`
 );
@@ -47,9 +49,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         const end = new Date();
         const start = new Date();
         start.setDate(start.getDate() - 7);
+
+        // Usar data local de São Paulo para evitar virada de dia UTC precoce
+        const formatSP = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+
         return {
-            start_date: start.toISOString().split('T')[0],
-            end_date: end.toISOString().split('T')[0],
+            start_date: formatSP(start),
+            end_date: formatSP(end),
             start_time: '00:00',
             end_time: '23:59',
             selected_hours: [],
@@ -149,13 +155,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         const tenantId = selectedTenant?.id;
         const companyName = selectedTenant?.name || 'Geral';
 
-        // Converter datas + horas para fuso horário local e retornar ISO UTC
+        // Converter datas + horas para fuso horário local e retornar ISO sem sufixo 'Z'
+        // Isso evita que o backend (n8n/Postgres) faça uma nova conversão para UTC
         const formatDateTime = (dateStr: string, timeStr: string) => {
             const [hours, minutes] = timeStr.split(':').map(Number);
             const [year, month, day] = dateStr.split('-').map(Number);
-            // data local baseada nos componentes da string
-            const date = new Date(year, month - 1, day, hours || 0, minutes || 0);
-            return date.toISOString();
+
+            // Força o fuso horário de Brasília (-03:00) explicitamente na string ISO
+            // Isso evita que o n8n ou Supabase interpretem como UTC se o 'Z' for removido ou ausente
+            const pad = (num: number) => num.toString().padStart(2, '0');
+            const iso = `${year}-${pad(month)}-${pad(day)}T${pad(hours || 0)}:${pad(minutes || 0)}:00-03:00`;
+            return iso;
         };
 
         // Aplica preset de horários
@@ -244,7 +254,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                 payload.ala = 'Geral';
             }
 
-            const response = await fetch('/api/n8n/webhook/generate-report', {
+            const response = await fetch(REPORT_WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -255,7 +265,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                 if (result.pdf_base64) {
                     const linkSource = `data:application/pdf;base64,${result.pdf_base64}`;
                     const downloadLink = document.createElement("a");
-                    const fileName = `relatorio_${payload.device_id || 'geral'}_${new Date().toISOString().split('T')[0]}.pdf`;
+                    const todaySP = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+                    const fileName = `relatorio_${payload.device_id || 'geral'}_${todaySP}.pdf`;
                     downloadLink.href = linkSource;
                     downloadLink.download = fileName;
                     downloadLink.click();

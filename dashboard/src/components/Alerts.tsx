@@ -31,9 +31,9 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
                 // Handle Firestore Timestamp or ISO string
                 const timestamp = (e as any).timestamp;
                 if (timestamp.seconds) {
-                    dateStr = new Date(timestamp.seconds * 1000).toLocaleString('pt-BR');
+                    dateStr = new Date(timestamp.seconds * 1000).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
                 } else {
-                    dateStr = new Date(timestamp).toLocaleString('pt-BR');
+                    dateStr = new Date(timestamp).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
                 }
             }
             return {
