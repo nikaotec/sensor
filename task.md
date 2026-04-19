@@ -1,4 +1,9 @@
-# Task: Improve OLED Display Legibility
+# Task: Standardize Alerts
+- [x] Standardize Timezone to America/Sao_Paulo (Across all workflows) <!-- id: 56 -->
+- [x] Add Device Name to Dashboard Alerts <!-- id: 57 -->
+    - [x] Update Firestore Logger (`n8n_events_logger.json`) <!-- id: 58 -->
+    - [x] Update Supabase Actions Logger (`n8n_dashboard_actions_supabase.json`) (Skip, following strict user request for telemetry alerts only) <!-- id: 59 -->
+
 
 - [x] Implement Static Paging Logic <!-- id: 0 -->
     - [x] Update `DisplayManager.h` with paging variables <!-- id: 1 -->

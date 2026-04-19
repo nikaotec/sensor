@@ -131,7 +131,7 @@
                         },
                         {
                             "fieldId": "msg",
-                            "fieldValue": "={{ $json.CAMPOS_ALTERADOS ? 'Configuração alterada: ' + $json.CAMPOS_ALTERADOS : ($json.TIPO.replace(/_/g, ' ').toLowerCase()) }}"
+                            "fieldValue": "={{ ($json.DISPOSITIVO || 'Dispositivo') + ': ' + ($json.CAMPOS_ALTERADOS ? 'Configuração alterada: ' + $json.CAMPOS_ALTERADOS : ($json.TIPO.replace(/_/g, ' ').toLowerCase())) }}"
                         },
                         {
                             "fieldId": "severity",
