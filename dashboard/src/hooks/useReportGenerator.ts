@@ -152,37 +152,86 @@ export const useReportGenerator = (
                 return;
             }
 
-            const { count, error: countError } = await supabase
+            // Busca os dados diretamente do Supabase usando as novas colunas otimizadas
+            let query = supabase
                 .from('telemetry')
-                .select('*', { count: 'exact', head: true })
+                .select('*')
                 .in('device_id', targetDeviceIds)
-                .gte('timestamp', startISO)
-                .lte('timestamp', endISO);
+                .gte('data_registro', reportForm.start_date)
+                .lte('data_registro', reportForm.end_date);
 
-            if (countError) console.error('Erro ao checar registros:', countError);
+            // Filtragem por hora diretamente no banco de dados (exatamente no primeiro minuto: HH:00:00 a HH:00:59)
+            if (!reportForm.use_all_hours && reportForm.selected_hours.length > 0) {
+                const hourFilters = reportForm.selected_hours.map(h => {
+                    const hh = String(h).split(':')[0].padStart(2, '0');
+                    return `and(hora_registro.gte.${hh}:00:00,hora_registro.lte.${hh}:00:59)`;
+                });
+                query = query.or(hourFilters.join(','));
+            }
 
-            if (!count || count === 0) {
+            const { data: telemetryRows, error: fetchError } = await query
+                .order('data_registro', { ascending: true })
+                .order('hora_registro', { ascending: true })
+                .order('timestamp', { ascending: true })
+                .limit(10000);
+            Greenland:
+
+            if (fetchError) console.error('Erro ao buscar registros:', fetchError);
+
+            if (!telemetryRows || telemetryRows.length === 0) {
                 alert(`Nenhum registro de telemetria encontrado para o período selecionado (${reportForm.start_date} a ${reportForm.end_date}).`);
                 setGeneratingReport(false);
                 return;
             }
 
+            // Pré-filtragem de horários no frontend (Mesma lógica do gráfico/n8n)
+            let filteredRows = telemetryRows;
+            if (!reportForm.use_all_hours && reportForm.selected_hours.length > 0) {
+                const selectedHourNums = reportForm.selected_hours.map(h => parseInt(String(h).split(':')[0]));
+                filteredRows = telemetryRows.filter(row => {
+                    const rowDate = new Date(row.timestamp);
+                    const rowHour = parseInt(rowDate.toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        hour12: false,
+                        timeZone: 'America/Sao_Paulo'
+                    }));
+                    return selectedHourNums.includes(rowHour);
+                });
+            }
+
+            if (filteredRows.length === 0) {
+                alert(`Nenhum registro encontrado para os horários selecionados no período.`);
+                setGeneratingReport(false);
+                return;
+            }
+
+            // Enriquecer dados com nomes/locais para facilitar o PDF
+            const enrichedRows = filteredRows.map(row => {
+                const dev = supabaseDevices.find(d => d.id === row.device_id);
+                return {
+                    ...row,
+                    device_name: dev?.name || row.device_id,
+                    location: dev?.location || 'Não informada'
+                };
+            });
+
             const payload: any = {
                 type: effectiveType,
                 start_date: startISO,
                 end_date: endISO,
-                company_name: [companyName],
+                company_name: companyName,
                 selected_hours: reportForm.use_all_hours ? [] : reportForm.selected_hours,
                 use_all_hours: reportForm.use_all_hours,
-                report_preset: reportForm.report_preset
+                report_preset: reportForm.report_preset,
+                telemetry_data: enrichedRows // Enviando dados já filtrados e processados
             };
 
             if (tenantId) payload.tenant_id = tenantId;
 
             if (effectiveType === 'device') {
-                const device = supabaseDevices.find(d => d.id === reportForm.device_id);
+                const device = enrichedRows.find(d => d.device_id === reportForm.device_id) || { device_name: reportForm.device_id };
                 payload.device_id = reportForm.device_id;
-                payload.device_name = device?.name || reportForm.device_id;
+                payload.device_name = device.device_name;
             } else {
                 payload.device_ids = targetDeviceIds;
                 payload.device_name = 'Todos os dispositivos';
@@ -207,7 +256,7 @@ export const useReportGenerator = (
                     downloadLink.click();
                     alert("Relatório gerado e baixado com sucesso!");
                 } else {
-                    alert("Relatório gerado com sucesso! Verifique seu WhatsApp.");
+                    alert("Relatório gerado com sucesso!");
                 }
             } else {
                 alert("Erro ao gerar relatório. Verifique os dados e tente novamente.");

@@ -119,22 +119,22 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
 
     // Fetch telemetry history (últimas 24h)
     useEffect(() => {
-        const dateLimit = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
         const fetchHistory = async () => {
+            const now = new Date();
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
             // A tabela telemetry NÃO tem tenant_id, então buscamos apenas por deviceId
-            // Se não houver deviceId específico, buscamos todos os dispositivos deste tenant
             let query = supabase
                 .from('telemetry')
-                .select('*')
-                .gte('timestamp', dateLimit)
-                .order('timestamp', { ascending: true });
+                .select('data_registro, hora_registro, temperature, timestamp')
+                .gte('data_registro', yesterdayStr)
+                .order('data_registro', { ascending: true })
+                .order('hora_registro', { ascending: true });
 
             if (deviceId) {
-                // Se temos um deviceId específico, buscar apenas dados desse dispositivo
                 query = query.eq('device_id', deviceId);
             } else if (tenantId && tenantId !== 'all' && devices.length > 0) {
-                // Se não temos deviceId mas temos tenant, buscar dados de todos os dispositivos desse tenant
                 const deviceIds = devices.map(d => d.id);
                 if (deviceIds.length > 0) {
                     query = query.in('device_id', deviceIds);
@@ -148,11 +148,14 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
             }
 
             const hist = (data || []).map((row: any) => {
-                const date = new Date(row.timestamp);
+                // Formatar hora para exibição (HH:mm)
+                // Se o campo hora_registro já vier formatado ou for tipo TIME, podemos usar direto
+                // Mas para consistência com o resto do app que usa 'America/Sao_Paulo'
+                const [h, m] = row.hora_registro.split(':');
                 return {
-                    time: date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                    time: `${h}:${m}`,
                     value: row.temperature ?? 0,
-                    timestamp: row.timestamp
+                    timestamp: row.timestamp // Mantido para referência se necessário
                 };
             });
             setHistory(hist);
