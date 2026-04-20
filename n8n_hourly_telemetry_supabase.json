@@ -81,6 +81,14 @@
                         {
                             "fieldId": "timestamp",
                             "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toISO() }}"
+                        },
+                        {
+                            "fieldId": "data_registro",
+                            "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toFormat('yyyy-MM-dd') }}"
+                        },
+                        {
+                            "fieldId": "hora_registro",
+                            "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toFormat('HH:00:00') }}"
                         }
                     ]
                 }
