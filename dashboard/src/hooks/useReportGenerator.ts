@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '../supabase/config';
 
 // Constante para a URL do webhook
-export const REPORT_WEBHOOK_URL = '/api/n8n/webhook-test/generate-report';
+export const REPORT_WEBHOOK_URL = '/api/n8n/webhook/generate-report';
 
 export interface ReportForm {
     type: string;

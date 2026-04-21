@@ -26,7 +26,7 @@ interface ReportsProps {
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
 }
 
-const REPORT_WEBHOOK_URL = '/api/n8n/webhook-test/generate-report';
+const REPORT_WEBHOOK_URL = '/api/n8n/webhook/generate-report';
 
 const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
     const { currentTenant, availableTenants } = useTenant();
