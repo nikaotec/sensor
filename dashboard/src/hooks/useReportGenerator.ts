@@ -15,6 +15,7 @@ export interface ReportForm {
     report_preset: string;
     selected_hours: string[];
     use_all_hours: boolean;
+    mensage_tipo: string[];
 }
 
 export const getDefaultReportDates = () => {
@@ -31,7 +32,8 @@ export const getDefaultReportDates = () => {
         start_time: '00:00',
         end_time: '23:59',
         selected_hours: [],
-        use_all_hours: true
+        use_all_hours: true,
+        mensage_tipo: ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA']
     };
 };
 
@@ -49,9 +51,10 @@ export const useReportGenerator = (
         end_date: getDefaultReportDates().end_date,
         start_time: '00:00',
         end_time: '23:59',
-        report_preset: 'custom',
+        report_preset: '',
         selected_hours: [],
-        use_all_hours: true
+        use_all_hours: true,
+        mensage_tipo: ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA']
     });
 
     const [generatingReport, setGeneratingReport] = useState(false);
@@ -67,9 +70,10 @@ export const useReportGenerator = (
             end_date: dates.end_date,
             start_time: dates.start_time,
             end_time: dates.end_time,
-            report_preset: 'custom',
+            report_preset: '',
             selected_hours: [],
-            use_all_hours: true
+            use_all_hours: true,
+            mensage_tipo: ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA']
         });
         setShowReportModal(true);
     };
@@ -108,12 +112,13 @@ export const useReportGenerator = (
                 use_all_hours: false,
                 selected_hours: ['08:00', '16:00']
             };
-        } else if (presetId === 'custom') {
+        } else if (presetId === 'geral') {
             const dates = getDefaultReportDates();
             updates = {
                 ...updates,
                 ...dates,
-                report_preset: 'custom'
+                report_preset: 'geral',
+                use_all_hours: true
             };
         }
 
@@ -160,13 +165,25 @@ export const useReportGenerator = (
                 .gte('data_registro', reportForm.start_date)
                 .lte('data_registro', reportForm.end_date);
 
-            // Filtragem por hora diretamente no banco de dados (exatamente no primeiro minuto: HH:00:00 a HH:00:59)
-            if (!reportForm.use_all_hours && reportForm.selected_hours.length > 0) {
-                const hourFilters = reportForm.selected_hours.map(h => {
+            // Lógica de Filtragem Inteligente baseada no Preset
+            if (reportForm.report_preset === 'geral') {
+                // Modo Geral: Traz absolutamente tudo
+            } else if (reportForm.selected_hours.length > 0) {
+                // Presets Diário/Mensal (8h/16h)
+                const hourFilterStrings = reportForm.selected_hours.map(h => {
                     const hh = String(h).split(':')[0].padStart(2, '0');
                     return `and(hora_registro.gte.${hh}:00:00,hora_registro.lte.${hh}:00:59)`;
                 });
-                query = query.or(hourFilters.join(','));
+
+                const typesFilteredByHour = ['periodico', 'relatorio_diario'];
+                const temperatureAlerts = ['ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'];
+
+                // (Tipo em [periodico, relatorio_diario] E Hora em [8,16]) OU (Tipo em Alertas)
+                query = query.or(`and(mensage_tipo.in.(${typesFilteredByHour.join(',')}),or(${hourFilterStrings.join(',')})),mensage_tipo.in.(${temperatureAlerts.join(',')})`);
+            } else {
+                // Comportamento PADRÃO: Hora a Hora + Alertas (mesmo que o dashboard)
+                const standardTypes = ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'];
+                query = query.in('mensage_tipo', standardTypes);
             }
 
             const { data: telemetryRows, error: fetchError } = await query
@@ -174,7 +191,7 @@ export const useReportGenerator = (
                 .order('hora_registro', { ascending: true })
                 .order('timestamp', { ascending: true })
                 .limit(10000);
-            Greenland:
+
 
             if (fetchError) console.error('Erro ao buscar registros:', fetchError);
 
@@ -223,6 +240,7 @@ export const useReportGenerator = (
                 selected_hours: reportForm.use_all_hours ? [] : reportForm.selected_hours,
                 use_all_hours: reportForm.use_all_hours,
                 report_preset: reportForm.report_preset,
+                mensage_tipo: reportForm.mensage_tipo,
                 telemetry_data: enrichedRows // Enviando dados já filtrados e processados
             };
 

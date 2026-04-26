@@ -1,91 +1,105 @@
 {
-    "name": "IoT Sensor - Hourly Logging to Supabase (FIXED)",
+    "name": "IoT Sensor - Events Logger Supabase",
     "nodes": [
         {
             "parameters": {
-                "topics": "esp32c3/data",
-                "options": {}
+                "topics": "esp32c3/data"
             },
+            "id": "mqtt-trigger-events",
             "name": "MQTT Trigger",
             "type": "n8n-nodes-base.mqttTrigger",
             "typeVersion": 1,
             "position": [
-                32,
-                416
-            ],
-            "id": "0a0ea303-c0a3-4270-931e-f488d75b9f7c",
-            "credentials": {
-                "mqtt": {
-                    "id": "C0yMLysRivZyCkLe",
-                    "name": "MQTT account"
-                }
-            }
+                200,
+                300
+            ]
         },
         {
             "parameters": {
                 "jsCode": "const payloadString = $input.item.json.message;\ntry {\n  const payload = JSON.parse(payloadString);\n  return { json: payload };\n} catch(e) {\n  return { json: { error: 'Invalid JSON', payload: payloadString } };\n}"
             },
+            "id": "parse-payload-events",
             "name": "Parse Payload",
             "type": "n8n-nodes-base.code",
-            "typeVersion": 1,
+            "typeVersion": 2,
             "position": [
-                256,
-                416
-            ],
-            "id": "8ea1964e-661d-48bd-9362-23900f2a95e4"
+                420,
+                300
+            ]
         },
         {
             "parameters": {
                 "conditions": {
                     "string": [
                         {
-                            "value1": "={{$json.TIPO}}",
-                            "value2": "periodico"
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "startsWith",
+                            "value2": "ALERTA_"
+                        },
+                        {
+                            "value1": "={{ $json.TIPO }}",
+                            "operation": "contains",
+                            "value2": "NORMALIZADA"
+                        }
+                    ]
+                },
+                "combineOperation": "any"
+            },
+            "id": "is-alert-event",
+            "name": "Is Alert Event?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                640,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{ $json.IS_REPEAT }}",
+                            "operation": "notEqual",
+                            "value2": true
                         }
                     ]
                 }
             },
-            "name": "Filter Periodic",
+            "id": "filter-repeats",
+            "name": "Not a Repeat?",
             "type": "n8n-nodes-base.if",
             "typeVersion": 1,
             "position": [
-                480,
-                416
-            ],
-            "id": "e1c6e42c-1b29-4fda-9847-576c5ff4eeb4"
+                860,
+                280
+            ]
         },
         {
             "parameters": {
-                "tableId": "telemetry",
+                "operation": "create",
+                "tableId": "events",
                 "fieldsUi": {
                     "fieldValues": [
                         {
                             "fieldId": "device_id",
-                            "fieldValue": "={{$json.ID_DISPOSITIVO}}"
+                            "fieldValue": "={{ $json.ID_DISPOSITIVO }}"
                         },
                         {
-                            "fieldId": "temperature",
-                            "fieldValue": "={{parseFloat($json.TEMP_C)}}"
+                            "fieldId": "type",
+                            "fieldValue": "={{ $json.TIPO }}"
                         },
                         {
-                            "fieldId": "temp_max",
-                            "fieldValue": "={{parseFloat($json.TEMP_MAX)}}"
+                            "fieldId": "msg",
+                            "fieldValue": "={{ ($json.DISPOSITIVO || 'Dispositivo') + ': ' + ($json.TIPO.replace(/_/g, ' ').toLowerCase()) }}"
                         },
                         {
-                            "fieldId": "temp_min",
-                            "fieldValue": "={{parseFloat($json.TEMP_MIN)}}"
+                            "fieldId": "severity",
+                            "fieldValue": "={{ $json.TIPO.startsWith('ALERTA_') ? 'critical' : 'info' }}"
                         },
                         {
-                            "fieldId": "voltage",
-                            "fieldValue": "={{parseFloat($json.VOLTAGEM)}}"
-                        },
-                        {
-                            "fieldId": "humidity",
-                            "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}"
-                        },
-                        {
-                            "fieldId": "battery",
-                            "fieldValue": "={{parseFloat($json.BATERIA || 0)}}"
+                            "fieldId": "tenant_id",
+                            "fieldValue": "={{ $json.EMPRESA || 'Unknown' }}"
                         },
                         {
                             "fieldId": "timestamp",
@@ -94,14 +108,14 @@
                     ]
                 }
             },
-            "name": "Insert Hourly Log",
+            "id": "insert-supabase-events",
+            "name": "Insert Event Supabase",
             "type": "n8n-nodes-base.supabase",
             "typeVersion": 1,
             "position": [
-                704,
-                400
+                1080,
+                260
             ],
-            "id": "af5afe43-7e7c-40c8-a891-220c5302135b",
             "credentials": {
                 "supabaseApi": {
                     "id": "mwfq69YpUvhBFjds",
@@ -110,7 +124,6 @@
             }
         }
     ],
-    "pinData": {},
     "connections": {
         "MQTT Trigger": {
             "main": [
@@ -127,35 +140,34 @@
             "main": [
                 [
                     {
-                        "node": "Filter Periodic",
+                        "node": "Is Alert Event?",
                         "type": "main",
                         "index": 0
                     }
                 ]
             ]
         },
-        "Filter Periodic": {
+        "Is Alert Event?": {
             "main": [
                 [
                     {
-                        "node": "Insert Hourly Log",
+                        "node": "Not a Repeat?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Not a Repeat?": {
+            "main": [
+                [
+                    {
+                        "node": "Insert Event Supabase",
                         "type": "main",
                         "index": 0
                     }
                 ]
             ]
         }
-    },
-    "active": true,
-    "settings": {
-        "executionOrder": "v1",
-        "binaryMode": "separate"
-    },
-    "versionId": "12e2a346-a030-4f6a-840d-af8cc4e8663a",
-    "meta": {
-        "templateCredsSetupCompleted": true,
-        "instanceId": "bc109d15d9fa8da9009a5e445f23723e6adc4d7512780536cd9da35901fe78b0"
-    },
-    "id": "Qvjm4DMnrEJpJ8cC",
-    "tags": []
+    }
 }

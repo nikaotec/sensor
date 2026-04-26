@@ -59,7 +59,7 @@ unsigned long doorOpenStart = 0; // Início do tempo de porta aberta
 
 // ...
 
-void enviarDadosMqtt(String evento);
+void enviarDadosMqtt(String evento, bool isRepeat = false);
 void enviarDadosDashboard();
 void enviarDadosWeb();
 void notificarUsuario(String mensagem, int tempo = 4000);
@@ -306,37 +306,47 @@ void loop() {
       // 2. Falta de Energia
       if (storage.data.chkVolt) {
         AlertStatus stPower = alertPower.check(tVoltagem < VOLT_OUTAGE_THR);
-        if (stPower == ALERT_STARTED ||
-            (stPower == ALERT_REPEATED && !alertasSilenciados))
-          enviarDadosMqtt("ALERTA_FALTA_ENERGIA");
+        if (stPower == ALERT_STARTED)
+          enviarDadosMqtt("ALERTA_FALTA_ENERGIA", false);
+        else if (stPower == ALERT_REPEATED && !alertasSilenciados)
+          enviarDadosMqtt("ALERTA_FALTA_ENERGIA", true);
+
         if (stPower == ALERT_NORMALIZED)
-          enviarDadosMqtt("ENERGIA_RESTABELECIDA");
+          enviarDadosMqtt("ENERGIA_RESTABELECIDA", false);
       }
 
       // 3. Bateria Baixa
       if (storage.data.chkBat) {
         AlertStatus stBat =
             alertBatLow.check(tBateria < storage.data.batMinLimit);
-        if (stBat == ALERT_STARTED ||
-            (stBat == ALERT_REPEATED && !alertasSilenciados))
-          enviarDadosMqtt("ALERTA_BATERIA_BAIXA");
+        if (stBat == ALERT_STARTED)
+          enviarDadosMqtt("ALERTA_BATERIA_BAIXA", false);
+        else if (stBat == ALERT_REPEATED && !alertasSilenciados)
+          enviarDadosMqtt("ALERTA_BATERIA_BAIXA", true);
+
         if (stBat == ALERT_NORMALIZED)
-          enviarDadosMqtt("BATERIA_NORMALIZADA");
+          enviarDadosMqtt("BATERIA_NORMALIZADA", false);
       }
 
       // 4. Porta
       if (storage.data.chkDoor) {
         AlertStatus stDoor = alertDoor.check(isDoorOpen);
-        if (stDoor == ALERT_STARTED ||
-            (stDoor == ALERT_REPEATED && !alertasSilenciados)) {
-          // Bipe específico para porta aberta (repete até fechar)
-          if (!alertasSilenciados) {
-            emitirBipeAlertaCritico(2);
-          }
-          enviarDadosMqtt("ALERTA_PORTA_ABERTA");
+
+        // Registro Único no DB
+        if (stDoor == ALERT_STARTED) {
+          enviarDadosMqtt("ALERTA_PORTA_ABERTA", false);
         }
+
+        // Bipe Local Repetido (Segurança)
+        if (!alertasSilenciados &&
+            (stDoor == ALERT_STARTED || stDoor == ALERT_REPEATED)) {
+          if (stDoor == ALERT_REPEATED)
+            enviarDadosMqtt("ALERTA_PORTA_ABERTA", true);
+          emitirBipeAlertaCritico(2);
+        }
+
         if (stDoor == ALERT_NORMALIZED)
-          enviarDadosMqtt("PORTA_FECHADA");
+          enviarDadosMqtt("PORTA_FECHADA", false);
       }
 
       // 5. Tensão da Rede
@@ -346,43 +356,44 @@ void loop() {
         AlertStatus stVoltMin =
             alertVoltMin.check(tVoltagem < storage.data.voltMin);
 
-        if (stVoltMax == ALERT_STARTED ||
-            (stVoltMax == ALERT_REPEATED && !alertasSilenciados)) {
-          enviarDadosMqtt("ALERTA_TENSAO_ALTA");
+        if (stVoltMax == ALERT_STARTED) {
+          enviarDadosMqtt("ALERTA_TENSAO_ALTA", false);
+        } else if (stVoltMax == ALERT_REPEATED && !alertasSilenciados) {
+          enviarDadosMqtt("ALERTA_TENSAO_ALTA", true);
         }
         if (stVoltMax == ALERT_NORMALIZED) {
-          enviarDadosMqtt("TENSAO_NORMALIZADA");
+          enviarDadosMqtt("TENSAO_NORMALIZADA", false);
         }
 
-        if (stVoltMin == ALERT_STARTED ||
-            (stVoltMin == ALERT_REPEATED && !alertasSilenciados)) {
-          enviarDadosMqtt("ALERTA_TENSAO_BAIXA");
+        if (stVoltMin == ALERT_STARTED) {
+          enviarDadosMqtt("ALERTA_TENSAO_BAIXA", false);
+        } else if (stVoltMin == ALERT_REPEATED && !alertasSilenciados) {
+          enviarDadosMqtt("ALERTA_TENSAO_BAIXA", true);
         }
         if (stVoltMin == ALERT_NORMALIZED) {
-          enviarDadosMqtt("TENSAO_NORMALIZADA");
+          enviarDadosMqtt("TENSAO_NORMALIZADA", false);
         }
       }
 
       // 6. Temperatura Alerts
-      if (stMax == ALERT_STARTED ||
-          (stMax == ALERT_REPEATED && !alertasSilenciados)) {
+      if (stMax == ALERT_STARTED) {
         statusSeguranca = "QUENTE!";
-        String msg = "Temp Alta: " + String(temperaturaAtual, 1) + "C";
-        notificarUsuario(msg, 5000);
-        enviarDadosMqtt("ALERTA_TEMP_ALTA");
+        enviarDadosMqtt("ALERTA_TEMP_ALTA", false);
+      } else if (stMax == ALERT_REPEATED && !alertasSilenciados) {
+        enviarDadosMqtt("ALERTA_TEMP_ALTA", true);
       }
-      if (stMin == ALERT_STARTED ||
-          (stMin == ALERT_REPEATED && !alertasSilenciados)) {
+
+      if (stMin == ALERT_STARTED) {
         statusSeguranca = "FRIO!";
-        String msg = "Temp Baixa: " + String(temperaturaAtual, 1) + "C";
-        notificarUsuario(msg, 5000);
-        enviarDadosMqtt("ALERTA_TEMP_BAIXA");
+        enviarDadosMqtt("ALERTA_TEMP_BAIXA", false);
+      } else if (stMin == ALERT_REPEATED && !alertasSilenciados) {
+        enviarDadosMqtt("ALERTA_TEMP_BAIXA", true);
       }
 
       // Verifica Normalização Temperatura
       if (stMax == ALERT_NORMALIZED || stMin == ALERT_NORMALIZED) {
         statusSeguranca = "OK";
-        enviarDadosMqtt("TEMP_NORMALIZADA");
+        enviarDadosMqtt("TEMP_NORMALIZADA", false);
       }
     }
 
@@ -393,7 +404,7 @@ void loop() {
       static int lastReportHour = -1;
       if ((t.tm_hour == 8 || t.tm_hour == 16) && t.tm_hour != lastReportHour) {
         lastReportHour = t.tm_hour;
-        enviarDadosMqtt("relatorio_diario");
+        enviarDadosMqtt("relatorio_diario", false);
         storage.resetMinMax(temperaturaAtual);
         display.showMessage("Reset Diario", 5000);
       }
@@ -414,7 +425,7 @@ void loop() {
         // redundante por que o relatorio_diario já contém todos os campos e é
         // salvo pelo n8n.
         if (t.tm_hour != 8 && t.tm_hour != 16) {
-          enviarDadosMqtt("periodico");
+          enviarDadosMqtt("periodico", false);
         }
       }
     }
@@ -422,7 +433,7 @@ void loop() {
     // 3.2. Relatorio de suporte (hora em hora)
     if (!modoManual && (now - lastSupportReport >= 3600000UL)) {
       lastSupportReport = now;
-      enviarDadosMqtt("periodico_suporte");
+      enviarDadosMqtt("periodico_suporte", false);
     }
 
     // 4. Atualizar Display
@@ -464,9 +475,6 @@ void notificarUsuario(String mensagem, int tempo) {
 
   String output;
   serializeJson(doc, output);
-  // Removemos a publicação no tópico de STATUS (RX) para evitar loops e
-  // duplicidade. O feedback para o n8n/WhatsApp deve vir pelo enviarDadosMqtt
-  // (tópico DATA).
   network.publish(MSG_TOPIC_WEB_STATUS, output);
 }
 
@@ -507,13 +515,11 @@ void processarMensagemMqtt(String topic, String payload) {
                  " | RemoteJid: " + ultimoRemoteJid);
 
   // --- VERIFICAÇÃO DE AUTORIZAÇÃO ---
-  // Se não for um comando de leitura ("obter_status_atual", "obter_ambiente"),
-  // requer ser admin
   if (intencao != "" && intencao != "obter_status_atual" &&
       intencao != "obter_ambiente") {
     if (!isAdmin) {
       Serial.println("[MQTT RX] BLOQUEADO - Usuario nao autorizado");
-      enviarDadosMqtt("ERRO_NAO_AUTORIZADO");
+      enviarDadosMqtt("ERRO_NAO_AUTORIZADO", false);
       return;
     }
   }
@@ -523,7 +529,7 @@ void processarMensagemMqtt(String topic, String payload) {
   if (modoManual && intencao != "modo_manutencao" &&
       intencao != "modo_operacional") {
     Serial.println("[MQTT RX] BLOQUEADO - Dispositivo em manutenção");
-    enviarDadosMqtt("EM_MANUTENCAO");
+    enviarDadosMqtt("EM_MANUTENCAO", false);
     return;
   }
 
@@ -566,7 +572,7 @@ void processarMensagemMqtt(String topic, String payload) {
                                String(alterouTensao ? "VOLT," : "") +
                                String(alterouBat ? "BAT," : "") +
                                String(alterouPorta ? "DOOR," : "");
-      enviarDadosMqtt("feedback_configuracao");
+      enviarDadosMqtt("feedback_configuracao", false);
 
       if (alterouTemp && alterouTensao && alterouBat) {
         notificarUsuario("Config. Completa", 5000);
@@ -585,10 +591,10 @@ void processarMensagemMqtt(String topic, String payload) {
     if (!modoManual) {
       modoManual = true;
       display.showMessage("EM MANUTENCAO", 0); // Permanente no display
-      enviarDadosMqtt("MANUTENCAO_ATIVADA");
+      enviarDadosMqtt("MANUTENCAO_ATIVADA", false);
     } else {
       // Já está em manutenção
-      enviarDadosMqtt("EM_MANUTENCAO");
+      enviarDadosMqtt("EM_MANUTENCAO", false);
     }
 
   } else if (intencao == "modo_operacional") {
@@ -596,24 +602,24 @@ void processarMensagemMqtt(String topic, String payload) {
     if (modoManual) {
       modoManual = false;
       display.showMessage("OPERACIONAL", 0); // Permanente no display
-      enviarDadosMqtt("MANUTENCAO_DESATIVADA");
+      enviarDadosMqtt("MANUTENCAO_DESATIVADA", false);
     } else {
       // Já está operacional
-      enviarDadosMqtt("feedback_comando");
+      enviarDadosMqtt("feedback_comando", false);
     }
 
   } else if (intencao == "silenciar_alarme") {
     alertasSilenciados =
         true; // Impede novos alertas persistentes até normalizar
     notificarUsuario("Alarme Silenciado", 3000);
-    enviarDadosMqtt("ALARME_SILENCIADO");
+    enviarDadosMqtt("ALARME_SILENCIADO", false);
   } else if (intencao == "reativar_alarme") {
     alertasSilenciados = false;
     notificarUsuario("Alarme Reativado", 3000);
-    enviarDadosMqtt("ALARME_REATIVADO");
+    enviarDadosMqtt("ALARME_REATIVADO", false);
 
   } else if (intencao == "obter_status_atual") {
-    enviarDadosMqtt("STATUS_SOLICITADO");
+    enviarDadosMqtt("STATUS_SOLICITADO", false);
 
   } else if (intencao == "obter_ambiente") {
     // Envia dados do sensor ambiente com mensagem já formatada
@@ -663,7 +669,7 @@ void processarMensagemMqtt(String topic, String payload) {
         calculoAuto = true;
       } else {
         notificarUsuario("Erro: Tensao Baixa/Zero", 4000);
-        enviarDadosMqtt("ALERTA_ERRO_CALIBRACAO_TENSAO_BAIXA");
+        enviarDadosMqtt("ALERTA_ERRO_CALIBRACAO_TENSAO_BAIXA", false);
         return;
       }
     }
@@ -684,7 +690,7 @@ void processarMensagemMqtt(String topic, String payload) {
       storage.data.voltCalFactor = novoFator;
       voltSensor.setCalibration(novoFator);
       storage.save();
-      enviarDadosMqtt("feedback_calibracao_sucesso");
+      enviarDadosMqtt("feedback_calibracao_sucesso", false);
 
       if (calculoAuto) {
         String msg = "Calib: " + String(tensaoAlvo, 0) +
@@ -695,7 +701,7 @@ void processarMensagemMqtt(String topic, String payload) {
       }
     } else {
       notificarUsuario("Erro Calib: " + String(novoFator, 1), 5000);
-      enviarDadosMqtt("ALERTA_ERRO_CALIBRACAO_FATOR");
+      enviarDadosMqtt("ALERTA_ERRO_CALIBRACAO_FATOR", false);
     }
   } else if (intencao == "calibrar_bateria") {
     float novoFator = 0.0;
@@ -725,7 +731,7 @@ void processarMensagemMqtt(String topic, String payload) {
       voltSensor.setBatteryCalibration(novoFator);
       storage.save();
       notificarUsuario("Bat Calib: " + String(novoFator, 2), 5000);
-      enviarDadosMqtt("feedback_calibracao_bateria");
+      enviarDadosMqtt("feedback_calibracao_bateria", false);
     } else {
       notificarUsuario("Erro Bat Cal: " + String(novoFator, 2), 5000);
     }
@@ -750,7 +756,7 @@ void processarMensagemMqtt(String topic, String payload) {
     if (alterou) {
       storage.save();
       notificarUsuario("VINCULADO: " + String(storage.data.companyName), 5000);
-      enviarDadosMqtt("feedback_vinculo");
+      enviarDadosMqtt("feedback_vinculo", false);
       // Envia REALTIME imediato para atualizar dashboard
       enviarDadosWeb();
     }
@@ -763,7 +769,7 @@ void processarMensagemMqtt(String topic, String payload) {
     storage.data.deviceLocation[31] = '\0';
     storage.save();
     notificarUsuario("DESVINCULADO", 5000);
-    enviarDadosMqtt("feedback_desvinculo");
+    enviarDadosMqtt("feedback_desvinculo", false);
     enviarDadosWeb();
   } else if (intencao == "ligar_rele") {
     // Determina qual rele (0 por padrão, ou especificado)
@@ -776,7 +782,7 @@ void processarMensagemMqtt(String topic, String payload) {
       String msg = "Rele " + String(idx + 1) + " LIGADO";
       notificarUsuario(msg, 5000);
       String resp = "RELE_" + String(idx) + "_ON";
-      enviarDadosMqtt(resp);
+      enviarDadosMqtt(resp, false);
     }
   } else if (intencao == "desligar_rele") {
     int idx = doc.containsKey("rele_index") ? doc["rele_index"].as<int>() : 0;
@@ -788,12 +794,12 @@ void processarMensagemMqtt(String topic, String payload) {
       String msg = "Rele " + String(idx + 1) + " DESLIGADO";
       notificarUsuario(msg, 5000);
       String resp = "RELE_" + String(idx) + "_OFF";
-      enviarDadosMqtt(resp);
+      enviarDadosMqtt(resp, false);
     }
   } else if (intencao == "ativar_automatico") {
     modoManual = false;
     notificarUsuario("Modo AUTOMATICO", 5000);
-    enviarDadosMqtt("MODO_AUTOMATICO_ATIVADO");
+    enviarDadosMqtt("MODO_AUTOMATICO_ATIVADO", false);
   } else if (intencao == "configurar_rele") {
     int idx = doc["rele_index"].as<int>();
     if (idx >= 0 && idx < RELAY_COUNT) {
@@ -819,55 +825,55 @@ void processarMensagemMqtt(String topic, String payload) {
       String msg = "Rele " + String(idx + 1) + " config.";
       notificarUsuario(msg, 5000);
       String resp = "RELE_" + String(idx) + "_CONFIG_OK";
-      enviarDadosMqtt(resp);
+      enviarDadosMqtt(resp, false);
     }
   } else if (intencao == "habilitar_tensao") {
     storage.data.chkVolt = true;
     storage.save();
     notificarUsuario("Mon. Tensao LIGADO", 4000);
-    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosMqtt("feedback_configuracao", false);
     enviarDadosWeb();
   } else if (intencao == "desabilitar_tensao") {
     storage.data.chkVolt = false;
     storage.save();
     notificarUsuario("Mon. Tensao DESLIGADO", 4000);
-    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosMqtt("feedback_configuracao", false);
     enviarDadosWeb();
   } else if (intencao == "habilitar_bateria") {
     storage.data.chkBat = true;
     storage.save();
     notificarUsuario("Mon. Bateria LIGADO", 4000);
-    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosMqtt("feedback_configuracao", false);
     enviarDadosWeb();
   } else if (intencao == "desabilitar_bateria") {
     storage.data.chkBat = false;
     storage.save();
     notificarUsuario("Mon. Bateria DESLIGADO", 4000);
-    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosMqtt("feedback_configuracao", false);
     enviarDadosWeb();
   } else if (intencao == "habilitar_porta") {
     storage.data.chkDoor = true;
     storage.save();
     notificarUsuario("Mon. Porta LIGADO", 4000);
-    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosMqtt("feedback_configuracao", false);
     enviarDadosWeb();
   } else if (intencao == "desabilitar_porta") {
     storage.data.chkDoor = false;
     storage.save();
     notificarUsuario("Mon. Porta DESLIGADO", 4000);
-    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosMqtt("feedback_configuracao", false);
     enviarDadosWeb();
   } else if (intencao == "habilitar_temperatura") {
     storage.data.chkTemp = true;
     storage.save();
     notificarUsuario("Mon. Temp LIGADO", 4000);
-    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosMqtt("feedback_configuracao", false);
     enviarDadosWeb();
   } else if (intencao == "desabilitar_temperatura") {
     storage.data.chkTemp = false;
     storage.save();
     notificarUsuario("Mon. Temp DESLIGADO", 4000);
-    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosMqtt("feedback_configuracao", false);
     enviarDadosWeb();
   } else if (intencao == "calibrar_temperatura") {
     if (doc.containsKey("nova_temperatura")) {
@@ -877,11 +883,11 @@ void processarMensagemMqtt(String topic, String payload) {
       String msg = "Cal. Temp: " + String(offset, 1) + "C";
       notificarUsuario(msg, 4000);
     }
-    enviarDadosMqtt("feedback_configuracao");
+    enviarDadosMqtt("feedback_configuracao", false);
   } else if (intencao == "reset_manual") {
     storage.resetMinMax(temperaturaAtual);
     notificarUsuario("Reset Max/Min", 5000);
-    enviarDadosMqtt("RESET_MAX_MIN_MANUAL");
+    enviarDadosMqtt("RESET_MAX_MIN_MANUAL", false);
   } else if (intencao == "alterar_nome") {
     if (doc.containsKey("novo_nome")) {
       String novoNome = doc["novo_nome"].as<String>();
@@ -893,9 +899,9 @@ void processarMensagemMqtt(String topic, String payload) {
       notificarUsuario(msg, 5000);
       enviarDadosWeb();
       String feedbackMsg = "NOME_ALTERADO|" + String(storage.data.deviceName);
-      enviarDadosMqtt(feedbackMsg);
+      enviarDadosMqtt(feedbackMsg, false);
     } else {
-      enviarDadosMqtt("ERRO_NOME_FALTANDO");
+      enviarDadosMqtt("ERRO_NOME_FALTANDO", false);
     }
   } else {
     // Feedback Genérico para Debug Visual
@@ -903,12 +909,8 @@ void processarMensagemMqtt(String topic, String payload) {
       String msgRef = "CMD: " + intencao;
       notificarUsuario(msgRef, 4000);
     }
-    enviarDadosMqtt("FEEDBACK_COMANDO_GENERICO");
+    enviarDadosMqtt("FEEDBACK_COMANDO_GENERICO", false);
   }
-
-  // Os outros comandos (habilitar/desabilitar/calibrar) já enviam seu próprio
-  // feedback via MQTT. enviarDadosMqtt("feedback_comando"); // REMOVIDO PARA
-  // EVITAR MENSAGENS DUPLICADAS NO WHATSAPP
 }
 
 // ---------- ENVIA DADOS PARA O DASHBOARD WEB (REAL-TIME) ----------
@@ -982,7 +984,7 @@ void enviarDadosWeb() {
 }
 
 // ---------- ENVIA DADOS COMPLETOS PARA MQTT ----------
-void enviarDadosMqtt(String evento) {
+void enviarDadosMqtt(String evento, bool isRepeat) {
   Serial.println(
       "[DATA] enviarDadosMqtt chamada - evento: " + evento +
       " | conectado: " + String(network.isConnected() ? "SIM" : "NAO"));
@@ -997,6 +999,7 @@ void enviarDadosMqtt(String evento) {
   doc["EMPRESA"] = storage.data.companyName;
   doc["ALA"] = storage.data.deviceLocation;
   doc["TIPO"] = evento;
+  doc["IS_REPEAT"] = isRepeat;
 
   // Feedback sonoro LOCAL para alertas (SEMPRE, antes de qualquer bloqueio)
   if (evento.startsWith("ALERTA_") && !alertasSilenciados) {
@@ -1111,10 +1114,13 @@ void enviarDadosMqtt(String evento) {
     doc["REMOTE_JID"] = ultimoRemoteJid;
   }
 
-  // Publica no tópico de DADOS (telemetria tradicional/n8n)
+  // Publica no tópico de DADOS (telemetria tradicional/n8n) APENAS se não for
+  // repetição
   String payload;
   serializeJson(doc, payload);
-  network.publish(MSG_TOPIC_DATA, payload);
+  if (!isRepeat) {
+    network.publish(MSG_TOPIC_DATA, payload);
+  }
 
   // Broadcast para o Dashboard Web (Real-time)
   network.publish(MSG_TOPIC_WEB_STATUS, payload);

@@ -76,7 +76,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
                                             {[
                                                 { id: 'daily_8_16', label: 'Diário (8h/16h)' },
                                                 { id: 'month_8_16', label: 'Mensal (8h/16h)' },
-                                                { id: 'custom', label: 'Personalizado' }
+                                                { id: 'geral', label: 'Geral (Tudo)' }
                                             ].map(preset => (
                                                 <button
                                                     key={preset.id}
