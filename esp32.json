@@ -171,6 +171,12 @@
               "name": "UMIDADE",
               "value": "={{ $json['0'].UMIDADE || '' }}",
               "type": "string"
+            },
+            {
+              "id": "ef-is-repeat",
+              "name": "IS_REPEAT",
+              "value": "={{ $json['0'].IS_REPEAT || false }}",
+              "type": "boolean"
             }
           ]
         },
@@ -712,6 +718,38 @@
           "name": "Google Sheets account"
         }
       }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "76ec989a-7e12-4f7f-859a-14d24f923b7e",
+              "leftValue": "={{ $json.IS_REPEAT }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [
+        127680,
+        37904
+      ],
+      "id": "filter-repeat-whatsapp",
+      "name": "Não é repetição?"
     }
   ],
   "pinData": {},
@@ -728,6 +766,17 @@
       ]
     },
     "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Não é repetição?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Não é repetição?": {
       "main": [
         [
           {
