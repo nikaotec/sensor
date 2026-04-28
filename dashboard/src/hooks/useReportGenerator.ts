@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '../supabase/config';
 
 // Constante para a URL do webhook
-export const REPORT_WEBHOOK_URL = '/api/n8n/webhook/generate-report';
+export const REPORT_WEBHOOK_URL = 'https://n8n.nikaotech.com/webhook/generate-report';
 
 export interface ReportForm {
     type: string;
@@ -49,8 +49,8 @@ export const useReportGenerator = (
         device_id: '',
         start_date: getDefaultReportDates().start_date,
         end_date: getDefaultReportDates().end_date,
-        start_time: '00:00',
-        end_time: '23:59',
+        start_time: getDefaultReportDates().start_time,
+        end_time: getDefaultReportDates().end_time,
         report_preset: '',
         selected_hours: [],
         use_all_hours: true,
@@ -157,64 +157,64 @@ export const useReportGenerator = (
                 return;
             }
 
-            // Busca os dados diretamente do Supabase usando as novas colunas otimizadas
-            let query = supabase
-                .from('telemetry')
-                .select('*')
-                .in('device_id', targetDeviceIds)
-                .gte('data_registro', reportForm.start_date)
-                .lte('data_registro', reportForm.end_date);
+            // Lógica de Filtragem Separada (Evita que um modo interfira no outro)
+            let telemetryRows: any[] = [];
+            let fetchError: any = null;
 
-            // Lógica de Filtragem Inteligente baseada no Preset
-            if (reportForm.report_preset === 'geral') {
-                // Modo Geral: Traz absolutamente tudo
-            } else if (reportForm.selected_hours.length > 0) {
-                // Presets Diário/Mensal (8h/16h)
-                const hourFilterStrings = reportForm.selected_hours.map(h => {
-                    const hh = String(h).split(':')[0].padStart(2, '0');
-                    return `and(hora_registro.gte.${hh}:00:00,hora_registro.lte.${hh}:00:59)`;
+            const isPreset816 = reportForm.report_preset === 'daily_8_16' || reportForm.report_preset === 'month_8_16';
+
+            if (isPreset816) {
+                // CAMINHO PRESETS (08/16): Apenas registros periódicos dos horários exatos
+                const selectedHourNums = reportForm.selected_hours.map(h => parseInt(String(h).split(':')[0]));
+
+                const { data, error } = await supabase
+                    .from('telemetry')
+                    .select('*')
+                    .in('device_id', targetDeviceIds)
+                    .gte('data_registro', reportForm.start_date)
+                    .lte('data_registro', reportForm.end_date)
+                    .in('mensage_tipo', ['periodico', 'relatorio_diario']) // Apenas periódicos, remove ruído de alertas
+                    .order('data_registro', { ascending: true })
+                    .order('hora_registro', { ascending: true })
+                    .limit(10000);
+
+                telemetryRows = data || [];
+                fetchError = error;
+
+                // Filtro rigoroso no JS para garantir apenas as horas 08 e 16 (independente de segundos)
+                telemetryRows = telemetryRows.filter(row => {
+                    if (!row.hora_registro) return false;
+                    const rowHour = parseInt(row.hora_registro.split(':')[0]);
+                    return selectedHourNums.includes(rowHour);
                 });
-
-                const typesFilteredByHour = ['periodico', 'relatorio_diario'];
-                const temperatureAlerts = ['ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'];
-
-                // (Tipo em [periodico, relatorio_diario] E Hora em [8,16]) OU (Tipo em Alertas)
-                query = query.or(`and(mensage_tipo.in.(${typesFilteredByHour.join(',')}),or(${hourFilterStrings.join(',')})),mensage_tipo.in.(${temperatureAlerts.join(',')})`);
             } else {
-                // Comportamento PADRÃO: Hora a Hora + Alertas (mesmo que o dashboard)
+                // CAMINHO MANUAL: Precisão de minutos via timestamp ISO completo
                 const standardTypes = ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'];
-                query = query.in('mensage_tipo', standardTypes);
+
+                const { data, error } = await supabase
+                    .from('telemetry')
+                    .select('*')
+                    .in('device_id', targetDeviceIds)
+                    .gte('timestamp', startISO)
+                    .lte('timestamp', endISO)
+                    .in('mensage_tipo', standardTypes)
+                    .order('timestamp', { ascending: true })
+                    .limit(10000);
+
+                telemetryRows = data || [];
+                fetchError = error;
             }
-
-            const { data: telemetryRows, error: fetchError } = await query
-                .order('data_registro', { ascending: true })
-                .order('hora_registro', { ascending: true })
-                .order('timestamp', { ascending: true })
-                .limit(10000);
-
 
             if (fetchError) console.error('Erro ao buscar registros:', fetchError);
 
             if (!telemetryRows || telemetryRows.length === 0) {
-                alert(`Nenhum registro de telemetria encontrado para o período selecionado (${reportForm.start_date} a ${reportForm.end_date}).`);
+                alert(`Nenhum registro de telemetria encontrado para o período ou horários selecionados.`);
                 setGeneratingReport(false);
                 return;
             }
 
-            // Pré-filtragem de horários no frontend (Mesma lógica do gráfico/n8n)
+            // Os dados já saem filtrados dos blocos acima
             let filteredRows = telemetryRows;
-            if (!reportForm.use_all_hours && reportForm.selected_hours.length > 0) {
-                const selectedHourNums = reportForm.selected_hours.map(h => parseInt(String(h).split(':')[0]));
-                filteredRows = telemetryRows.filter(row => {
-                    const rowDate = new Date(row.timestamp);
-                    const rowHour = parseInt(rowDate.toLocaleTimeString('pt-BR', {
-                        hour: '2-digit',
-                        hour12: false,
-                        timeZone: 'America/Sao_Paulo'
-                    }));
-                    return selectedHourNums.includes(rowHour);
-                });
-            }
 
             if (filteredRows.length === 0) {
                 alert(`Nenhum registro encontrado para os horários selecionados no período.`);
@@ -263,12 +263,22 @@ export const useReportGenerator = (
             });
 
             if (response.ok) {
-                const result = await response.json();
+                const responseText = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('Erro ao processar resposta JSON do n8n:', responseText);
+                    alert("O servidor retornou uma resposta inválida. O relatório pode não ter sido gerado.");
+                    setGeneratingReport(false);
+                    return;
+                }
+
                 if (result.pdf_base64) {
                     const linkSource = `data:application/pdf;base64,${result.pdf_base64}`;
                     const downloadLink = document.createElement("a");
                     const todaySP = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-                    const fileName = `relatorio_${payload.device_id || 'geral'}_${todaySP}.pdf`;
+                    const fileName = `relatorio_${reportForm.device_id || 'geral'}_${todaySP}.pdf`;
                     downloadLink.href = linkSource;
                     downloadLink.download = fileName;
                     downloadLink.click();
@@ -277,7 +287,9 @@ export const useReportGenerator = (
                     alert("Relatório gerado com sucesso!");
                 }
             } else {
-                alert("Erro ao gerar relatório. Verifique os dados e tente novamente.");
+                const errorText = await response.text();
+                console.error('Erro no webhook (status ' + response.status + '):', errorText);
+                alert(`Erro ao gerar relatório (${response.status}). Verifique os dados e tente novamente.`);
             }
             setShowReportModal(false);
         } catch (err) {

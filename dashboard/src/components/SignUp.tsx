@@ -9,12 +9,29 @@ interface SignUpProps {
 }
 
 const SignUp: React.FC<SignUpProps> = ({ onLoginClick, onSignUp }) => {
-    const { loginWithGoogle } = useAuth();
+    const { signup, loginWithGoogle } = useAuth();
 
     // In a real app we would have state for the form fields
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onSignUp();
+        const formData = new FormData(e.target as HTMLFormElement);
+        const name = formData.get('name') as string;
+        const email = formData.get('email') as string;
+        const password = formData.get('password') as string;
+        const confirmPassword = formData.get('confirm-password') as string;
+
+        if (password !== confirmPassword) {
+            alert("As senhas não coincidem.");
+            return;
+        }
+
+        try {
+            await signup(email, password, name);
+            onSignUp();
+        } catch (error) {
+            console.error("Erro ao cadastrar:", error);
+            alert("Erro ao criar conta. Verifique os dados inseridos.");
+        }
     };
 
     const handleGoogleSignUp = async () => {

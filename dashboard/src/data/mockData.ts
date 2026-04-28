@@ -57,6 +57,10 @@ export interface Device {
         silenced?: boolean;
         uptime?: number;
         ip?: string;
+        // Histerese do relé 0
+        R0_TEMP_ON?: number;
+        R0_TEMP_OFF?: number;
+        R0_FUNC?: number;
     };
     config?: {
         minTempInfo?: number;

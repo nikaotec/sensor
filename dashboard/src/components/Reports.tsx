@@ -187,6 +187,8 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                 effectiveForm.start_date = todaySP;
                 effectiveForm.end_date = todaySP;
             }
+            effectiveForm.start_time = '08:00';
+            effectiveForm.end_time = '16:00';
             effectiveForm.use_all_hours = false;
             effectiveForm.selected_hours = ['08:00', '16:00'];
         } else if (generateForm.report_preset === 'month_8_16') {
@@ -197,8 +199,8 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
 
             effectiveForm.start_date = firstDay.toLocaleDateString('en-CA');
             effectiveForm.end_date = lastDay.toLocaleDateString('en-CA');
-            effectiveForm.start_time = '00:00';
-            effectiveForm.end_time = '23:59';
+            effectiveForm.start_time = '08:00';
+            effectiveForm.end_time = '16:00';
             effectiveForm.use_all_hours = false;
             effectiveForm.selected_hours = ['08:00', '16:00'];
         }

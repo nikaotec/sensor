@@ -11,12 +11,22 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLogin, onSignUpClick }) => {
     const { availableTenants, setTenantId, currentTenant } = useTenant();
-    const { loginWithGoogle } = useAuth();
+    const { login, loginWithGoogle } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onLogin();
+        const formData = new FormData(e.target as HTMLFormElement);
+        const email = formData.get('email') as string;
+        const password = formData.get('password') as string;
+
+        try {
+            await login(email, password);
+            onLogin();
+        } catch (error) {
+            console.error("Erro ao fazer login:", error);
+            alert("Erro ao fazer login. Verifique suas credenciais.");
+        }
     };
 
     const handleGoogleLogin = async () => {

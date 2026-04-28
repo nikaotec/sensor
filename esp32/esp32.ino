@@ -944,11 +944,16 @@ void enviarDadosWeb() {
   doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
   doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
 
-  JsonObject relays = doc.createNestedObject("RELES");
+JsonObject relays = doc.createNestedObject("RELES");
   for (int i = 0; i < RELAY_COUNT; i++) {
     String key = "R" + String(i);
     relays[key] = releEstado[i];
   }
+  
+  // Dados de histerese do relé 0
+  doc["R0_TEMP_ON"] = serialized(String(storage.data.relays[0].tempOn, 1));
+  doc["R0_TEMP_OFF"] = serialized(String(storage.data.relays[0].tempOff, 1));
+  doc["R0_FUNC"] = storage.data.relays[0].func;
   doc["MODO"] = modoManual ? "MANUAL" : "AUTO";
   doc["SILENCIADO"] = alertasSilenciados;
   doc["RSSI"] = network.getRSSI();
@@ -1072,10 +1077,17 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
   doc["CHK_DOOR"] = storage.data.chkDoor;
   doc["TEMP_CAL_OFFSET"] = storage.data.tempCalOffset;
 
-  // Sensor Ambiente (DHT11)
+// Sensor Ambiente (DHT11)
   if (evento == "STATUS_SOLICITADO" || evento == "periodico_suporte") {
     doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
-    doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
+    doc["UMIDADE"] = serialized(String(ambientSensor.getHumidade(), 1));
+  }
+
+  // Dados de histerese do relé 0 (enviado em status e periódicos)
+  if (evento == "STATUS_SOLICITADO" || evento == "periodico" || evento == "periodico_suporte" || evento == "REALTIME") {
+    doc["R0_TEMP_ON"] = serialized(String(storage.data.relays[0].tempOn, 1));
+    doc["R0_TEMP_OFF"] = serialized(String(storage.data.relays[0].tempOff, 1));
+    doc["R0_FUNC"] = storage.data.relays[0].func;
   }
 
   // Inclui campos alterados no feedback de configuracao

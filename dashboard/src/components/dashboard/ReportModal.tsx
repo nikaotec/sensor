@@ -106,6 +106,15 @@ const ReportModal: React.FC<ReportModalProps> = ({
                                         />
                                         <Calendar size={14} className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" />
                                     </div>
+                                    <div className="relative mt-2">
+                                        <input
+                                            type="time"
+                                            value={reportForm.start_time}
+                                            onChange={(e) => setReportForm({ ...reportForm, start_time: e.target.value })}
+                                            className="w-full bg-gray-50 dark:bg-[#0F110D] border border-gray-100 dark:border-[#2A2E24] rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all dark:text-white"
+                                        />
+                                        <Clock size={14} className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" />
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Data Fim</label>
@@ -118,25 +127,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
                                         />
                                         <Calendar size={14} className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" />
                                     </div>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Hora Início</label>
-                                    <div className="relative">
-                                        <input
-                                            type="time"
-                                            value={reportForm.start_time}
-                                            onChange={(e) => setReportForm({ ...reportForm, start_time: e.target.value })}
-                                            className="w-full bg-gray-50 dark:bg-[#0F110D] border border-gray-100 dark:border-[#2A2E24] rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 outline-none transition-all dark:text-white"
-                                        />
-                                        <Clock size={14} className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Hora Fim</label>
-                                    <div className="relative">
+                                    <div className="relative mt-2">
                                         <input
                                             type="time"
                                             value={reportForm.end_time}
@@ -146,6 +137,9 @@ const ReportModal: React.FC<ReportModalProps> = ({
                                         <Clock size={14} className="absolute right-3 top-3.5 text-slate-400 pointer-events-none" />
                                     </div>
                                 </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
                             </div>
                         </div>
 

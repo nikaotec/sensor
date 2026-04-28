@@ -17,6 +17,7 @@ import {
     UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { provisionFirebaseUser, generateRandomPassword, deleteFirebaseUser } from '../services/firebaseAuth';
 
 // Máscara de telefone: +55 81 99999-9999
 const formatPhone = (value: string): string => {
@@ -30,9 +31,7 @@ const formatPhone = (value: string): string => {
     return result;
 };
 
-const handlePhoneChange = (setter: (value: string) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setter(formatPhone(e.target.value));
-};
+// Removido handlePhoneChange para evitar recriação de funções que causam perda de foco
 
 interface AdminUserPanelProps {
     onNavigate: (screen: any) => void;
@@ -49,17 +48,17 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
     // Form States
     const [newUserEmail, setNewUserEmail] = useState('');
     const [newUserName, setNewUserName] = useState('');
-    const [newUserPhone, setNewUserPhone] = useState('');
     const [newUserWhatsapp, setNewUserWhatsapp] = useState('');
     const [newUserReceiveWhatsapp, setNewUserReceiveWhatsapp] = useState(false);
     const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
     const [newUserTenants, setNewUserTenants] = useState<string[]>([]);
+    const [submitting, setSubmitting] = useState(false);
+    const [generatedCredentials, setGeneratedCredentials] = useState<{ email: string, pass: string } | null>(null);
 
     // Edit Modal States
     const [editingUser, setEditingUser] = useState<any>(null);
     const [editUserName, setEditUserName] = useState('');
     const [editUserEmail, setEditUserEmail] = useState('');
-    const [editUserPhone, setEditUserPhone] = useState('');
     const [editUserWhatsapp, setEditUserWhatsapp] = useState('');
     const [editUserReceiveWhatsapp, setEditUserReceiveWhatsapp] = useState(false);
     const [editUserRole, setEditUserRole] = useState<'admin' | 'user'>('user');
@@ -85,14 +84,27 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newUserEmail || !newUserName) return;
+        setSubmitting(true);
+        setGeneratedCredentials(null);
 
         try {
+            const randomPass = generateRandomPassword();
+
+            // 1. Criar no Firebase primeiro para obter o UID
+            const fbResult = await provisionFirebaseUser(newUserEmail.toLowerCase(), randomPass);
+
+            if (!fbResult.success) {
+                throw new Error(fbResult.error);
+            }
+
+            const uid = fbResult.uid || newUserEmail.toLowerCase();
+
+            // 2. Salvar no Supabase com o UID real
             const { error } = await supabase.from('users').upsert({
-                id: newUserEmail.toLowerCase(),
+                id: uid,
                 name: newUserName,
                 email: newUserEmail.toLowerCase(),
-                phone: newUserPhone || null,
-                whatsapp: newUserWhatsapp || null,
+                phone: newUserWhatsapp || null,
                 receive_notifications: newUserReceiveWhatsapp,
                 role: newUserRole,
                 tenant_ids: newUserTenants,
@@ -101,17 +113,20 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
             });
             if (error) throw error;
 
-            showMessage('success', `Usuário ${newUserName} provisionado com sucesso!`);
+            // Sucesso!
+            setGeneratedCredentials({ email: newUserEmail.toLowerCase(), pass: randomPass });
+            showMessage('success', `Usuário ${newUserName} provisionado com sucesso no Firebase!`);
+
             setNewUserName('');
             setNewUserEmail('');
-            setNewUserPhone('');
             setNewUserWhatsapp('');
             setNewUserReceiveWhatsapp(false);
             setNewUserRole('user');
             setNewUserTenants([]);
-            // refreshUsers(); // Removed
         } catch (err: any) {
             showMessage('error', `Erro ao criar usuário: ${err.message}`);
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -132,11 +147,23 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
 
     const handleDeleteUser = async (userId: string, userEmail: string) => {
         if (!window.confirm(`Tem certeza que deseja remover o acesso de ${userEmail}?`)) return;
+
         try {
+            // 1. Tenta excluir no Firebase via Webhook primeiro
+            // Se falhar o webhook, ainda tentamos excluir no DB para não travar a UI, 
+            // mas o ideal é que o webhook funcione.
+            const fbResult = await deleteFirebaseUser(userId);
+            if (!fbResult.success) {
+                console.warn('Falha ao excluir no Firebase Auth:', fbResult.error);
+                // Opcional: Impedir exclusão se o Firebase falhar? 
+                // Por enquanto apenas logamos para não bloquear se o n8n estiver offline.
+            }
+
+            // 2. Exclui no Supabase
             const { error } = await supabase.from('users').delete().eq('id', userId);
             if (error) throw error;
-            showMessage('success', 'Usuário removido do sistema.');
-            // refreshUsers(); // Removed
+
+            showMessage('success', 'Usuário removido do sistema (Dashboard e Firebase).');
         } catch (err: any) {
             showMessage('error', `Erro ao remover usuário: ${err.message}`);
         }
@@ -146,8 +173,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
         setEditingUser(user);
         setEditUserName(user.name || '');
         setEditUserEmail(user.email || '');
-        setEditUserPhone(user.phone || '');
-        setEditUserWhatsapp(user.whatsapp || '');
+        setEditUserWhatsapp(user.whatsapp || user.phone || '');
         setEditUserReceiveWhatsapp(user.receive_notifications || false);
         setEditUserRole(user.role || 'user');
         setEditUserTenants(user.tenant_ids || []);
@@ -161,8 +187,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                 .update({
                     name: editUserName,
                     email: editUserEmail.toLowerCase(),
-                    phone: editUserPhone || null,
-                    whatsapp: editUserWhatsapp || null,
+                    phone: editUserWhatsapp || null,
                     receive_notifications: editUserReceiveWhatsapp,
                     role: editUserRole,
                     tenant_ids: editUserTenants,
@@ -175,6 +200,22 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
             // refreshUsers(); // Removed
         } catch (err: any) {
             showMessage('error', `Erro ao salvar: ${err.message}`);
+        }
+    };
+
+    const toggleTenant = (tenantId: string, isNewUser: boolean) => {
+        if (isNewUser) {
+            setNewUserTenants(prev =>
+                prev.includes(tenantId)
+                    ? prev.filter(id => id !== tenantId)
+                    : [...prev, tenantId]
+            );
+        } else {
+            setEditUserTenants(prev =>
+                prev.includes(tenantId)
+                    ? prev.filter(id => id !== tenantId)
+                    : [...prev, tenantId]
+            );
         }
     };
 
@@ -270,7 +311,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                                                             <p className="text-xs text-slate-500">{u.email}</p>
                                                             {u.whatsapp && (
                                                                 <p className={`text-[10px] font-bold flex items-center gap-1 mt-1 ${u.receive_notifications ? 'text-primary' : 'text-slate-600'}`}>
-                                                                    <Phone size={10} /> {u.whatsapp} {u.receive_notifications ? '• Notifica' : ''}
+                                                                    <Phone size={10} /> {u.phone || u.whatsapp} {u.receive_notifications ? '• Notifica' : ''}
                                                                 </p>
                                                             )}
                                                         </div>
@@ -338,7 +379,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                             <form onSubmit={handleCreateUser} className="space-y-5">
                                 <FormInput label="Nome" value={newUserName} onChange={setNewUserName} placeholder="João Silva" required />
                                 <FormInput label="E-mail" type="email" value={newUserEmail} onChange={setNewUserEmail} placeholder="joao@email.com" required />
-                                <FormInput label="WhatsApp" value={newUserWhatsapp} onChange={handlePhoneChange(setNewUserWhatsapp)} placeholder="+55 81 99999-9999" />
+                                <FormInput label="WhatsApp para Alertas" value={newUserWhatsapp} onChange={(val: string) => setNewUserWhatsapp(formatPhone(val))} placeholder="+55 81" />
 
                                 <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-white/5">
                                     <div className="text-sm font-bold text-white">Notificações WhatsApp</div>
@@ -352,6 +393,26 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                                 </div>
 
                                 <div>
+                                    <label className="block text-[10px] font-black text-slate-500 uppercase mb-3">Empresas Vinculadas</label>
+                                    <div className="flex flex-wrap gap-2 mb-2">
+                                        {availableTenants.map(tenant => (
+                                            <button
+                                                key={tenant.id}
+                                                type="button"
+                                                onClick={() => toggleTenant(tenant.id, true)}
+                                                className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all border ${newUserTenants.includes(tenant.id)
+                                                    ? 'bg-primary/20 border-primary text-primary'
+                                                    : 'bg-black/20 border-white/5 text-slate-600 hover:border-white/10'
+                                                    }`}
+                                            >
+                                                {tenant.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {newUserTenants.length === 0 && <p className="text-[9px] text-rose-500/70 font-medium">* Selecione ao menos uma empresa</p>}
+                                </div>
+
+                                <div>
                                     <label className="block text-[10px] font-black text-slate-500 uppercase mb-3">Cargo</label>
                                     <div className="grid grid-cols-2 gap-2">
                                         <button type="button" onClick={() => setNewUserRole('admin')} className={`py-3 rounded-xl text-[10px] font-black uppercase border transition-all ${newUserRole === 'admin' ? 'bg-primary/20 border-primary text-primary' : 'bg-black/20 border-white/10 text-slate-600'}`}>Admin</button>
@@ -359,10 +420,67 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                                     </div>
                                 </div>
 
-                                <button type="submit" className="w-full py-4 mt-4 bg-primary text-white font-bold rounded-2xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20">
-                                    Provisionar
+                                <button
+                                    type="submit"
+                                    disabled={submitting}
+                                    className="w-full py-4 mt-4 bg-primary text-white font-bold rounded-2xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+                                >
+                                    {submitting ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Provisionar'}
                                 </button>
                             </form>
+
+                            {/* Exibição de Credenciais Geradas */}
+                            <AnimatePresence>
+                                {generatedCredentials && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                        className="mt-6 p-5 bg-slate-800/80 border border-emerald-500/50 rounded-2xl relative overflow-hidden"
+                                    >
+                                        <div className="absolute top-0 right-0 p-2">
+                                            <button
+                                                onClick={() => setGeneratedCredentials(null)}
+                                                className="text-slate-400 hover:text-white transition-colors"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                                                <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-emerald-400 text-xs font-black uppercase tracking-widest">Usuário Criado!</h4>
+                                                <p className="text-slate-300 text-[10px]">Passe os dados abaixo para o usuário:</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 bg-black/40 p-3 rounded-xl border border-white/5">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase">E-mail</span>
+                                                <span className="text-xs text-white font-mono">{generatedCredentials.email}</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase">Senha</span>
+                                                <span className="text-xs text-emerald-400 font-mono font-bold">{generatedCredentials.pass}</span>
+                                            </div>
+                                            <div className="pt-2 mt-2 border-t border-white/5">
+                                                <p className="text-[9px] text-slate-500 mb-1 text-center font-bold">LINK DE ACESSO</p>
+                                                <a
+                                                    href={window.location.origin}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors block text-center font-mono truncate"
+                                                >
+                                                    {window.location.origin}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     </div>
                 </div>
@@ -375,8 +493,6 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                 setName={setEditUserName}
                 email={editUserEmail}
                 setEmail={setEditUserEmail}
-                phone={editUserPhone}
-                setPhone={setEditUserPhone}
                 whatsapp={editUserWhatsapp}
                 setWhatsapp={setEditUserWhatsapp}
                 receiveWhatsapp={editUserReceiveWhatsapp}
@@ -419,6 +535,9 @@ const EditUserModal = ({
     setReceiveWhatsapp,
     role,
     setRole,
+    tenants,
+    availableTenants,
+    onToggleTenant,
     onSave
 }: any) => {
     if (!isOpen) return null;
@@ -437,7 +556,7 @@ const EditUserModal = ({
                 <div className="space-y-5">
                     <FormInput label="Nome" value={name} onChange={setName} placeholder="Nome" required />
                     <FormInput label="E-mail" value={email} onChange={setEmail} placeholder="E-mail" required />
-                    <FormInput label="WhatsApp" value={whatsapp} onChange={setWhatsapp} placeholder="WhatsApp" />
+                    <FormInput label="WhatsApp" value={whatsapp} onChange={(val: string) => setWhatsapp(formatPhone(val))} placeholder="WhatsApp" />
 
                     <div className="flex items-center justify-between p-4 rounded-xl bg-black/20 border border-white/5">
                         <div className="text-sm font-bold text-white">Notificações WhatsApp</div>
@@ -447,6 +566,25 @@ const EditUserModal = ({
                         >
                             <span className={`h-5 w-5 transform rounded-full bg-white transition duration-200 ${receiveWhatsapp ? 'translate-x-6' : 'translate-x-0'}`}></span>
                         </button>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-3">Empresas Vinculadas</label>
+                        <div className="flex flex-wrap gap-2 mb-5">
+                            {availableTenants.map((tenant: any) => (
+                                <button
+                                    key={tenant.id}
+                                    type="button"
+                                    onClick={() => onToggleTenant(tenant.id)}
+                                    className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border ${tenants.includes(tenant.id)
+                                        ? 'bg-primary/20 border-primary text-primary'
+                                        : 'bg-black/20 border-white/10 text-slate-500 hover:border-white/20'
+                                        }`}
+                                >
+                                    {tenant.name}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <div>

@@ -627,6 +627,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                                 <div className="size-2 rounded-full bg-blue-500 animate-pulse"></div>
                                                 <span className="text-[11px] font-bold text-white uppercase tracking-widest">Histerese (Relé Automático)</span>
                                             </div>
+                                            <p className="text-[9px] text-slate-500 mb-3">Temp &gt;= ON Liga | Temp &lt;= OFF Desliga</p>
                                             <div className="grid grid-cols-2 gap-3 mb-3">
                                                 <div className="space-y-1.5">
                                                     <label className="text-[9px] text-slate-400 uppercase font-bold tracking-widest px-1">Ligar Máx (°C)</label>

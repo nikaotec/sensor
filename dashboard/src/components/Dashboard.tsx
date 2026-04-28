@@ -21,6 +21,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
 
     const isAdmin = currentUser?.role === 'admin';
     const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
+    const hasLinkedTenants = availableTenants.length > 0;
+    const canSeeDevices = isAdmin || isManager || hasLinkedTenants;
 
     // Business Logic focused hooks
     const {
@@ -96,11 +98,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
 
                     {/* DEVICE GRID */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {!(isAdmin || isManager) ? (
+                        {!canSeeDevices ? (
                             <div className="col-span-1 md:col-span-2 xl:col-span-3 py-12 flex flex-col items-center justify-center text-slate-500 bg-[#1A1D17] rounded-2xl border border-[#2A2E24]">
                                 <Shield className="mb-4 opacity-50 text-amber-500" size={48} />
-                                <p className="text-lg font-medium text-slate-300">Acesso Restrito</p>
-                                <p className="text-sm">Você não tem permissão para visualizar os dispositivos.</p>
+                                <h2 className="text-xl font-bold text-white mb-2">Acesso Pendente</h2>
+                                <p className="text-slate-400 text-center max-w-xs">Sua conta ainda não foi vinculada a nenhuma empresa. Entre em contato com o administrador.</p>
                             </div>
                         ) : displayDevices.length === 0 ? (
                             <div className="col-span-1 md:col-span-2 xl:col-span-3 py-12 flex flex-col items-center justify-center text-slate-500 bg-[#1A1D17] rounded-2xl border border-[#2A2E24]">

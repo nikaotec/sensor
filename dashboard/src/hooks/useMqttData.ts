@@ -189,6 +189,10 @@ export const useMqttData = (
                     rele2: payload.RELES?.R2 !== undefined ? payload.RELES.R2 : payload.rele2,
                     rele3: payload.RELES?.R3 !== undefined ? payload.RELES.R3 : payload.rele3,
                     rele: payload.RELES?.R0 !== undefined ? payload.RELES.R0 : payload.rele,
+                    // Histerese do relé 0
+                    R0_TEMP_ON: payload.R0_TEMP_ON !== undefined ? parseFloat(payload.R0_TEMP_ON) : undefined,
+                    R0_TEMP_OFF: payload.R0_TEMP_OFF !== undefined ? parseFloat(payload.R0_TEMP_OFF) : undefined,
+                    R0_FUNC: payload.R0_FUNC,
                 };
                 payload = normalizedPayload;
 
@@ -303,6 +307,10 @@ export const useMqttData = (
                                 chkBat: payload.CHK_BAT !== undefined ? payload.CHK_BAT : existing.telemetry.chkBat,
                                 chkTemp: payload.CHK_TEMP !== undefined ? payload.CHK_TEMP : existing.telemetry.chkTemp,
                                 chkDoor: payload.CHK_DOOR !== undefined ? payload.CHK_DOOR : existing.telemetry.chkDoor,
+                                // Histerese do relé 0
+                                R0_TEMP_ON: payload.R0_TEMP_ON !== undefined ? parseFloat(payload.R0_TEMP_ON) : existing.telemetry.R0_TEMP_ON,
+                                R0_TEMP_OFF: payload.R0_TEMP_OFF !== undefined ? parseFloat(payload.R0_TEMP_OFF) : existing.telemetry.R0_TEMP_OFF,
+                                R0_FUNC: payload.R0_FUNC ?? existing.telemetry.R0_FUNC,
                             },
                             mqttUpdated: true
                         };
