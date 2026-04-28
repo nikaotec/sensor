@@ -41,7 +41,8 @@ export const useReportGenerator = (
     currentTenant: any,
     availableTenants: any[],
     supabaseDevices: any[],
-    displayDevices: any[]
+    displayDevices: any[],
+    userRole?: string
 ) => {
     const [reportForm, setReportForm] = useState<ReportForm>({
         type: 'company',
@@ -241,6 +242,7 @@ export const useReportGenerator = (
                 use_all_hours: reportForm.use_all_hours,
                 report_preset: reportForm.report_preset,
                 mensage_tipo: reportForm.mensage_tipo,
+                is_gestor: userRole === 'manager' || userRole === 'gestor',
                 telemetry_data: enrichedRows // Enviando dados já filtrados e processados
             };
 

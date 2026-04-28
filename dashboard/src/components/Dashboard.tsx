@@ -40,7 +40,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         setShowReportModal,
         openReportModal,
         handleGenerateReport
-    } = useReportGenerator(currentTenant, availableTenants, supabaseDevices, displayDevices);
+    } = useReportGenerator(currentTenant, availableTenants, supabaseDevices, displayDevices, currentUser?.role);
 
     if (!currentTenant || !currentUser) {
         return (
