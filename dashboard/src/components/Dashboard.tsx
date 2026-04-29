@@ -34,7 +34,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
     const {
         reportForm,
         setReportForm,
-        applyPreset,
+        saveDailyHours,
         generatingReport,
         showReportModal,
         setShowReportModal,
@@ -131,11 +131,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                 onClose={() => setShowReportModal(false)}
                 reportForm={reportForm}
                 setReportForm={setReportForm}
+                saveDailyHours={saveDailyHours}
                 generatingReport={generatingReport}
-                applyPreset={applyPreset}
                 onGenerate={handleGenerateReport}
                 availableTenants={availableTenants}
-                supabaseDevices={supabaseDevices}
                 currentUser={currentUser}
             />
         </div>

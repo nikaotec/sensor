@@ -1,22 +1,21 @@
 {
-    "name": "IoT Sensor - Events Logger",
+    "name": "IoT Sensor - Events Logger Supabase",
     "nodes": [
         {
             "parameters": {
-                "topics": "esp32c3/data,esp32c3/dashboard"
+                "topics": "esp32c3/data"
             },
             "id": "mqtt-trigger-events",
             "name": "MQTT Trigger",
             "type": "n8n-nodes-base.mqttTrigger",
             "typeVersion": 1,
             "position": [
-                240,
+                200,
                 300
             ]
         },
         {
             "parameters": {
-                "mode": "runOnceForEachItem",
                 "jsCode": "const payloadString = $input.item.json.message;\ntry {\n  const payload = JSON.parse(payloadString);\n  return { json: payload };\n} catch(e) {\n  return { json: { error: 'Invalid JSON', payload: payloadString } };\n}"
             },
             "id": "parse-payload-events",
@@ -24,27 +23,7 @@
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
             "position": [
-                460,
-                300
-            ]
-        },
-        {
-            "parameters": {
-                "conditions": {
-                    "string": [
-                        {
-                            "value1": "={{ $json.DISPOSITIVO }}",
-                            "operation": "isNotEmpty"
-                        }
-                    ]
-                }
-            },
-            "id": "validate-data-events",
-            "name": "Validate Data",
-            "type": "n8n-nodes-base.if",
-            "typeVersion": 1,
-            "position": [
-                680,
+                420,
                 300
             ]
         },
@@ -61,68 +40,49 @@
                             "value1": "={{ $json.TIPO }}",
                             "operation": "contains",
                             "value2": "NORMALIZADA"
-                        },
-                        {
-                            "value1": "={{ $json.TIPO }}",
-                            "operation": "contains",
-                            "value2": "RESTABELECIDA"
-                        },
-                        {
-                            "value1": "={{ $json.TIPO }}",
-                            "operation": "contains",
-                            "value2": "FECHADA"
-                        },
-                        {
-                            "value1": "={{ $json.TIPO }}",
-                            "operation": "equals",
-                            "value2": "RELE_LIGADO_MANUAL"
-                        },
-                        {
-                            "value1": "={{ $json.TIPO }}",
-                            "operation": "equals",
-                            "value2": "RELE_DESLIGADO_MANUAL"
-                        },
-                        {
-                            "value1": "={{ $json.TIPO }}",
-                            "operation": "equals",
-                            "value2": "MODO_MANUTENCAO_ATIVADO"
-                        },
-                        {
-                            "value1": "={{ $json.TIPO }}",
-                            "operation": "equals",
-                            "value2": "MODO_MANUTENCAO_DESATIVADO"
-                        },
-                        {
-                            "value1": "={{ $json.TIPO }}",
-                            "operation": "equals",
-                            "value2": "RESET_MAX_MIN_MANUAL"
-                        },
-                        {
-                            "value1": "={{ $json.TIPO }}",
-                            "operation": "equals",
-                            "value2": "feedback_configuracao"
                         }
                     ]
-                }
+                },
+                "combineOperation": "any"
             },
-            "id": "is-event-if-events",
-            "name": "Is Event?",
+            "id": "is-alert-event",
+            "name": "Is Alert Event?",
             "type": "n8n-nodes-base.if",
             "typeVersion": 1,
             "position": [
-                900,
+                640,
                 300
             ]
         },
         {
             "parameters": {
-                "operation": "insert",
-                "projectId": "smartrf-f9962",
-                "collection": "events",
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{ $json.IS_REPEAT }}",
+                            "operation": "notEqual",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "filter-repeats",
+            "name": "Not a Repeat?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                860,
+                280
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "create",
+                "tableId": "events",
                 "fieldsUi": {
                     "fieldValues": [
                         {
-                            "fieldId": "deviceId",
+                            "fieldId": "device_id",
                             "fieldValue": "={{ $json.ID_DISPOSITIVO }}"
                         },
                         {
@@ -131,30 +91,37 @@
                         },
                         {
                             "fieldId": "msg",
-                            "fieldValue": "={{ ($json.DISPOSITIVO || 'Dispositivo') + ': ' + ($json.CAMPOS_ALTERADOS ? 'Configuração alterada: ' + $json.CAMPOS_ALTERADOS : ($json.TIPO.replace(/_/g, ' ').toLowerCase())) }}"
+                            "fieldValue": "={{ ($json.DISPOSITIVO || 'Dispositivo') + ': ' + ($json.TIPO.replace(/_/g, ' ').toLowerCase()) }}"
                         },
                         {
                             "fieldId": "severity",
                             "fieldValue": "={{ $json.TIPO.startsWith('ALERTA_') ? 'critical' : 'info' }}"
                         },
                         {
-                            "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toISO() }}"
+                            "fieldId": "tenant_id",
+                            "fieldValue": "={{ $json.EMPRESA || 'Unknown' }}"
                         },
                         {
-                            "fieldId": "tenantId",
-                            "fieldValue": "={{ $json.EMPRESA || 'empresa_default' }}"
+                            "fieldId": "timestamp",
+                            "fieldValue": "={{ $now.setZone('America/Sao_Paulo').toISO() }}"
                         }
                     ]
                 }
             },
-            "id": "insert-firestore-events",
-            "name": "Insert Event to Firestore",
-            "type": "n8n-nodes-base.googleFirebaseCloudFirestore",
+            "id": "insert-supabase-events",
+            "name": "Insert Event Supabase",
+            "type": "n8n-nodes-base.supabase",
             "typeVersion": 1,
             "position": [
-                1120,
-                300
-            ]
+                1080,
+                260
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "mwfq69YpUvhBFjds",
+                    "name": "supabase_sensor"
+                }
+            }
         }
     ],
     "connections": {
@@ -173,39 +140,34 @@
             "main": [
                 [
                     {
-                        "node": "Validate Data",
+                        "node": "Is Alert Event?",
                         "type": "main",
                         "index": 0
                     }
                 ]
             ]
         },
-        "Validate Data": {
+        "Is Alert Event?": {
             "main": [
                 [
                     {
-                        "node": "Is Event?",
+                        "node": "Not a Repeat?",
                         "type": "main",
                         "index": 0
                     }
-                ],
-                []
+                ]
             ]
         },
-        "Is Event?": {
+        "Not a Repeat?": {
             "main": [
                 [
                     {
-                        "node": "Insert Event to Firestore",
+                        "node": "Insert Event Supabase",
                         "type": "main",
                         "index": 0
                     }
-                ],
-                []
+                ]
             ]
         }
-    },
-    "settings": {
-        "executionOrder": "v1"
     }
 }

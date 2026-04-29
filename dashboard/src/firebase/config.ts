@@ -2,8 +2,6 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 // Configuração Oficial gerada para SmartRF
-// Firebase é usado APENAS para autenticação. 
-// O banco de dados é Supabase (ver src/supabase/config.ts)
 const firebaseConfig = {
     apiKey: "AIzaSyA-UtBDh8WJTpcjNsn5iw5gSe_3km_si1c",
     authDomain: "smartrf-f9962.firebaseapp.com",

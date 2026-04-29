@@ -1,5 +1,24 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '../supabase/config';
+
+// Chave de persistência no localStorage para horários do relatório Diário
+const DAILY_HOURS_KEY = 'nikaotec_daily_report_hours';
+
+const loadDailyHours = (): string[] => {
+    try {
+        const saved = localStorage.getItem(DAILY_HOURS_KEY);
+        if (saved) {
+            const parsed = JSON.parse(saved) as string[];
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+    } catch { /* ignora erro de parse */ }
+    return ['08:00', '16:00']; // Padrão
+};
+
+const saveDailyHoursToStorage = (hours: string[]) => {
+    try { localStorage.setItem(DAILY_HOURS_KEY, JSON.stringify(hours)); }
+    catch { /* ignora erro de cota */ }
+};
 
 // Constante para a URL do webhook
 export const REPORT_WEBHOOK_URL = 'https://n8n.nikaotech.com/webhook/generate-report';
@@ -12,10 +31,13 @@ export interface ReportForm {
     end_date: string;
     start_time: string;
     end_time: string;
-    report_preset: string;
+    report_preset: string; // Usado para compatibilidade com presets antigos se necessário
+    report_type: 'daily' | 'monthly' | 'custom' | 'detailed';
     selected_hours: string[];
     use_all_hours: boolean;
     mensage_tipo: string[];
+    selected_variables: string[];
+    detailed_hour_start: string;
 }
 
 export const getDefaultReportDates = () => {
@@ -53,9 +75,12 @@ export const useReportGenerator = (
         start_time: getDefaultReportDates().start_time,
         end_time: getDefaultReportDates().end_time,
         report_preset: '',
-        selected_hours: [],
+        report_type: 'custom',
+        selected_hours: ['08:00', '16:00'],
         use_all_hours: true,
-        mensage_tipo: ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA']
+        mensage_tipo: ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'],
+        selected_variables: ['temperature', 'humidity', 'voltage'],
+        detailed_hour_start: '08:00'
     });
 
     const [generatingReport, setGeneratingReport] = useState(false);
@@ -63,6 +88,7 @@ export const useReportGenerator = (
 
     const openReportModal = () => {
         const dates = getDefaultReportDates();
+        const savedDailyHours = loadDailyHours();
         setReportForm({
             type: 'company',
             tenant_id: currentTenant?.id && currentTenant.id !== 'all' ? currentTenant.id : '',
@@ -72,12 +98,21 @@ export const useReportGenerator = (
             start_time: dates.start_time,
             end_time: dates.end_time,
             report_preset: '',
-            selected_hours: [],
+            report_type: 'custom',
+            selected_hours: savedDailyHours,
             use_all_hours: true,
-            mensage_tipo: ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA']
+            mensage_tipo: ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'],
+            selected_variables: ['temperature', 'humidity', 'voltage'],
+            detailed_hour_start: '08:00'
         });
         setShowReportModal(true);
     };
+
+    // Persiste os horários ao serem alterados no modo Diário
+    const saveDailyHours = useCallback((hours: string[]) => {
+        saveDailyHoursToStorage(hours);
+        setReportForm(prev => ({ ...prev, selected_hours: hours, use_all_hours: false }));
+    }, []);
 
     const formatDateTime = (dateStr: string, timeStr: string) => {
         const [hours, minutes] = timeStr.split(':').map(Number);
@@ -88,63 +123,61 @@ export const useReportGenerator = (
         return `${year}-${pad(month)}-${pad(day)}T${pad(hours || 0)}:${pad(minutes || 0)}:00-03:00`;
     };
 
-    const applyPreset = (presetId: string) => {
-        const now = new Date();
-        const formatSP = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-        const today = formatSP(now);
-
-        let updates: Partial<ReportForm> = { report_preset: presetId };
-
-        if (presetId === 'daily_8_16') {
-            updates = {
-                ...updates,
-                start_date: today,
-                end_date: today,
-                use_all_hours: false,
-                selected_hours: ['08:00', '16:00']
-            };
-        } else if (presetId === 'month_8_16') {
-            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            updates = {
-                ...updates,
-                start_date: formatSP(firstDay),
-                end_date: formatSP(lastDay),
-                use_all_hours: false,
-                selected_hours: ['08:00', '16:00']
-            };
-        } else if (presetId === 'geral') {
-            const dates = getDefaultReportDates();
-            updates = {
-                ...updates,
-                ...dates,
-                report_preset: 'geral',
-                use_all_hours: true
-            };
-        }
-
-        setReportForm(prev => ({ ...prev, ...updates }));
-    };
 
     const handleGenerateReport = async () => {
         const selectedTenant = availableTenants.find(t => t.id === reportForm.tenant_id) || (currentTenant.id !== 'all' ? currentTenant : null);
         const tenantId = selectedTenant?.id;
         const companyName = selectedTenant?.name || 'Geral';
 
-        const effectiveType = reportForm.report_preset === 'daily_8_16'
-            ? 'diario'
-            : reportForm.device_id ? 'device' : 'company';
-
         setGeneratingReport(true);
         try {
-            const startISO = formatDateTime(reportForm.start_date, reportForm.start_time);
-            const endISO = formatDateTime(reportForm.end_date, reportForm.end_time);
+            const formatSP = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+            const now = new Date();
+            const today = formatSP(now);
+
+            let startDate = reportForm.start_date;
+            let endDate = reportForm.end_date;
+            let queryStartTime = reportForm.start_time;
+            let queryEndTime = reportForm.end_time;
+            let selectedHoursAtJS = reportForm.selected_hours;
+            let useSelectedHoursFilter = reportForm.report_type === 'custom' && !reportForm.use_all_hours;
+
+            // Lógica por Tipo de Relatório
+            if (reportForm.report_type === 'daily') {
+                startDate = today;
+                endDate = today;
+                // Usa os horários editados pelo usuário; fallback para 08h/16h se nenhum selecionado
+                selectedHoursAtJS = reportForm.selected_hours?.length > 0
+                    ? reportForm.selected_hours
+                    : ['08:00', '16:00'];
+                useSelectedHoursFilter = true;
+            } else if (reportForm.report_type === 'monthly') {
+                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+                startDate = formatSP(firstDay);
+                endDate = today;
+                // Herda os mesmos horários configurados no Diário
+                selectedHoursAtJS = reportForm.selected_hours?.length > 0
+                    ? reportForm.selected_hours
+                    : ['08:00', '16:00'];
+                useSelectedHoursFilter = true;
+            } else if (reportForm.report_type === 'detailed') {
+                // Modo Detalhado: 1 dia, intervalo de 1h minuto a minuto
+                startDate = reportForm.start_date;
+                endDate = reportForm.start_date;
+                queryStartTime = reportForm.detailed_hour_start;
+                const [h, m] = queryStartTime.split(':').map(Number);
+                queryEndTime = `${(h + 1).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                useSelectedHoursFilter = false; // Queremos todos os registros (minuto a minuto)
+            }
+
+            const startISO = formatDateTime(startDate, queryStartTime);
+            const endISO = formatDateTime(endDate, queryEndTime);
 
             let targetDeviceIds: string[] = [];
             const targetTenantId = reportForm.tenant_id || (currentTenant.id !== 'all' ? currentTenant.id : '');
 
-            if (effectiveType === 'device') {
-                targetDeviceIds = reportForm.device_id ? [reportForm.device_id] : [];
+            if (reportForm.device_id) {
+                targetDeviceIds = [reportForm.device_id];
             } else {
                 const companyDevices = (targetTenantId && targetTenantId !== '')
                     ? supabaseDevices.filter(d => d.tenantId === targetTenantId)
@@ -153,60 +186,34 @@ export const useReportGenerator = (
             }
 
             if (targetDeviceIds.length === 0) {
-                alert(`Nenhum dispositivo encontrado. Adicione dispositivos ou escolha outra empresa.`);
+                alert(`Nenhum dispositivo encontrado.`);
                 setGeneratingReport(false);
                 return;
             }
 
-            // Lógica de Filtragem Separada (Evita que um modo interfira no outro)
-            let telemetryRows: any[] = [];
-            let fetchError: any = null;
+            // BUSCA NO SUPABASE
+            const { data, error } = await supabase
+                .from('telemetry')
+                .select('*')
+                .in('device_id', targetDeviceIds)
+                .gte('timestamp', startISO)
+                .lte('timestamp', endISO)
+                .order('timestamp', { ascending: true })
+                .limit(reportForm.report_type === 'detailed' ? 2000 : 10000);
 
-            const isPreset816 = reportForm.report_preset === 'daily_8_16' || reportForm.report_preset === 'month_8_16';
+            if (error) throw error;
 
-            if (isPreset816) {
-                // CAMINHO PRESETS (08/16): Apenas registros periódicos dos horários exatos
-                const selectedHourNums = reportForm.selected_hours.map(h => parseInt(String(h).split(':')[0]));
+            let telemetryRows = data || [];
 
-                const { data, error } = await supabase
-                    .from('telemetry')
-                    .select('*')
-                    .in('device_id', targetDeviceIds)
-                    .gte('data_registro', reportForm.start_date)
-                    .lte('data_registro', reportForm.end_date)
-                    .in('mensage_tipo', ['periodico', 'relatorio_diario']) // Apenas periódicos, remove ruído de alertas
-                    .order('data_registro', { ascending: true })
-                    .order('hora_registro', { ascending: true })
-                    .limit(10000);
-
-                telemetryRows = data || [];
-                fetchError = error;
-
-                // Filtro rigoroso no JS para garantir apenas as horas 08 e 16 (independente de segundos)
+            // Filtro de Horas (Se necessário)
+            if (useSelectedHoursFilter && selectedHoursAtJS.length > 0) {
+                const hourNums = selectedHoursAtJS.map(h => parseInt(h.split(':')[0]));
                 telemetryRows = telemetryRows.filter(row => {
                     if (!row.hora_registro) return false;
                     const rowHour = parseInt(row.hora_registro.split(':')[0]);
-                    return selectedHourNums.includes(rowHour);
+                    return hourNums.includes(rowHour);
                 });
-            } else {
-                // CAMINHO MANUAL: Precisão de minutos via timestamp ISO completo
-                const standardTypes = ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'];
-
-                const { data, error } = await supabase
-                    .from('telemetry')
-                    .select('*')
-                    .in('device_id', targetDeviceIds)
-                    .gte('timestamp', startISO)
-                    .lte('timestamp', endISO)
-                    .in('mensage_tipo', standardTypes)
-                    .order('timestamp', { ascending: true })
-                    .limit(10000);
-
-                telemetryRows = data || [];
-                fetchError = error;
             }
-
-            if (fetchError) console.error('Erro ao buscar registros:', fetchError);
 
             if (!telemetryRows || telemetryRows.length === 0) {
                 alert(`Nenhum registro de telemetria encontrado para o período ou horários selecionados.`);
@@ -214,17 +221,8 @@ export const useReportGenerator = (
                 return;
             }
 
-            // Os dados já saem filtrados dos blocos acima
-            let filteredRows = telemetryRows;
-
-            if (filteredRows.length === 0) {
-                alert(`Nenhum registro encontrado para os horários selecionados no período.`);
-                setGeneratingReport(false);
-                return;
-            }
-
             // Enriquecer dados com nomes/locais para facilitar o PDF
-            const enrichedRows = filteredRows.map(row => {
+            const enrichedRows = telemetryRows.map(row => {
                 const dev = supabaseDevices.find(d => d.id === row.device_id);
                 return {
                     ...row,
@@ -234,21 +232,21 @@ export const useReportGenerator = (
             });
 
             const payload: any = {
-                type: effectiveType,
+                report_type: reportForm.report_type,
                 start_date: startISO,
                 end_date: endISO,
                 company_name: companyName,
-                selected_hours: reportForm.use_all_hours ? [] : reportForm.selected_hours,
+                selected_hours: selectedHoursAtJS,
                 use_all_hours: reportForm.use_all_hours,
-                report_preset: reportForm.report_preset,
                 mensage_tipo: reportForm.mensage_tipo,
+                selected_variables: reportForm.selected_variables,
                 is_gestor: userRole === 'manager' || userRole === 'gestor',
-                telemetry_data: enrichedRows // Enviando dados já filtrados e processados
+                telemetry_data: enrichedRows
             };
 
             if (tenantId) payload.tenant_id = tenantId;
 
-            if (effectiveType === 'device') {
+            if (reportForm.device_id) {
                 const device = enrichedRows.find(d => d.device_id === reportForm.device_id) || { device_name: reportForm.device_id };
                 payload.device_id = reportForm.device_id;
                 payload.device_name = device.device_name;
@@ -305,7 +303,7 @@ export const useReportGenerator = (
     return {
         reportForm,
         setReportForm,
-        applyPreset,
+        saveDailyHours,
         generatingReport,
         showReportModal,
         setShowReportModal,
