@@ -135,6 +135,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                 generatingReport={generatingReport}
                 onGenerate={handleGenerateReport}
                 availableTenants={availableTenants}
+                supabaseDevices={supabaseDevices}
                 currentUser={currentUser}
             />
         </div>

@@ -1,6 +1,13 @@
 import React from 'react';
-import { X, Calendar, FileText, BarChart2, CheckCircle2, Clock } from 'lucide-react';
+import { X, Calendar, FileText, BarChart2, CheckCircle2, Clock, Building2, Cpu } from 'lucide-react';
 import type { ReportForm } from '../../hooks/useReportGenerator';
+
+// Tipo leve para dispositivos passados ao modal
+interface DeviceOption {
+    id: string;
+    name: string;
+    tenantId?: string;
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const HOURS = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
@@ -11,7 +18,6 @@ const VARIABLES = [
     { id: 'humidity', label: 'Umidade (%)' },
     { id: 'voltage', label: 'Tensão Principal (V)' },
     { id: 'battery', label: 'Bateria (V)' },
-    { id: 'rssi', label: 'Sinal RSSI (dBm)' },
     { id: 'door_open', label: 'Status da Porta' },
 ];
 
@@ -46,8 +52,8 @@ const PeriodPanel: React.FC<{
     setForm: React.Dispatch<React.SetStateAction<ReportForm>>;
     onSaveDailyHours: (hours: string[]) => void;
 }> = ({ form, setForm, onSaveDailyHours }) => (
-    <div className="bg-[#0F110D]/50 p-5 rounded-2xl border border-pink-900/40 space-y-4">
-        <label className="flex items-center gap-2 text-[10px] font-black text-pink-400 uppercase tracking-[0.2em] mb-2">
+    <div className="bg-[#1A0505] p-5 rounded-2xl border-2 border-red-600 space-y-4">
+        <label className="flex items-center gap-2 text-[10px] font-black text-red-300 uppercase tracking-[0.2em] mb-2">
             <Calendar size={13} />
             Período do Relatório
         </label>
@@ -73,7 +79,7 @@ const PeriodPanel: React.FC<{
                                 type="date"
                                 value={form.end_date}
                                 onChange={(e) => setForm(prev => ({ ...prev, end_date: e.target.value }))}
-                                className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-pink-500/50 transition-all"
+                                className="w-full bg-[#0F110D] border border-red-700/50 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-red-400 transition-all"
                             />
                         </div>
                     )}
@@ -88,7 +94,7 @@ const PeriodPanel: React.FC<{
                                 type="time"
                                 value={form.start_time}
                                 onChange={(e) => setForm(prev => ({ ...prev, start_time: e.target.value }))}
-                                className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-pink-500/50 transition-all"
+                                className="w-full bg-[#0F110D] border border-red-700/50 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-red-400 transition-all"
                             />
                         </div>
                         <div>
@@ -97,7 +103,7 @@ const PeriodPanel: React.FC<{
                                 type="time"
                                 value={form.end_time}
                                 onChange={(e) => setForm(prev => ({ ...prev, end_time: e.target.value }))}
-                                className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-pink-500/50 transition-all"
+                                className="w-full bg-[#0F110D] border border-red-700/50 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-red-400 transition-all"
                             />
                         </div>
                     </div>
@@ -109,12 +115,12 @@ const PeriodPanel: React.FC<{
         {form.report_type === 'daily' && (
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                    <label className="text-[9px] font-black text-pink-400 uppercase tracking-widest">
+                    <label className="text-[9px] font-black text-red-300 uppercase tracking-widest">
                         Horários do Relatório Diário
                     </label>
                     <span className="text-[8px] text-slate-500">{form.selected_hours?.length || 0} selecionados</span>
                 </div>
-                <div className="grid grid-cols-4 gap-1.5 border border-pink-900/30 p-3 rounded-2xl bg-[#0F110D] max-h-36 overflow-y-auto custom-scrollbar">
+                <div className="grid grid-cols-4 gap-1.5 border border-red-700/50 p-3 rounded-2xl bg-[#0F110D] max-h-36 overflow-y-auto custom-scrollbar">
                     {HOURS.map(hour => (
                         <button
                             key={hour}
@@ -127,8 +133,8 @@ const PeriodPanel: React.FC<{
                                 onSaveDailyHours(next);
                             }}
                             className={`py-1.5 rounded-lg text-[9px] font-bold transition-all border ${form.selected_hours?.includes(hour)
-                                ? 'bg-pink-500/20 text-pink-300 border-pink-500/50'
-                                : 'bg-[#1A1D17] text-slate-500 border-[#2A2E24] hover:border-pink-500/20'
+                                ? 'bg-red-600/40 text-red-200 border-red-500'
+                                : 'bg-[#1A1D17] text-slate-400 border-[#2A2E24] hover:border-red-600/60'
                                 }`}
                         >
                             {hour}
@@ -143,8 +149,8 @@ const PeriodPanel: React.FC<{
 
         {/* MENSAL: informativo — herda horários do Diário */}
         {form.report_type === 'monthly' && (
-            <div className="bg-pink-500/5 border border-pink-500/15 rounded-xl p-3">
-                <p className="text-[9px] font-bold text-pink-400 uppercase tracking-widest mb-1">Período Automático: Mês Atual</p>
+            <div className="bg-red-900/20 border border-red-600/50 rounded-xl p-3">
+                <p className="text-[9px] font-bold text-red-300 uppercase tracking-widest mb-1">Período Automático: Mês Atual</p>
                 <p className="text-[10px] text-slate-500 leading-relaxed">
                     Utiliza os mesmos horários configurados no Diário, do 1º dia do mês até hoje.
                 </p>
@@ -158,8 +164,8 @@ const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<Reac
     const showExpandedPanel = form.report_type === 'custom' || form.report_type === 'detailed';
 
     return (
-        <div className="bg-[#0F110D]/50 p-5 rounded-2xl border border-emerald-900/40 space-y-4">
-            <label className="flex items-center gap-2 text-[10px] font-black text-emerald-400 uppercase tracking-[0.2em] mb-2">
+        <div className="bg-[#050F08] p-5 rounded-2xl border-2 border-emerald-600 space-y-4">
+            <label className="flex items-center gap-2 text-[10px] font-black text-emerald-300 uppercase tracking-[0.2em] mb-2">
                 <FileText size={13} />
                 Tipo de Relatório
             </label>
@@ -171,8 +177,8 @@ const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<Reac
                         key={type.id}
                         onClick={() => setForm(prev => ({ ...prev, report_type: type.id as ReportForm['report_type'] }))}
                         className={`px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border text-left ${form.report_type === type.id
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/40 shadow-lg shadow-emerald-500/5'
-                            : 'bg-[#1A1D17] text-slate-500 border-[#2A2E24] hover:border-emerald-500/20'
+                            ? 'bg-emerald-600/30 text-emerald-200 border-emerald-500 shadow-lg shadow-emerald-500/10'
+                            : 'bg-[#1A1D17] text-slate-400 border-[#2A2E24] hover:border-emerald-600/60'
                             }`}
                     >
                         {type.label}
@@ -191,17 +197,17 @@ const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<Reac
                     {form.report_type === 'custom' && (
                         <>
                             <div className="flex items-center justify-between">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                                <label className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
                                     Selecionar Horários
                                 </label>
                                 <button
                                     onClick={() => setForm(prev => ({ ...prev, selected_hours: [], use_all_hours: true }))}
-                                    className="text-[8px] font-black text-emerald-400/60 hover:text-emerald-400 uppercase tracking-widest transition-colors"
+                                    className="text-[8px] font-black text-emerald-300/80 hover:text-emerald-300 uppercase tracking-widest transition-colors"
                                 >
                                     Limpar
                                 </button>
                             </div>
-                            <div className="grid grid-cols-4 gap-1.5 border border-[#2A2E24] p-3 rounded-2xl bg-[#0F110D] max-h-36 overflow-y-auto custom-scrollbar">
+                            <div className="grid grid-cols-4 gap-1.5 border border-emerald-700/50 p-3 rounded-2xl bg-[#0F110D] max-h-36 overflow-y-auto custom-scrollbar">
                                 {HOURS.map(hour => (
                                     <button
                                         key={hour}
@@ -213,8 +219,8 @@ const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<Reac
                                             setForm(prev => ({ ...prev, selected_hours: next, use_all_hours: next.length === 0 }));
                                         }}
                                         className={`py-1.5 rounded-lg text-[9px] font-bold transition-all border ${form.selected_hours?.includes(hour)
-                                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
-                                            : 'bg-[#1A1D17] text-slate-500 border-[#2A2E24] hover:border-emerald-500/20'
+                                            ? 'bg-emerald-600/40 text-emerald-200 border-emerald-500'
+                                            : 'bg-[#1A1D17] text-slate-400 border-[#2A2E24] hover:border-emerald-600/60'
                                             }`}
                                     >
                                         {hour}
@@ -229,20 +235,20 @@ const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<Reac
 
                     {form.report_type === 'detailed' && (
                         <>
-                            <div className="bg-amber-500/8 border border-amber-500/20 p-3 rounded-xl">
-                                <p className="text-[9px] font-bold text-amber-400 leading-relaxed">
-                                    Selecione o dia (no quadro rosa) e o horário de início abaixo. O relatório cobrirá 1 hora de registros minuto a minuto.
+                            <div className="bg-amber-600/15 border border-amber-500/40 p-3 rounded-xl">
+                                <p className="text-[9px] font-bold text-amber-300 leading-relaxed">
+                                    Selecione o dia (no quadro vermelho) e o horário de início abaixo. O relatório cobrirá 1 hora de registros minuto a minuto.
                                 </p>
                             </div>
                             <div>
-                                <label className="text-[9px] font-bold text-slate-500 uppercase mb-1.5 block flex items-center gap-1.5">
+                                <label className="text-[9px] font-bold text-slate-300 uppercase mb-1.5 block flex items-center gap-1.5">
                                     <Clock size={10} />
                                     Horário de Início (janela de 1h)
                                 </label>
                                 <select
                                     value={form.detailed_hour_start}
                                     onChange={(e) => setForm(prev => ({ ...prev, detailed_hour_start: e.target.value }))}
-                                    className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-emerald-500/50 transition-all"
+                                    className="w-full bg-[#0F110D] border border-emerald-700/50 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-emerald-400 transition-all"
                                 >
                                     {HOURS.map(h => (
                                         <option key={h} value={h}>
@@ -259,13 +265,11 @@ const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<Reac
     );
 };
 
-/** Quadro Azul: seleção de variáveis + filtro de empresa */
+/** Quadro Azul: seleção de variáveis de telemetria */
 const VariablesPanel: React.FC<{
     form: ReportForm;
     setForm: React.Dispatch<React.SetStateAction<ReportForm>>;
-    availableTenants: any[];
-    currentUser: any;
-}> = ({ form, setForm, availableTenants, currentUser }) => {
+}> = ({ form, setForm }) => {
     const toggleAll = () => {
         const allIds = VARIABLES.map(v => v.id);
         const allSelected = allIds.every(id => form.selected_variables?.includes(id));
@@ -273,15 +277,15 @@ const VariablesPanel: React.FC<{
     };
 
     return (
-        <div className="bg-[#0F110D]/50 p-5 rounded-2xl border border-blue-900/40 space-y-4">
+        <div className="bg-[#05080F] p-5 rounded-2xl border-2 border-blue-600 space-y-4">
             <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-[10px] font-black text-blue-400 uppercase tracking-[0.2em]">
+                <label className="flex items-center gap-2 text-[10px] font-black text-blue-300 uppercase tracking-[0.2em]">
                     <BarChart2 size={13} />
                     Variáveis do PDF
                 </label>
                 <button
                     onClick={toggleAll}
-                    className="text-[8px] font-black text-blue-400/60 hover:text-blue-400 uppercase tracking-widest transition-colors"
+                    className="text-[8px] font-black text-blue-300/80 hover:text-blue-300 uppercase tracking-widest transition-colors"
                 >
                     {VARIABLES.every(v => form.selected_variables?.includes(v.id)) ? 'Desmarcar Todas' : 'Marcar Todas'}
                 </button>
@@ -301,13 +305,13 @@ const VariablesPanel: React.FC<{
                                 setForm(prev => ({ ...prev, selected_variables: next }));
                             }}
                             className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${selected
-                                ? 'bg-blue-500/10 text-blue-300 border-blue-500/40'
-                                : 'bg-[#1A1D17] text-slate-500 border-[#2A2E24] hover:border-blue-500/20'
+                                ? 'bg-blue-600/30 text-blue-200 border-blue-500'
+                                : 'bg-[#1A1D17] text-slate-400 border-[#2A2E24] hover:border-blue-600/60'
                                 }`}
                         >
                             <span>{v.label}</span>
                             {selected ? (
-                                <CheckCircle2 size={13} className="text-blue-400 shrink-0" />
+                                <CheckCircle2 size={13} className="text-blue-300 shrink-0" />
                             ) : (
                                 <div className="size-3 rounded-full border border-slate-700 shrink-0" />
                             )}
@@ -316,22 +320,69 @@ const VariablesPanel: React.FC<{
                 })}
             </div>
 
-            {/* Filtro de empresa — apenas admin/manager */}
-            {(currentUser?.role === 'admin' || currentUser?.role === 'manager' || currentUser?.role === 'gestor') && (
-                <div className="pt-3 border-t border-[#2A2E24] space-y-2">
-                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Empresa</label>
-                    <select
-                        value={form.tenant_id}
-                        onChange={(e) => setForm(prev => ({ ...prev, tenant_id: e.target.value, device_id: '' }))}
-                        className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500/50 transition-all"
-                    >
-                        <option value="">Todas as Empresas</option>
-                        {availableTenants.map(t => (
-                            <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                    </select>
-                </div>
-            )}
+            {/* Linha divisória + filtro de empresa REMOVIDO — agora está na SelectorBar acima dos cards */}
+        </div>
+    );
+};
+
+// ─── SelectorBar: empresa e dispositivo acima dos 3 quadros ─────────────────
+/** Barra com dropdowns de Empresa e Dispositivo, exibida para admin/manager */
+const SelectorBar: React.FC<{
+    form: ReportForm;
+    setForm: React.Dispatch<React.SetStateAction<ReportForm>>;
+    availableTenants: any[];
+    devices: DeviceOption[];
+    currentUser: any;
+}> = ({ form, setForm, availableTenants, devices, currentUser }) => {
+    const isPrivileged =
+        currentUser?.role === 'admin' ||
+        currentUser?.role === 'manager' ||
+        currentUser?.role === 'gestor';
+
+    // Dispositivos filtrados pela empresa selecionada
+    const filteredDevices = form.tenant_id
+        ? devices.filter(d => d.tenantId === form.tenant_id)
+        : devices;
+
+    if (!isPrivileged) return null;
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 p-4 bg-[#0F110D]/40 rounded-2xl border border-[#2A2E24]">
+            {/* Empresa */}
+            <div>
+                <label className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                    <Building2 size={10} />
+                    Empresa
+                </label>
+                <select
+                    value={form.tenant_id}
+                    onChange={(e) => setForm(prev => ({ ...prev, tenant_id: e.target.value, device_id: '' }))}
+                    className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition-all"
+                >
+                    <option value="">Todas as Empresas</option>
+                    {availableTenants.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Dispositivo */}
+            <div>
+                <label className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                    <Cpu size={10} />
+                    Dispositivo
+                </label>
+                <select
+                    value={form.device_id}
+                    onChange={(e) => setForm(prev => ({ ...prev, device_id: e.target.value }))}
+                    className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition-all"
+                >
+                    <option value="">Geral (Todos os Dispositivos)</option>
+                    {filteredDevices.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                </select>
+            </div>
         </div>
     );
 };
@@ -346,6 +397,7 @@ interface ReportModalProps {
     generatingReport: boolean;
     onGenerate: () => Promise<void>;
     availableTenants: any[];
+    supabaseDevices: DeviceOption[]; // Lista completa de dispositivos para filtrar
     currentUser: any;
 }
 
@@ -359,6 +411,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
     generatingReport,
     onGenerate,
     availableTenants,
+    supabaseDevices,
     currentUser,
 }) => {
     if (!show) return null;
@@ -385,17 +438,22 @@ const ReportModal: React.FC<ReportModalProps> = ({
                     </button>
                 </div>
 
-                {/* Corpo — 3 colunas */}
+                {/* Corpo */}
                 <div className="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                    {/* Seletor de Empresa + Dispositivo — apenas para admin/manager */}
+                    <SelectorBar
+                        form={reportForm}
+                        setForm={setReportForm}
+                        availableTenants={availableTenants}
+                        devices={supabaseDevices}
+                        currentUser={currentUser}
+                    />
+
+                    {/* 3 quadros: Rosa, Verde, Azul */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <PeriodPanel form={reportForm} setForm={setReportForm} onSaveDailyHours={saveDailyHours} />
                         <ReportTypePanel form={reportForm} setForm={setReportForm} />
-                        <VariablesPanel
-                            form={reportForm}
-                            setForm={setReportForm}
-                            availableTenants={availableTenants}
-                            currentUser={currentUser}
-                        />
+                        <VariablesPanel form={reportForm} setForm={setReportForm} />
                     </div>
                 </div>
 

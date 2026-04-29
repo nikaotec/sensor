@@ -291,7 +291,7 @@ export const useReportGenerator = (
                 console.error('Erro no webhook (status ' + response.status + '):', errorText);
                 alert(`Erro ao gerar relatório (${response.status}). Verifique os dados e tente novamente.`);
             }
-            setShowReportModal(false);
+            // Modal permanece aberto — usuário fecha manualmente pelo X ou Cancelar
         } catch (err) {
             console.error('Error generating report:', err);
             alert("Erro ao gerar relatório.");
