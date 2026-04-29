@@ -8,40 +8,56 @@ AlertManager::AlertManager(String name, unsigned long debounceTime,
   _startTime = 0;
   _lastAlertTime = 0;
   _isActive = false;
+  _inRecovery = false;
 }
 
 AlertStatus AlertManager::check(bool isErrorCondition) {
   unsigned long now = millis();
 
   if (isErrorCondition) {
-    // Se detectou erro agora e não estava contando tempo
-    if (_startTime == 0) {
-      _startTime = now;
+    // Cancela qualquer tentativa de recuperação/normalização que estava em
+    // andamento
+    if (_inRecovery) {
+      _inRecovery = false;
+      _startTime = 0;
     }
 
-    // Verifica Debounce (Persistência do erro)
-    if (now - _startTime >= _debounceTime) {
-      // Se o alerta ainda não está ativo, ATIVA
-      if (!_isActive) {
+    if (!_isActive) {
+      // Se não está ativo, começa o debounce para ativar
+      if (_startTime == 0) {
+        _startTime = now;
+      }
+      if (now - _startTime >= _debounceTime) {
         _isActive = true;
         _lastAlertTime = now;
+        _startTime = 0;
         return ALERT_STARTED;
       }
-
-      // Se já está ativo, verifica repetição
+    } else {
+      // Se já está ativo, envia repetições a cada _repeatInterval
       if (now - _lastAlertTime >= _repeatInterval) {
         _lastAlertTime = now;
         return ALERT_REPEATED;
       }
     }
   } else {
-    // Se a condição normalizou...
-    _startTime = 0; // Reseta timer de início
-
+    // Não é condição de erro
     if (_isActive) {
-      // Se estava ativo, desativa e avisa
-      _isActive = false;
-      return ALERT_NORMALIZED;
+      // Começa o debounce para normalizar
+      if (!_inRecovery) {
+        _inRecovery = true;
+        _startTime = now;
+      }
+      if (now - _startTime >= _debounceTime) {
+        _isActive = false;
+        _inRecovery = false;
+        _startTime = 0;
+        return ALERT_NORMALIZED;
+      }
+    } else {
+      // Garante estado resetado se parar de falhar antes de ativar
+      _startTime = 0;
+      _inRecovery = false;
     }
   }
 

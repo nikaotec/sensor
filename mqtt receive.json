@@ -20,7 +20,7 @@
         "resource": "messages-api",
         "instanceName": "sensor_temperatura",
         "remoteJid": "={{ $('Code in JavaScript1').first().json.remoteJid }}",
-        "messageText": "=✅ Cadastrado com sucesso!\n\nO número {{ $json.NUMERO }} agora tem acesso de {{ $json.RULE === 'ADMIN' ? 'Administrador' : 'Usuário comum' }} ao sistema.",
+        "messageText": "=✅ {{ $json.NUMERO }} cadastrado ({{ $json.RULE === 'ADMIN' ? 'ADM' : 'USER' }})",
         "options_message": {}
       },
       "type": "n8n-nodes-evolution-api.evolutionApi",
@@ -1016,7 +1016,7 @@
         "resource": "messages-api",
         "instanceName": "sensor_temperatura",
         "remoteJid": "={{ $('Code in JavaScript1').first().json.remoteJid }}",
-        "messageText": "=✅ Permissão alterada com sucesso!\n\nO número {{ $json.NUMERO }} agora tem acesso de {{ $json.RULE === 'ADMIN' ? 'Administrador' : 'Usuário comum' }} ao sistema.",
+        "messageText": "=✅ Permissão de {{ $json.NUMERO }} alterada para {{ $json.RULE === 'ADMIN' ? 'ADM' : 'USER' }}",
         "options_message": {}
       },
       "type": "n8n-nodes-evolution-api.evolutionApi",
@@ -1072,7 +1072,7 @@
         "resource": "messages-api",
         "instanceName": "sensor_temperatura",
         "remoteJid": "={{ $('Code in JavaScript1').first().json.remoteJid }}",
-        "messageText": "=✅ Usuário excluído com sucesso!\n\nO número {{ $('Code in JavaScript1').first().json.numero_alvo }} foi removido do sistema.",
+        "messageText": "=✅ Usuário {{ $('Code in JavaScript1').first().json.numero_alvo }} excluído",
         "options_message": {}
       },
       "type": "n8n-nodes-evolution-api.evolutionApi",

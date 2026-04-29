@@ -68,8 +68,8 @@ export const generateRandomPassword = () => {
     return password;
 };
 
-// Constante para a URL do webhook de tarefas administrativas
-const DELETE_USER_WEBHOOK_URL = '/api/n8n/webhook/delete-user';
+// Constante para o endpoint de tarefas administrativas no próprio servidor
+const DELETE_USER_ADMIN_URL = '/api/admin/delete-user';
 
 /**
  * Solicita a exclusão de um usuário no Firebase Auth via Webhook n8n.
@@ -77,7 +77,7 @@ const DELETE_USER_WEBHOOK_URL = '/api/n8n/webhook/delete-user';
  */
 export const deleteFirebaseUser = async (uid: string) => {
     try {
-        const response = await fetch(DELETE_USER_WEBHOOK_URL, {
+        const response = await fetch(DELETE_USER_ADMIN_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ uid })

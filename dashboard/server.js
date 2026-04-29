@@ -5,6 +5,10 @@ import path from 'path';
 import http from 'http';
 import { fileURLToPath } from 'url';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +43,37 @@ const n8nProxy = createProxyMiddleware({
 });
 
 app.use('/api/n8n', n8nProxy);
+
+// =============================================
+// Admin Direct Actions: Firebase Auth
+// =============================================
+app.post('/api/admin/delete-user', async (req, res) => {
+  const { uid } = req.body;
+  if (!uid || typeof uid !== 'string' || uid.length < 5) {
+    return res.status(400).json({ success: false, error: 'UID inválido' });
+  }
+
+  console.log(`🗑️ [Admin] Solicitando exclusão do UID: ${uid}`);
+
+  try {
+    // Executa o comando firebase CLI para deletar o usuário
+    // Usa --force para não pedir confirmação e --project para garantir o contexto
+    const { stdout, stderr } = await execAsync(`firebase auth:delete --uid "${uid}" --project smartrf-iot-dashboard --force`);
+
+    console.log(`✅ [Admin] Usuário ${uid} deletado do Firebase!`);
+    if (stdout) console.log('Firebase CLI output:', stdout);
+    if (stderr) console.warn('Firebase CLI dynamic warning:', stderr);
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ [Admin] Erro ao deletar no Firebase:', error.message);
+    // Se o erro for "user not found", consideramos sucesso (já sumiu)
+    if (error.message.includes('auth/user-not-found') || error.message.includes('no user found')) {
+      return res.json({ success: true, warning: 'Usuário já não existia no Firebase' });
+    }
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 app.use(cors());
 app.use(express.json());

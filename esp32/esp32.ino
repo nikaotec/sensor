@@ -223,10 +223,13 @@ void loop() {
 
     // 2.1 Envio Periódico de Alerta (Sincronização de timers)
     bool foraDaFaixa =
-        (temperaturaAtual > storage.data.alarmMax ||
-         temperaturaAtual < storage.data.alarmMin ||
-         tVoltagem > storage.data.voltMax || tVoltagem < storage.data.voltMin ||
-         tVoltagem < VOLT_OUTAGE_THR || tBateria < storage.data.batMinLimit);
+        (storage.data.chkTemp && (temperaturaAtual > storage.data.alarmMax ||
+                                  temperaturaAtual < storage.data.alarmMin)) ||
+        (storage.data.chkVolt &&
+         (tVoltagem > storage.data.voltMax ||
+          tVoltagem < storage.data.voltMin || tVoltagem < VOLT_OUTAGE_THR)) ||
+        (storage.data.chkBat && (tBateria < storage.data.batMinLimit)) ||
+        (storage.data.chkDoor && isDoorOpen);
 
     // Sincroniza o silêncio na borda
     static bool prevForaDaFaixa = false;
@@ -258,7 +261,6 @@ void loop() {
     }
 
     if (!modoManual) {
-
       // 0. Lógica dos 4 Relés (Apenas com temperatura válida)
       if (temperaturaAtual > -50 && temperaturaAtual < 80) {
         for (int i = 0; i < RELAY_COUNT; i++) {
@@ -286,93 +288,73 @@ void loop() {
       }
 
       // 1. Declaração de status de temperatura
-      AlertStatus stMax = ALERT_NONE;
-      AlertStatus stMin = ALERT_NONE;
-      if (storage.data.chkTemp) {
-        stMax = alertTempMax.check(temperaturaAtual >= storage.data.alarmMax);
-        stMin = alertTempMin.check(temperaturaAtual <= storage.data.alarmMin);
-
-        // Bipe específico para temperatura alta/baixa (repete até normalizar)
-        if (!alertasSilenciados) {
-          if (stMax == ALERT_STARTED || stMax == ALERT_REPEATED) {
-            emitirBipeAlertaCritico(2);
-          } else if (stMin == ALERT_STARTED || stMin == ALERT_REPEATED) {
-            emitirBipeAlertaCritico(2);
-          }
-        }
-      }
+      AlertStatus stMax = alertTempMax.check(
+          storage.data.chkTemp && (temperaturaAtual >= storage.data.alarmMax));
+      AlertStatus stMin = alertTempMin.check(
+          storage.data.chkTemp && (temperaturaAtual <= storage.data.alarmMin));
 
       // 2. Falta de Energia
-      // 2. Falta de Energia
-      if (storage.data.chkVolt) {
-        AlertStatus stPower = alertPower.check(tVoltagem < VOLT_OUTAGE_THR);
-        if (stPower == ALERT_STARTED)
-          enviarDadosMqtt("ALERTA_FALTA_ENERGIA", false);
-        else if (stPower == ALERT_REPEATED && !alertasSilenciados)
-          enviarDadosMqtt("ALERTA_FALTA_ENERGIA", true);
+      AlertStatus stPower = alertPower.check(storage.data.chkVolt &&
+                                             (tVoltagem < VOLT_OUTAGE_THR));
+      if (stPower == ALERT_STARTED)
+        enviarDadosMqtt("ALERTA_FALTA_ENERGIA", false);
+      else if (stPower == ALERT_REPEATED && !alertasSilenciados)
+        enviarDadosMqtt("ALERTA_FALTA_ENERGIA", true);
 
-        if (stPower == ALERT_NORMALIZED)
-          enviarDadosMqtt("ENERGIA_RESTABELECIDA", false);
-      }
+      if (stPower == ALERT_NORMALIZED)
+        enviarDadosMqtt("ENERGIA_RESTABELECIDA", false);
 
       // 3. Bateria Baixa
-      if (storage.data.chkBat) {
-        AlertStatus stBat =
-            alertBatLow.check(tBateria < storage.data.batMinLimit);
-        if (stBat == ALERT_STARTED)
-          enviarDadosMqtt("ALERTA_BATERIA_BAIXA", false);
-        else if (stBat == ALERT_REPEATED && !alertasSilenciados)
-          enviarDadosMqtt("ALERTA_BATERIA_BAIXA", true);
+      AlertStatus stBat = alertBatLow.check(
+          storage.data.chkBat && (tBateria < storage.data.batMinLimit));
+      if (stBat == ALERT_STARTED)
+        enviarDadosMqtt("ALERTA_BATERIA_BAIXA", false);
+      else if (stBat == ALERT_REPEATED && !alertasSilenciados)
+        enviarDadosMqtt("ALERTA_BATERIA_BAIXA", true);
 
-        if (stBat == ALERT_NORMALIZED)
-          enviarDadosMqtt("BATERIA_NORMALIZADA", false);
-      }
+      if (stBat == ALERT_NORMALIZED)
+        enviarDadosMqtt("BATERIA_NORMALIZADA", false);
 
       // 4. Porta
-      if (storage.data.chkDoor) {
-        AlertStatus stDoor = alertDoor.check(isDoorOpen);
+      AlertStatus stDoor = alertDoor.check(storage.data.chkDoor && isDoorOpen);
 
-        // Registro Único no DB
-        if (stDoor == ALERT_STARTED) {
-          enviarDadosMqtt("ALERTA_PORTA_ABERTA", false);
-        }
-
-        // Bipe Local Repetido (Segurança)
-        if (!alertasSilenciados &&
-            (stDoor == ALERT_STARTED || stDoor == ALERT_REPEATED)) {
-          if (stDoor == ALERT_REPEATED)
-            enviarDadosMqtt("ALERTA_PORTA_ABERTA", true);
-          emitirBipeAlertaCritico(2);
-        }
-
-        if (stDoor == ALERT_NORMALIZED)
-          enviarDadosMqtt("PORTA_FECHADA", false);
+      // Registro Único no DB
+      if (stDoor == ALERT_STARTED) {
+        enviarDadosMqtt("ALERTA_PORTA_ABERTA", false);
       }
 
+      // Envio de repetições locais removidos. Som acontece na central do loop.
+      if (!alertasSilenciados && stDoor == ALERT_REPEATED) {
+        enviarDadosMqtt("ALERTA_PORTA_ABERTA", true);
+      }
+
+      if (stDoor == ALERT_NORMALIZED)
+        enviarDadosMqtt("PORTA_FECHADA", false);
+
       // 5. Tensão da Rede
-      if (storage.data.chkVolt && tVoltagem > VOLT_OUTAGE_THR) {
-        AlertStatus stVoltMax =
-            alertVoltMax.check(tVoltagem > storage.data.voltMax);
-        AlertStatus stVoltMin =
-            alertVoltMin.check(tVoltagem < storage.data.voltMin);
+      bool activeVoltMonitoring =
+          storage.data.chkVolt && (tVoltagem > VOLT_OUTAGE_THR);
+      AlertStatus stVoltMax = alertVoltMax.check(
+          activeVoltMonitoring && (tVoltagem > storage.data.voltMax));
+      AlertStatus stVoltMin = alertVoltMin.check(
+          activeVoltMonitoring && (tVoltagem < storage.data.voltMin));
 
-        if (stVoltMax == ALERT_STARTED) {
-          enviarDadosMqtt("ALERTA_TENSAO_ALTA", false);
-        } else if (stVoltMax == ALERT_REPEATED && !alertasSilenciados) {
-          enviarDadosMqtt("ALERTA_TENSAO_ALTA", true);
-        }
-        if (stVoltMax == ALERT_NORMALIZED) {
-          enviarDadosMqtt("TENSAO_NORMALIZADA", false);
-        }
+      if (stVoltMax == ALERT_STARTED) {
+        enviarDadosMqtt("ALERTA_TENSAO_ALTA", false);
+      } else if (stVoltMax == ALERT_REPEATED && !alertasSilenciados) {
+        enviarDadosMqtt("ALERTA_TENSAO_ALTA", true);
+      }
+      if (stVoltMax == ALERT_NORMALIZED) {
+        enviarDadosMqtt("TENSAO_NORMALIZADA", false);
+      }
 
-        if (stVoltMin == ALERT_STARTED) {
-          enviarDadosMqtt("ALERTA_TENSAO_BAIXA", false);
-        } else if (stVoltMin == ALERT_REPEATED && !alertasSilenciados) {
-          enviarDadosMqtt("ALERTA_TENSAO_BAIXA", true);
-        }
-        if (stVoltMin == ALERT_NORMALIZED) {
-          enviarDadosMqtt("TENSAO_NORMALIZADA", false);
-        }
+      if (stVoltMin == ALERT_STARTED) {
+        enviarDadosMqtt("ALERTA_TENSAO_BAIXA", false);
+      } else if (stVoltMin == ALERT_REPEATED && !alertasSilenciados) {
+        enviarDadosMqtt("ALERTA_TENSAO_BAIXA", true);
+      }
+      if (stVoltMin == ALERT_NORMALIZED) {
+        enviarDadosMqtt("TENSAO_NORMALIZADA", false);
       }
 
       // 6. Temperatura Alerts
@@ -415,8 +397,8 @@ void loop() {
       }
     }
 
-    // 3.1. Relatório Periódico de Telemetria (hora cheia para log histórico no
-    // Firestore)
+    // 3.1. Relatório Periódico de Telemetria (hora cheia para log histórico
+    // no Firestore)
     if (!modoManual) {
       static int lastProcessedHour = -1;
       if (t.tm_hour != lastProcessedHour) {
@@ -434,6 +416,17 @@ void loop() {
     if (!modoManual && (now - lastSupportReport >= 3600000UL)) {
       lastSupportReport = now;
       enviarDadosMqtt("periodico_suporte", false);
+    }
+
+    // 3.3. Feedback Sonoro Local Contínuo
+    if (!alertasSilenciados) {
+      if (alertTempMax.isActive() || alertTempMin.isActive() ||
+          alertDoor.isActive()) {
+        emitirBipeAlertaCritico(1);
+      } else if (alertVoltMax.isActive() || alertVoltMin.isActive() ||
+                 alertBatLow.isActive() || alertPower.isActive()) {
+        emitirBipe(300, 1, 100);
+      }
     }
 
     // 4. Atualizar Display
@@ -944,12 +937,12 @@ void enviarDadosWeb() {
   doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
   doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
 
-JsonObject relays = doc.createNestedObject("RELES");
+  JsonObject relays = doc.createNestedObject("RELES");
   for (int i = 0; i < RELAY_COUNT; i++) {
     String key = "R" + String(i);
     relays[key] = releEstado[i];
   }
-  
+
   // Dados de histerese do relé 0
   doc["R0_TEMP_ON"] = serialized(String(storage.data.relays[0].tempOn, 1));
   doc["R0_TEMP_OFF"] = serialized(String(storage.data.relays[0].tempOff, 1));
@@ -1006,39 +999,7 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
   doc["TIPO"] = evento;
   doc["IS_REPEAT"] = isRepeat;
 
-  // Feedback sonoro LOCAL para alertas (SEMPRE, antes de qualquer bloqueio)
-  if (evento.startsWith("ALERTA_") && !alertasSilenciados) {
-    // Temperatura alta/baixa e porta usam bipes específicos (500ms ON, 300ms
-    // OFF)
-    if (evento == "ALERTA_TEMP_ALTA" || evento == "ALERTA_TEMP_BAIXA" ||
-        evento == "ALERTA_PORTA_ABERTA") {
-      emitirBipeAlertaCritico(2);
-    } else {
-      // Outros alarmes usam bipes normais
-      emitirBipe(300, 2, 100);
-    }
-
-    // Exibe mensagem de alerta no Display por 5 segundos
-    String msgAlerta = "";
-    if (evento == "ALERTA_TEMP_ALTA")
-      msgAlerta = "TEMP. MUITO ALTA";
-    else if (evento == "ALERTA_TEMP_BAIXA")
-      msgAlerta = "TEMP. MUITO BAIXA";
-    else if (evento == "ALERTA_FALTA_ENERGIA")
-      msgAlerta = "FALTA DE ENERGIA";
-    else if (evento == "ALERTA_BATERIA_BAIXA")
-      msgAlerta = "BATERIA FRACA";
-    else if (evento == "ALERTA_PORTA_ABERTA")
-      msgAlerta = "PORTA ABERTA";
-    else if (evento == "ALERTA_TENSAO_ALTA")
-      msgAlerta = "VOLTAGEM ALTA";
-    else if (evento == "ALERTA_TENSAO_BAIXA")
-      msgAlerta = "VOLTAGEM BAIXA";
-
-    if (msgAlerta != "") {
-      display.showMessage(msgAlerta, 5000);
-    }
-  }
+  // Feedback local removido daqui e transferido para o loop principal.
 
   // Lógica de Silêncio: Se não vinculado, bloqueia apenas envio remoto
   // (n8n/Supabase/WhatsApp)
@@ -1058,8 +1019,8 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
   doc["TEMP_MAX"] = serialized(String(storage.data.tempMaxRec, 1));
   doc["TEMP_MIN"] = serialized(String(storage.data.tempMinRec, 1));
 
-  // Limites Configurados (Envia em status, configuração, relatórios periódicos
-  // e ALERTAS para o n8n/IA saber o contexto)
+  // Limites Configurados (Envia em status, configuração, relatórios
+  // periódicos e ALERTAS para o n8n/IA saber o contexto)
   if (evento == "STATUS_SOLICITADO" || evento == "feedback_configuracao" ||
       evento == "periodico" || evento.startsWith("ALERTA_")) {
     doc["ALARM_MAX"] = serialized(String(storage.data.alarmMax, 1));
@@ -1077,14 +1038,15 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
   doc["CHK_DOOR"] = storage.data.chkDoor;
   doc["TEMP_CAL_OFFSET"] = storage.data.tempCalOffset;
 
-// Sensor Ambiente (DHT11)
+  // Sensor Ambiente (DHT11)
   if (evento == "STATUS_SOLICITADO" || evento == "periodico_suporte") {
     doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
-    doc["UMIDADE"] = serialized(String(ambientSensor.getHumidade(), 1));
+    doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
   }
 
   // Dados de histerese do relé 0 (enviado em status e periódicos)
-  if (evento == "STATUS_SOLICITADO" || evento == "periodico" || evento == "periodico_suporte" || evento == "REALTIME") {
+  if (evento == "STATUS_SOLICITADO" || evento == "periodico" ||
+      evento == "periodico_suporte" || evento == "REALTIME") {
     doc["R0_TEMP_ON"] = serialized(String(storage.data.relays[0].tempOn, 1));
     doc["R0_TEMP_OFF"] = serialized(String(storage.data.relays[0].tempOff, 1));
     doc["R0_FUNC"] = storage.data.relays[0].func;
@@ -1097,9 +1059,17 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
     ultimosCamposAlterados = "";
   }
 
-  // Estado da Porta, RSSI e Saúde apenas se solicitado
+  // Dados comuns para todos os eventos
+  doc["PORTA"] = digitalRead(PIN_DOOR) == HIGH ? "ABERTA" : "FECHADA";
+
+  JsonObject reles = doc.createNestedObject("RELES");
+  for (int i = 0; i < 4; i++) {
+    reles["R" + String(i)] =
+        digitalRead(RELAY_PINS[i]) == LOW ? "LIGADO" : "DESLIGADO";
+  }
+
+  // RSSI e Saúde apenas se solicitado (mantendo payload enxuto nos demais)
   if (evento == "STATUS_SOLICITADO") {
-    doc["PORTA"] = digitalRead(PIN_DOOR) == HIGH ? "ABERTA" : "FECHADA";
     doc["RSSI"] = network.getRSSI();
 
     JsonObject saude = doc.createNestedObject("SAUDE_SENSORES");
@@ -1126,13 +1096,10 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
     doc["REMOTE_JID"] = ultimoRemoteJid;
   }
 
-  // Publica no tópico de DADOS (telemetria tradicional/n8n) APENAS se não for
-  // repetição
+  // Publica no tópico de DADOS (telemetria tradicional/n8n)
   String payload;
   serializeJson(doc, payload);
-  if (!isRepeat) {
-    network.publish(MSG_TOPIC_DATA, payload);
-  }
+  network.publish(MSG_TOPIC_DATA, payload);
 
   // Broadcast para o Dashboard Web (Real-time)
   network.publish(MSG_TOPIC_WEB_STATUS, payload);
