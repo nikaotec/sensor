@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../supabase/config';
+import { filterTelemetryByTargetHours, getTargetDeviceIds, prepareQueryByReportType } from '../services/telemetryProcessor';
 
 // Chave de persistência no localStorage para horários do relatório Diário
 const DAILY_HOURS_KEY = 'nikaotec_daily_report_hours';
@@ -63,7 +64,6 @@ export const useReportGenerator = (
     currentTenant: any,
     availableTenants: any[],
     supabaseDevices: any[],
-    displayDevices: any[],
     userRole?: string
 ) => {
     const [reportForm, setReportForm] = useState<ReportForm>({
@@ -102,7 +102,7 @@ export const useReportGenerator = (
             selected_hours: savedDailyHours,
             use_all_hours: true,
             mensage_tipo: ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'],
-            selected_variables: ['temperature', 'humidity', 'voltage'],
+            selected_variables: ['temperature', 'temp_max', 'temp_min', 'temp_ext', 'humidity', 'voltage', 'battery'],
             detailed_hour_start: '08:00'
         });
         setShowReportModal(true);
@@ -131,59 +131,18 @@ export const useReportGenerator = (
 
         setGeneratingReport(true);
         try {
-            const formatSP = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
-            const now = new Date();
-            const today = formatSP(now);
+            // Modularização: Prepara parâmetros baseado no tipo de relatório
+            const queryParams = prepareQueryByReportType(reportForm.report_type, reportForm);
 
-            let startDate = reportForm.start_date;
-            let endDate = reportForm.end_date;
-            let queryStartTime = reportForm.start_time;
-            let queryEndTime = reportForm.end_time;
-            let selectedHoursAtJS = reportForm.selected_hours;
-            let useSelectedHoursFilter = reportForm.report_type === 'custom' && !reportForm.use_all_hours;
+            const startISO = formatDateTime(queryParams.startDate, queryParams.startTime);
+            const endISO = formatDateTime(queryParams.endDate, queryParams.endTime);
 
-            // Lógica por Tipo de Relatório
-            if (reportForm.report_type === 'daily') {
-                startDate = today;
-                endDate = today;
-                // Usa os horários editados pelo usuário; fallback para 08h/16h se nenhum selecionado
-                selectedHoursAtJS = reportForm.selected_hours?.length > 0
-                    ? reportForm.selected_hours
-                    : ['08:00', '16:00'];
-                useSelectedHoursFilter = true;
-            } else if (reportForm.report_type === 'monthly') {
-                const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-                startDate = formatSP(firstDay);
-                endDate = today;
-                // Herda os mesmos horários configurados no Diário
-                selectedHoursAtJS = reportForm.selected_hours?.length > 0
-                    ? reportForm.selected_hours
-                    : ['08:00', '16:00'];
-                useSelectedHoursFilter = true;
-            } else if (reportForm.report_type === 'detailed') {
-                // Modo Detalhado: 1 dia, intervalo de 1h minuto a minuto
-                startDate = reportForm.start_date;
-                endDate = reportForm.start_date;
-                queryStartTime = reportForm.detailed_hour_start;
-                const [h, m] = queryStartTime.split(':').map(Number);
-                queryEndTime = `${(h + 1).toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-                useSelectedHoursFilter = false; // Queremos todos os registros (minuto a minuto)
-            }
-
-            const startISO = formatDateTime(startDate, queryStartTime);
-            const endISO = formatDateTime(endDate, queryEndTime);
-
-            let targetDeviceIds: string[] = [];
-            const targetTenantId = reportForm.tenant_id || (currentTenant.id !== 'all' ? currentTenant.id : '');
-
-            if (reportForm.device_id) {
-                targetDeviceIds = [reportForm.device_id];
-            } else {
-                const companyDevices = (targetTenantId && targetTenantId !== '')
-                    ? supabaseDevices.filter(d => d.tenantId === targetTenantId)
-                    : displayDevices;
-                targetDeviceIds = companyDevices.map(d => d.id);
-            }
+            const targetTenantId = reportForm.tenant_id || (currentTenant.id !== 'all' ? currentTenant.id : null);
+            const targetDeviceIds = getTargetDeviceIds(
+                reportForm.device_id || null,
+                targetTenantId,
+                supabaseDevices
+            );
 
             if (targetDeviceIds.length === 0) {
                 alert(`Nenhum dispositivo encontrado.`);
@@ -191,7 +150,7 @@ export const useReportGenerator = (
                 return;
             }
 
-            // BUSCA NO SUPABASE
+            // BUSCA NO SUPABASE (Modularizada via queryParams)
             const { data, error } = await supabase
                 .from('telemetry')
                 .select('*')
@@ -199,20 +158,15 @@ export const useReportGenerator = (
                 .gte('timestamp', startISO)
                 .lte('timestamp', endISO)
                 .order('timestamp', { ascending: true })
-                .limit(reportForm.report_type === 'detailed' ? 2000 : 10000);
+                .limit(queryParams.limit);
 
             if (error) throw error;
 
             let telemetryRows = data || [];
 
-            // Filtro de Horas (Se necessário)
-            if (useSelectedHoursFilter && selectedHoursAtJS.length > 0) {
-                const hourNums = selectedHoursAtJS.map(h => parseInt(h.split(':')[0]));
-                telemetryRows = telemetryRows.filter(row => {
-                    if (!row.hora_registro) return false;
-                    const rowHour = parseInt(row.hora_registro.split(':')[0]);
-                    return hourNums.includes(rowHour);
-                });
+            // Filtro de Horas (Snap-to-time) via Serviço Modular
+            if (queryParams.useSelectedHoursFilter && queryParams.selectedHours.length > 0) {
+                telemetryRows = filterTelemetryByTargetHours(telemetryRows, queryParams.selectedHours);
             }
 
             if (!telemetryRows || telemetryRows.length === 0) {
@@ -236,7 +190,7 @@ export const useReportGenerator = (
                 start_date: startISO,
                 end_date: endISO,
                 company_name: companyName,
-                selected_hours: selectedHoursAtJS,
+                selected_hours: queryParams.selectedHours,
                 use_all_hours: reportForm.use_all_hours,
                 mensage_tipo: reportForm.mensage_tipo,
                 selected_variables: reportForm.selected_variables,

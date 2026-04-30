@@ -14,7 +14,9 @@ const HOURS = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '
 
 const VARIABLES = [
     { id: 'temperature', label: 'Temperatura Interna (°C)' },
-    { id: 'temp_ext', label: 'Temperatura Externa (°C)' },
+    { id: 'temp_max', label: 'Temperatura Máxima (°C)' },
+    { id: 'temp_min', label: 'Temperatura Mínima (°C)' },
+    { id: 'temp_ext', label: 'Temperatura Ambiente (°C)' },
     { id: 'humidity', label: 'Umidade (%)' },
     { id: 'voltage', label: 'Tensão Principal (V)' },
     { id: 'battery', label: 'Bateria (V)' },
@@ -52,9 +54,9 @@ const PeriodPanel: React.FC<{
     setForm: React.Dispatch<React.SetStateAction<ReportForm>>;
     onSaveDailyHours: (hours: string[]) => void;
 }> = ({ form, setForm, onSaveDailyHours }) => (
-    <div className="bg-[#1A0505] p-5 rounded-2xl border-2 border-red-600 space-y-4">
-        <label className="flex items-center gap-2 text-[10px] font-black text-red-300 uppercase tracking-[0.2em] mb-2">
-            <Calendar size={13} />
+    <div className="bg-[#2A0000] p-5 rounded-2xl border-2 border-[#FF0000] space-y-4 shadow-lg shadow-red-500/10">
+        <label className="flex items-center gap-2 text-[10px] font-black text-red-100 uppercase tracking-[0.2em] mb-2">
+            <Calendar size={13} className="text-red-400" />
             Período do Relatório
         </label>
 
@@ -63,7 +65,7 @@ const PeriodPanel: React.FC<{
             <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="text-[9px] font-bold text-slate-500 uppercase mb-1.5 block">Data Início</label>
+                        <label className="text-[9px] font-bold text-slate-300 uppercase mb-1.5 block">Data Início</label>
                         <input
                             type="date"
                             value={form.start_date}
@@ -74,7 +76,7 @@ const PeriodPanel: React.FC<{
                     {/* Detalhado usa apenas 1 dia; Personalizado aceita intervalo */}
                     {form.report_type === 'custom' && (
                         <div>
-                            <label className="text-[9px] font-bold text-slate-500 uppercase mb-1.5 block">Data Fim</label>
+                            <label className="text-[9px] font-bold text-slate-300 uppercase mb-1.5 block">Data Fim</label>
                             <input
                                 type="date"
                                 value={form.end_date}
@@ -89,7 +91,7 @@ const PeriodPanel: React.FC<{
                 {form.report_type === 'custom' && (
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="text-[9px] font-bold text-slate-500 uppercase mb-1.5 block">Hora Início</label>
+                            <label className="text-[9px] font-bold text-slate-300 uppercase mb-1.5 block">Hora Início</label>
                             <input
                                 type="time"
                                 value={form.start_time}
@@ -98,7 +100,7 @@ const PeriodPanel: React.FC<{
                             />
                         </div>
                         <div>
-                            <label className="text-[9px] font-bold text-slate-500 uppercase mb-1.5 block">Hora Fim</label>
+                            <label className="text-[9px] font-bold text-slate-300 uppercase mb-1.5 block">Hora Fim</label>
                             <input
                                 type="time"
                                 value={form.end_time}
@@ -115,10 +117,10 @@ const PeriodPanel: React.FC<{
         {form.report_type === 'daily' && (
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                    <label className="text-[9px] font-black text-red-300 uppercase tracking-widest">
+                    <label className="text-[9px] font-black text-red-100 uppercase tracking-widest">
                         Horários do Relatório Diário
                     </label>
-                    <span className="text-[8px] text-slate-500">{form.selected_hours?.length || 0} selecionados</span>
+                    <span className="text-[8px] text-slate-300 font-bold">{form.selected_hours?.length || 0} selecionados</span>
                 </div>
                 <div className="grid grid-cols-4 gap-1.5 border border-red-700/50 p-3 rounded-2xl bg-[#0F110D] max-h-36 overflow-y-auto custom-scrollbar">
                     {HOURS.map(hour => (
@@ -149,9 +151,9 @@ const PeriodPanel: React.FC<{
 
         {/* MENSAL: informativo — herda horários do Diário */}
         {form.report_type === 'monthly' && (
-            <div className="bg-red-900/20 border border-red-600/50 rounded-xl p-3">
-                <p className="text-[9px] font-bold text-red-300 uppercase tracking-widest mb-1">Período Automático: Mês Atual</p>
-                <p className="text-[10px] text-slate-500 leading-relaxed">
+            <div className="bg-red-500/20 border border-[#FF0000] rounded-xl p-3">
+                <p className="text-[9px] font-bold text-red-100 uppercase tracking-widest mb-1">Período Automático: Mês Atual</p>
+                <p className="text-[10px] text-slate-200 font-medium leading-relaxed">
                     Utiliza os mesmos horários configurados no Diário, do 1º dia do mês até hoje.
                 </p>
             </div>
@@ -164,9 +166,9 @@ const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<Reac
     const showExpandedPanel = form.report_type === 'custom' || form.report_type === 'detailed';
 
     return (
-        <div className="bg-[#050F08] p-5 rounded-2xl border-2 border-emerald-600 space-y-4">
-            <label className="flex items-center gap-2 text-[10px] font-black text-emerald-300 uppercase tracking-[0.2em] mb-2">
-                <FileText size={13} />
+        <div className="bg-[#001A06] p-5 rounded-2xl border-2 border-[#00FF41] space-y-4 shadow-lg shadow-emerald-500/10">
+            <label className="flex items-center gap-2 text-[10px] font-black text-emerald-100 uppercase tracking-[0.2em] mb-2">
+                <FileText size={13} className="text-[#00FF41]" />
                 Tipo de Relatório
             </label>
 
@@ -177,8 +179,8 @@ const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<Reac
                         key={type.id}
                         onClick={() => setForm(prev => ({ ...prev, report_type: type.id as ReportForm['report_type'] }))}
                         className={`px-3 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border text-left ${form.report_type === type.id
-                            ? 'bg-emerald-600/30 text-emerald-200 border-emerald-500 shadow-lg shadow-emerald-500/10'
-                            : 'bg-[#1A1D17] text-slate-400 border-[#2A2E24] hover:border-emerald-600/60'
+                            ? 'bg-emerald-600 text-white border-emerald-400 shadow-lg shadow-emerald-500/20'
+                            : 'bg-[#1A1D17] text-slate-300 border-[#2A2E24] hover:border-emerald-500/60'
                             }`}
                     >
                         {type.label}
@@ -187,7 +189,7 @@ const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<Reac
             </div>
 
             {/* Descrição do tipo selecionado — sempre visível */}
-            <p className="text-[10px] text-slate-500 leading-relaxed px-1">
+            <p className="text-[10px] text-slate-200 font-medium leading-relaxed px-1">
                 {REPORT_TYPES.find(t => t.id === form.report_type)?.description}
             </p>
 
@@ -197,12 +199,12 @@ const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<Reac
                     {form.report_type === 'custom' && (
                         <>
                             <div className="flex items-center justify-between">
-                                <label className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                                <label className="text-[9px] font-black text-slate-200 uppercase tracking-widest">
                                     Selecionar Horários
                                 </label>
                                 <button
                                     onClick={() => setForm(prev => ({ ...prev, selected_hours: [], use_all_hours: true }))}
-                                    className="text-[8px] font-black text-emerald-300/80 hover:text-emerald-300 uppercase tracking-widest transition-colors"
+                                    className="text-[8px] font-black text-emerald-400 hover:text-emerald-300 uppercase tracking-widest transition-colors"
                                 >
                                     Limpar
                                 </button>
@@ -277,10 +279,10 @@ const VariablesPanel: React.FC<{
     };
 
     return (
-        <div className="bg-[#05080F] p-5 rounded-2xl border-2 border-blue-600 space-y-4">
+        <div className="bg-[#000A1A] p-5 rounded-2xl border-2 border-[#0066FF] space-y-4 shadow-lg shadow-blue-500/10">
             <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-[10px] font-black text-blue-300 uppercase tracking-[0.2em]">
-                    <BarChart2 size={13} />
+                <label className="flex items-center gap-2 text-[10px] font-black text-blue-100 uppercase tracking-[0.2em]">
+                    <BarChart2 size={13} className="text-[#0066FF]" />
                     Variáveis do PDF
                 </label>
                 <button
@@ -305,8 +307,8 @@ const VariablesPanel: React.FC<{
                                 setForm(prev => ({ ...prev, selected_variables: next }));
                             }}
                             className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${selected
-                                ? 'bg-blue-600/30 text-blue-200 border-blue-500'
-                                : 'bg-[#1A1D17] text-slate-400 border-[#2A2E24] hover:border-blue-600/60'
+                                ? 'bg-blue-600 text-white border-blue-400'
+                                : 'bg-[#1A1D17] text-slate-300 border-[#2A2E24] hover:border-blue-600/60'
                                 }`}
                         >
                             <span>{v.label}</span>
