@@ -1,573 +1,114 @@
-{
-  "name": "Gerador de Relatórios PDF",
-  "nodes": [
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "generate-report",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "id": "e298982d-e618-465a-bbfc-2d5230dac977",
-      "name": "Webhook Trigger",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [
-        51872,
-        38976
-      ],
-      "webhookId": "b18c493c-6398-457c-b489-23ae4be49811"
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "type",
-              "name": "type",
-              "value": "={{ $json.body.type }}",
-              "type": "string"
-            },
-            {
-              "id": "device_id",
-              "name": "device_id",
-              "value": "={{ $json.body.device_id }}",
-              "type": "string"
-            },
-            {
-              "id": "start_date",
-              "name": "start_date",
-              "value": "={{ $json.body.start_date }}",
-              "type": "string"
-            },
-            {
-              "id": "end_date",
-              "name": "end_date",
-              "value": "={{ $json.body.end_date }}",
-              "type": "string"
-            },
-            {
-              "id": "company_name",
-              "name": "company_name",
-              "value": "={{ $json.body.company_name }}",
-              "type": "string"
-            },
-            {
-              "id": "device_name",
-              "name": "device_name",
-              "value": "={{ $json.body.device_name }}",
-              "type": "string"
-            },
-            {
-              "id": "device_code",
-              "name": "device_code",
-              "value": "={{ $json.body.device_code }}",
-              "type": "string"
-            },
-            {
-              "id": "ala",
-              "name": "ala",
-              "value": "={{ $json.body.ala }}",
-              "type": "string"
-            },
-            {
-              "id": "selected_hours",
-              "name": "selected_hours",
-              "value": "={{ $json.body.selected_hours }}",
-              "type": "array"
-            },
-            {
-              "id": "use_all_hours",
-              "name": "use_all_hours",
-              "value": "={{ $json.body.use_all_hours }}",
-              "type": "boolean"
-            },
-            {
-              "id": "device_ids",
-              "name": "device_ids",
-              "value": "={{ $json.body.device_ids }}",
-              "type": "array"
-            },
-            {
-              "id": "telemetry_data",
-              "name": "telemetry_data",
-              "value": "={{ $json.body.telemetry_data }}",
-              "type": "array"
-            },
-            {
-              "id": "is_gestor",
-              "name": "is_gestor",
-              "value": "={{ $json.body.is_gestor }}",
-              "type": "boolean"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "83a4dd70-6e5c-4b12-a35c-cdc5ff7fc046",
-      "name": "Parse Input",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        52048,
-        38976
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Set default values\nconst input = $input.first().json;\nconsole.log('INPUT:', JSON.stringify(input, null, 2));\n\nconst parseToISO = (dateStr, isEnd = false) => {\n  if (!dateStr) return null;\n  if (typeof dateStr === 'string' && dateStr.includes('T') && dateStr.endsWith('Z')) return dateStr;\n  if (typeof dateStr === 'string' && !dateStr.includes('T')) return dateStr + (isEnd ? 'T23:59:59.999Z' : 'T00:00:00.000Z');\n  return dateStr;\n};\n\nconst start_date = parseToISO(input.start_date, false) || DateTime.now().setZone('America/Sao_Paulo').minus({ days: 7 }).toISO();\nconst end_date   = parseToISO(input.end_date, true)   || DateTime.now().setZone('America/Sao_Paulo').toISO();\nconst type       = input.type || 'company';\nconst device_id  = (type === 'device' && input.device_id) ? input.device_id : null;\n\n// Para relatório de empresa: array com IDs de todos os dispositivos\nconst device_ids  = Array.isArray(input.device_ids) && input.device_ids.length > 0\n  ? input.device_ids\n  : (device_id ? [device_id] : []);\n\nconst use_all_hours  = input.use_all_hours !== false;\nconst selected_hours = Array.isArray(input.selected_hours) ? input.selected_hours : [];\nconst is_gestor      = input.is_gestor === true;\n\nconsole.log('type:', type, '| device_id:', device_id, '| device_ids:', device_ids, '| is_gestor:', is_gestor);\n\nreturn [{ json: {\n  type, device_id, device_ids,\n  start_date, end_date,\n  company_name:  input.company_name  || 'Geral',\n  device_name:   input.device_name   || input.device_id || 'Todos',\n  device_code:   input.device_code   || input.device_id || '--',\n  ala:           input.ala           || '--',\n  use_all_hours, selected_hours,\n  is_gestor,\n  telemetry_data: input.telemetry_data || null\n} }];"
-      },
-      "id": "f9c65fa5-dae9-4538-94c5-2051279d6a02",
-      "name": "Set Defaults",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        52224,
-        38976
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 1
-          },
-          "conditions": [
-            {
-              "id": "cond-device",
-              "leftValue": "={{ $json.type }}",
-              "rightValue": "device",
-              "operator": {
-                "type": "string",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "533d4cb2-b8e0-4cd8-bba4-903ef867c4c9",
-      "name": "Tipo de Relatório?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        52400,
-        38976
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "getAll",
-        "tableId": "telemetry",
-        "returnAll": true,
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "device_id",
-              "condition": "eq",
-              "keyValue": "={{ $json.device_id }}"
-            },
-            {
-              "keyName": "timestamp",
-              "condition": "gte",
-              "keyValue": "={{ $json.start_date }}"
-            },
-            {
-              "keyName": "timestamp",
-              "condition": "lte",
-              "keyValue": "={{ $json.end_date }}"
-            }
-          ]
-        }
-      },
-      "id": "52e55256-d564-48d5-824c-744a200b649c",
-      "name": "Buscar Telemetry",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        52544,
-        38800
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "mwfq69YpUvhBFjds",
-          "name": "supabase_sensor"
-        }
-      },
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "jsCode": "// Buscar telemetria de múltiplos dispositivos da empresa via PostgREST\nconst config = $('Set Defaults').first().json;\nconst ids = config.device_ids || [];\n\nconst inFilter = ids.length > 0 ? `device_id=in.(${ids.join(',')})` : '';\nconst tsFilter = `timestamp=gte.${config.start_date}&timestamp=lte.${config.end_date}`;\nconst url = `https://ueyizghzblngswgukfmr.supabase.co/rest/v1/telemetry?${inFilter}&${tsFilter}&order=timestamp.asc&limit=10000`;\n\nconsole.log('Company query URL:', url);\nconsole.log('Buscando para device_ids:', ids);\n\nconst ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVleWl6Z2h6YmxuZ3N3Z3VrZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MTAzOTcsImV4cCI6MjA5MDQ4NjM5N30.cQCkTKWbrGwO3gVYQZNmKAytls1TE3d7LddrgSc8QqA';\n\ntry {\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: url,\n    headers: {\n      'apikey': ANON_KEY,\n      'Authorization': `Bearer ${ANON_KEY}`,\n      'Content-Type': 'application/json'\n    }\n  });\n\n  if (Array.isArray(response)) {\n    console.log('Company telemetry: encontrados', response.length, 'registros');\n    return response.map(r => ({ json: r }));\n  }\n  console.warn('Resposta não é array:', typeof response);\n  return [{ json: { _warning: 'Resposta inválida', _empty: true } }];\n} catch(e) {\n  console.error('Erro busca company:', e.message);\n  return [{ json: { _warning: 'Erro na busca: ' + e.message, _empty: true } }];\n}"
-      },
-      "id": "2d3234c8-489e-4ea2-b5a9-1df3a8e6d37d",
-      "name": "Buscar Telemetry (Company)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        52592,
-        39392
-      ],
-      "continueOnFail": true
-    },
-    {
-      "parameters": {
-        "jsCode": "// Merge results from both paths and normalize\nconst config = $('Set Defaults').first().json;\nlet items = [];\n\n// PRIORIDADE: Usar dados enviados no payload (já filtrados no frontend)\nif (config.telemetry_data && Array.isArray(config.telemetry_data) && config.telemetry_data.length > 0) {\n  console.log('Validar Dados: usando dados recebidos do frontend (', config.telemetry_data.length, ')');\n  items = config.telemetry_data.map(r => ({ json: r }));\n} else {\n  try {\n    if (config.type === 'device') {\n      items = $('Buscar Telemetry').all();\n    } else {\n      // Para company: HTTP Request retorna array direto no body\n      const companyItems = $('Buscar Telemetry (Company)').all();\n      if (companyItems && companyItems.length > 0) {\n        const first = companyItems[0].json;\n        // HTTP Request retorna array no json quando a resposta é JSON array\n        if (Array.isArray(first)) {\n          items = first.map(r => ({ json: r }));\n        } else {\n          items = companyItems;\n        }\n      }\n    }\n  } catch(e) { console.error('Validar Dados erro:', e.message); }\n}\n\nif (!items || items.length === 0) {\n  console.warn('Nenhum dado encontrado para os filtros informados.');\n  return [{ json: { _warning: 'Sem dados no período', _empty: true } }];\n}\n\n// Buscar informações de devices e tenants via PostgREST\nconst ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVleWl6Z2h6YmxuZ3N3Z3VrZm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MTAzOTcsImV4cCI6MjA5MDQ4NjM5N30.cQCkTKWbrGwO3gVYQZNmKAytls1TE3d7LddrgSc8QqA';\nconst headers = { 'apikey': ANON_KEY, 'Authorization': `Bearer ${ANON_KEY}`, 'Content-Type': 'application/json' };\n\ntry {\n  const devicesRes = await this.helpers.httpRequest({ method: 'GET', url: 'https://ueyizghzblngswgukfmr.supabase.co/rest/v1/devices_status?select=id,name,location,tenant_id', headers: headers, json: true });\n  let tenantsRes = [];\n  try {\n    tenantsRes = await this.helpers.httpRequest({ method: 'GET', url: 'https://ueyizghzblngswgukfmr.supabase.co/rest/v1/tenants?select=id,name', headers: headers, json: true });\n  } catch(e) { console.warn('Não foi possível buscar tenants', e); }\n\n  const tenantMap = {};\n  if (Array.isArray(tenantsRes)) {\n    tenantsRes.forEach(t => tenantMap[t.id] = t.name);\n  }\n  \n  const deviceMap = {};\n  if (Array.isArray(devicesRes)) {\n    devicesRes.forEach(d => {\n       deviceMap[d.id] = {\n         device_name: d.name || d.id,\n         location: d.location || 'Sem ala',\n         tenant_id: d.tenant_id,\n         tenant_name: tenantMap[d.tenant_id] || 'Empresa Desconhecida'\n       };\n    });\n  }\n\n  // Enriquecer items com infos\n  items = items.map(item => {\n    const info = deviceMap[item.json.device_id] || {};\n    return {\n      json: {\n        ...item.json,\n        device_name: info.device_name || item.json.device_name || item.json.device_id,\n        location: info.location || item.json.location || 'Sem ala',\n        tenant_name: info.tenant_name || config.company_name || 'Geral'\n      }\n    };\n  });\n} catch(e) {\n  console.error('Erro ao enriquecer dados com device/tenant info', e);\n}\n\nconsole.log('Validar Dados: retornando', items.length, 'registros');\nreturn items;"
-      },
-      "id": "b1e9d7c7-95d5-4190-9ec0-d5f1060a26f2",
-      "name": "Validar Dados",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        52880,
-        39088
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Process and prepare all data for HTML Report\nlet html_content = '';\nlet stats = {\n  total_records: 0, temp_avg: '--', temp_max: '--', temp_min: '--',\n  humidity_avg: '--', battery_avg: '--', voltage_avg: '--',\n  device_name: 'Todos', device_code: '--', company_name: 'Geral', ala: 'Não informada',\n  period: 'Período não informado', report_date: '', year: new Date().getFullYear(), month: ''\n};\n\ntry {\n  const telemetryData = $input.all();\n  const config = $('Set Defaults').first().json;\n\n  const formatDate = (isoStr) => {\n    if (!isoStr) return '';\n    return new Date(isoStr).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n  };\n\n  const formatDateTime = (isoStr) => {\n    if (!isoStr) return '';\n    const d = new Date(isoStr);\n    const date = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n    const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' });\n    if (time === '00:00' || time === '23:59') return date;\n    return `${date} ${time}`;\n  };\n\n  stats.device_name = config.device_name || 'Todos os dispositivos';\n  stats.device_code = config.device_code || '--';\n  stats.company_name = config.company_name || 'Geral';\n  stats.ala = config.ala || '--';\n  stats.period = `${formatDateTime(config.start_date)} a ${formatDateTime(config.end_date)}`;\n  stats.report_date = formatDateTime(config.start_date);\n  const reportDate = config.start_date ? new Date(config.start_date) : new Date();\n  stats.year = reportDate.getFullYear();\n  stats.month = reportDate.toLocaleString('pt-BR', { month: 'long' });\n\n  // Filtrar por horários selecionados\n  const use_all_hours = config.use_all_hours !== false;\n  const selected_hours = Array.isArray(config.selected_hours) ? config.selected_hours : [];\n  const selectedHourNums = selected_hours.map(h => parseInt(h.split(':')[0]));\n\n  let data = [];\n  if (telemetryData && telemetryData.length > 0) {\n    let allData = telemetryData\n      .map(t => t.json)\n      .filter(r => r && r.timestamp && !r._empty)\n      .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));\n\n    if (config.telemetry_data && Array.isArray(config.telemetry_data) && config.telemetry_data.length > 0) {\n      data = config.telemetry_data;\n    } else {\n      data = (!use_all_hours && selectedHourNums.length > 0)\n        ? allData.filter(row => selectedHourNums.includes(parseInt(new Date(row.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo' }))))\n        : allData;\n    }\n\n    const avg = arr => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(1) : '0';\n    const temps      = data.map(d => d.temperature).filter(v => v != null);\n    const humidities = data.map(d => d.humidity).filter(v => v != null);\n    const batteries  = data.map(d => d.battery).filter(v => v != null);\n    const voltages   = data.map(d => d.voltage).filter(v => v != null);\n\n    stats.total_records  = data.length;\n    stats.temp_avg       = avg(temps);\n    stats.temp_max       = temps.length ? Math.max(...temps).toFixed(1) : '--';\n    stats.temp_min       = temps.length ? Math.min(...temps).toFixed(1) : '--';\n    stats.humidity_avg   = avg(humidities);\n    stats.battery_avg    = avg(batteries);\n    stats.voltage_avg    = avg(voltages);\n  }\n\n  const companyGroups = {};\n  data.forEach(linha => {\n    const compName = linha.tenant_name || config.company_name || 'Geral';\n    const dId = linha.device_id || 'Desconhecido';\n    const dName = linha.device_name || dId;\n    const dAla = linha.location || '--';\n    if (!companyGroups[compName]) companyGroups[compName] = {};\n    if (!companyGroups[compName][dId]) companyGroups[compName][dId] = { name: dName, ala: dAla, data: [] };\n    companyGroups[compName][dId].data.push(linha);\n  });\n\n  const compNames = Object.keys(companyGroups).sort();\n  \n  const isGestor = config.is_gestor === true;\n  const colSpan = isGestor ? 6 : 4;\n  const tableColCount = isGestor ? 14 : 10;\n\n  compNames.forEach((compName, cIdx) => {\n    html_content += `<div class=\"company-block\" ${cIdx > 0 ? \"style='page-break-before: always; margin-top: 40px;'\" : \"\"}>`;\n    html_content += `\n      <div class=\"header\">\n        <div class=\"header-info\">\n          <h1>Relatório de Telemetria — ${compName}</h1>\n          <p>Período: ${stats.period}</p>\n        </div>\n      </div>\n      <table class=\"table-header-group\">\n        <thead>\n          <tr>\n            <th class=\"th-section dia\" rowspan=\"2\">Dia</th>\n            <th class=\"th-section manha\" colspan=\"${colSpan}\">🌅 Manhã (00h – 11h59)</th>\n            <th class=\"th-section sep\" rowspan=\"2\"> </th>\n            <th class=\"th-section tarde\" colspan=\"${colSpan}\">🌇 Tarde (12h – 23h59)</th>\n          </tr>\n          <tr>\n            <th class=\"th-col\">Hora</th><th class=\"th-col\">Máx °C</th><th class=\"th-col\">Mín °C</th><th class=\"th-col\">Atual °C</th>\n            ${isGestor ? '<th class=\"th-col\">V</th><th class=\"th-col\">B</th>' : ''}\n            <th class=\"th-col\">Hora</th><th class=\"th-col\">Máx °C</th><th class=\"th-col\">Mín °C</th><th class=\"th-col\">Atual °C</th>\n            ${isGestor ? '<th class=\"th-col\">V</th><th class=\"th-col\">B</th>' : ''}\n          </tr>\n        </thead>\n        <tbody>\n    `;\n\n    const devicesInCompany = companyGroups[compName];\n    const devIds = Object.keys(devicesInCompany);\n\n    devIds.forEach(dId => {\n      const dev = devicesInCompany[dId];\n      const deviceData = dev.data;\n      html_content += \"<tr><td colspan='\" + tableColCount + \"' class='device-section-header'>📍 Dispositivo: <strong>\" + dev.name + \"</strong> (\" + dev.ala + \") &nbsp;|&nbsp; \" + deviceData.length + \" leituras</td></tr>\";\n\n      const diasAgrupados = {};\n      deviceData.forEach(linha => {\n        const dt = new Date(linha.timestamp);\n        const dia = dt.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n        if (!diasAgrupados[dia]) diasAgrupados[dia] = { dia, ts: dt.getTime(), manhas: [], tardes: [] };\n        \n        const entry = {\n          HORA: dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }),\n          TEMP: linha.temperature != null ? linha.temperature.toFixed(1) : '--',\n          MAX:  linha.temp_max    != null ? linha.temp_max.toFixed(1)    : '--',\n          MIN:  linha.temp_min    != null ? linha.temp_min.toFixed(1)    : '--',\n          VOLT: linha.voltage     != null ? linha.voltage.toFixed(1)     : '--',\n          BAT:  linha.battery     != null ? Math.round(linha.battery) + '%' : '--'\n        };\n        if (parseInt(dt.toLocaleTimeString('pt-BR', { hour: '2-digit', hour12: false, timeZone: 'America/Sao_Paulo' })) >= 12) diasAgrupados[dia].tardes.push(entry);\n        else                     diasAgrupados[dia].manhas.push(entry);\n      });\n\n      Object.values(diasAgrupados).sort((a, b) => a.ts - b.ts).forEach((grupo, gIdx, gArr) => {\n        const maxLen = Math.max(grupo.manhas.length, grupo.tardes.length, 1);\n        for (let i = 0; i < maxLen; i++) {\n          const m = grupo.manhas[i] || { HORA: '', TEMP: '', MAX: '', MIN: '', VOLT: '', BAT: '' };\n          const t = grupo.tardes[i] || { HORA: '', TEMP: '', MAX: '', MIN: '', VOLT: '', BAT: '' };\n          html_content += \"<tr>\" +\n            \"<td class='dia-cell'>\" + (i === 0 ? grupo.dia : '') + \"</td>\" +\n            \"<td>\" + m.HORA + \"</td><td>\" + m.MAX + \"</td><td>\" + m.MIN + \"</td><td>\" + m.TEMP + \"</td>\" +\n            (isGestor ? \"<td>\" + (m.VOLT || '') + \"</td><td>\" + (m.BAT || '') + \"</td>\" : \"\") +\n            \"<td class='sep'></td>\" +\n            \"<td>\" + t.HORA + \"</td><td>\" + t.MAX + \"</td><td>\" + t.MIN + \"</td><td>\" + t.TEMP + \"</td>\" +\n            (isGestor ? \"<td>\" + (t.VOLT || '') + \"</td><td>\" + (t.BAT || '') + \"</td>\" : \"\") +\n            \"</tr>\";\n        }\n        if (gIdx < gArr.length - 1) {\n          html_content += '<tr class=\"day-sep-row\"><td colspan=\"' + tableColCount + '\" class=\"day-separator\"></td></tr>';\n        }\n      });\n    });\n\n    html_content += '</tbody></table></div>';\n  });\n\n} catch (e) {\n  console.error('Processar Dados erro:', e.message);\n}\n\nreturn [{ json: { stats, html_content } }];"
-      },
-      "id": "c790ccaf-94ef-4614-9ecc-a5d27c5c0209",
-      "name": "Processar Dados",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        53088,
-        38960
-      ]
-    },
-    {
-      "parameters": {
-        "html": "<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <title>Relatório de Telemetria — Processado</title>\n  <link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap\" rel=\"stylesheet\">\n  <style>\n    :root {\n      --primary: #0f172a;\n      --accent: #3b82f6;\n      --accent-warm: #f59e0b;\n      --success: #10b981;\n      --danger: #ef4444;\n      --bg: #f8fafc;\n      --card: #ffffff;\n      --border: #e2e8f0;\n      --text-main: #1e293b;\n      --text-muted: #64748b;\n    }\n    * { box-sizing: border-box; -webkit-print-color-adjust: exact; }\n    body {\n      font-family: 'Inter', sans-serif;\n      background: var(--bg);\n      color: var(--text-main);\n      margin: 0;\n      padding: 32px 40px;\n      line-height: 1.5;\n    }\n    .report-container { max-width: 1000px; margin: 0 auto; }\n\n    /* ====== HEADER ====== */\n    .header {\n      border-bottom: 3px solid var(--accent);\n      padding-bottom: 14px;\n      margin-bottom: 24px;\n    }\n    .header-info h1 {\n      margin: 0 0 4px;\n      font-size: 26px;\n      color: var(--primary);\n      text-transform: uppercase;\n      letter-spacing: 1.5px;\n      font-weight: 700;\n    }\n    .header-info p {\n      margin: 0;\n      color: var(--text-muted);\n      font-size: 14px;\n      font-weight: 600;\n    }\n\n    /* ====== TABELA ====== */\n    .table-header-group {\n      width: 100%;\n      border-collapse: collapse;\n      background: white;\n      border-radius: 12px;\n      overflow: hidden;\n      box-shadow: 0 1px 4px rgba(0,0,0,0.07);\n      margin-bottom: 40px;\n    }\n    .th-section {\n      background: var(--primary);\n      color: white;\n      text-align: center;\n      padding: 10px 12px;\n      font-size: 11px;\n      font-weight: 700;\n      text-transform: uppercase;\n      letter-spacing: 0.08em;\n    }\n    .th-section.manha { background: #1e3a5f; }\n    .th-section.tarde { background: #7c3aed; }\n    .th-section.dia   { background: var(--primary); }\n    .th-col {\n      background: #1e293b;\n      color: #94a3b8;\n      text-align: center;\n      padding: 8px 10px;\n      font-size: 10px;\n      font-weight: 600;\n      text-transform: uppercase;\n      letter-spacing: 0.06em;\n      border-right: 1px solid rgba(255,255,255,0.06);\n    }\n    td {\n      padding: 8px 10px;\n      border-bottom: 1px solid var(--border);\n      font-size: 12px;\n      text-align: center;\n      border-right: 1px solid #f1f5f9;\n    }\n    td.sep { background: #f8fafc; border-right: 2px solid #cbd5e1; width: 12px; padding: 0; }\n    td.dia-cell { font-weight: 700; font-size: 13px; color: var(--primary); background: #f8fafc; }\n    tr:hover td { background: #eff6ff; }\n\n    /* ====== SEPARADORES ====== */\n    .device-section-header {\n      background: linear-gradient(90deg, #1e3a5f 0%, #4c1d95 100%);\n      color: #e0f2fe;\n      text-align: left;\n      padding: 10px 16px;\n      font-size: 12px;\n      font-weight: 600;\n      letter-spacing: 0.04em;\n      border-top: 1px solid #3b82f6;\n    }\n    .device-section-header strong { color: #ffffff; font-size: 13px; }\n\n    /* ====== SEPARADOR DE DIAS ====== */\n    .day-separator {\n      padding: 0;\n      height: 4px;\n      background: #cbd5e1;\n      border: none;\n    }\n\n    /* ====== FOOTER ====== */\n    .footer {\n      margin-top: 40px;\n      text-align: center;\n      color: var(--text-muted);\n      font-size: 11px;\n      border-top: 1px solid var(--border);\n      padding-top: 16px;\n    }\n    @page { size: A4; margin: 10mm; }\n  </style>\n</head>\n<body>\n  <div class=\"report-container\">\n\n    <!-- CONTEÚDO DINÂMICO (POR EMPRESA) -->\n    {{ $json.html_content }}\n\n    <div class=\"footer\">\n      Relatório gerado automaticamente em {{ new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) }}<br>\n      Sistema de Monitoramento de Sensores\n    </div>\n  </div>\n</body>\n</html>"
-      },
-      "id": "9b6dd680-3b46-4e51-9a99-15062a41dc40",
-      "name": "HTML Report",
-      "type": "n8n-nodes-base.html",
-      "typeVersion": 1.2,
-      "position": [
-        53280,
-        38960
-      ]
-    },
-    {
-      "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "html_base64",
-              "name": "html_base64",
-              "value": "={{ $json.html.base64Encode() }}",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "57ab1bf1-8322-4f49-9e4b-41612a8e66e7",
-      "name": "htmToBase64",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        53472,
-        38960
-      ]
-    },
-    {
-      "parameters": {
-        "operation": "toBinary",
-        "sourceProperty": "html_base64",
-        "options": {
-          "fileName": "index.html",
-          "mimeType": "text/html"
-        }
-      },
-      "id": "13e62d6a-1396-4cb7-b5eb-02b463cafe2f",
-      "name": "Convert to File",
-      "type": "n8n-nodes-base.convertToFile",
-      "typeVersion": 1.1,
-      "position": [
-        53648,
-        38960
-      ]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://109.123.240.215:3001/forms/chromium/convert/html",
-        "sendBody": true,
-        "contentType": "multipart-form-data",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "parameterType": "formBinaryData",
-              "name": "files",
-              "inputDataFieldName": "data"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "file"
-            }
-          }
-        }
-      },
-      "id": "4d411bc3-22fa-4388-8e77-58694034b092",
-      "name": "HTTP Request Chromium",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.3,
-      "position": [
-        53840,
-        38960
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Extrair binário para base64\nconst binaryData = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst base64String = binaryData.toString('base64');\n\nreturn [{\n  json: {\n    pdf_base64: base64String,\n    fileName: 'relatorio_telemetria.pdf',\n    mimeType: 'application/pdf'\n  }\n}]"
-      },
-      "id": "aaa59660-87ba-45c2-bf30-eebd39cfe633",
-      "name": "Extract PDF",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        54016,
-        38960
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Build response\nconst stats = $('Processar Dados').first().json.stats;\nconst config = $('Set Defaults').first().json;\nconst pdf_data = $('Extract PDF').first().json;\n\nreturn [{\n  json: {\n    status: 'success',\n    message: 'Relatório processado com sucesso',\n    type: config.type,\n    period: { start: config.start_date, end: config.end_date },\n    pdf_base64: pdf_data.pdf_base64,\n    stats: {\n      total_records: stats.total_records,\n      temp_avg: stats.temp_avg,\n      temp_max: stats.temp_max,\n      temp_min: stats.temp_min\n    }\n  }\n}];"
-      },
-      "id": "a0e25ecb-45fa-4ffe-a3fd-736e8a87d483",
-      "name": "Build Response",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        54176,
-        38960
-      ]
-    },
-    {
-      "parameters": {
-        "options": {
-          "responseCode": 200
-        }
-      },
-      "id": "646a0020-8593-4789-b1a2-13da3d64cb6f",
-      "name": "Respond to Webhook",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        54336,
-        38960
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Filtrar registros por hora selecionada (path: device)\n// O nó nativo Supabase já trouxe os dados por device_id + timestamp range.\n// Aqui filtramos por hora, caso use_all_hours seja false.\n\nconst config = $('Set Defaults').first().json;\nconst use_all_hours = config.use_all_hours !== false;\nconst selected_hours = Array.isArray(config.selected_hours) ? config.selected_hours : [];\n\nconst items = $input.all();\n\nif (use_all_hours || selected_hours.length === 0) {\n  // Sem filtro de hora: retorna tudo\n  return items;\n}\n\n// selected_hours é array de strings tipo ['08:00', '14:00'] ou números [8, 14]\nconst selectedHourNums = selected_hours.map(h => {\n  if (typeof h === 'number') return h;\n  return parseInt(String(h).split(':')[0]);\n});\n\nconst filtered = items.filter(item => {\n  const ts = item.json.timestamp;\n  if (!ts) return false;\n  // timestamp ex: \"2026-04-07 23:00:02.118+00\" ou ISO\n  const date = new Date(ts);\n  const hour = date.getUTCHours(); // UTC para bater com o banco\n  return selectedHourNums.includes(hour);\n});\n\nconsole.log('Filtrar por Hora (device): de', items.length, 'para', filtered.length, 'registros');\nreturn filtered.length > 0 ? filtered : [{ json: { _warning: 'Sem dados no horário selecionado', _empty: true } }];\n"
-      },
-      "id": "e14d2d2e-c2b1-4280-b6b7-a307d899928b",
-      "name": "Filtrar por Hora",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        52784,
-        38800
-      ],
-      "continueOnFail": true
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 10px;
+      color: #334155;
+      background: #fff;
     }
-  ],
-  "pinData": {},
-  "connections": {
-    "Webhook Trigger": {
-      "main": [
-        [
-          {
-            "node": "Parse Input",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse Input": {
-      "main": [
-        [
-          {
-            "node": "Set Defaults",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Set Defaults": {
-      "main": [
-        [
-          {
-            "node": "Tipo de Relatório?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Buscar Telemetry": {
-      "main": [
-        [
-          {
-            "node": "Filtrar por Hora",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Processar Dados": {
-      "main": [
-        [
-          {
-            "node": "HTML Report",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTML Report": {
-      "main": [
-        [
-          {
-            "node": "htmToBase64",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "htmToBase64": {
-      "main": [
-        [
-          {
-            "node": "Convert to File",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Convert to File": {
-      "main": [
-        [
-          {
-            "node": "HTTP Request Chromium",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "HTTP Request Chromium": {
-      "main": [
-        [
-          {
-            "node": "Extract PDF",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Extract PDF": {
-      "main": [
-        [
-          {
-            "node": "Build Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Response": {
-      "main": [
-        [
-          {
-            "node": "Respond to Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Tipo de Relatório?": {
-      "main": [
-        [
-          {
-            "node": "Buscar Telemetry",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Buscar Telemetry (Company)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Buscar Telemetry (Company)": {
-      "main": [
-        [
-          {
-            "node": "Validar Dados",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validar Dados": {
-      "main": [
-        [
-          {
-            "node": "Processar Dados",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Filtrar por Hora": {
-      "main": [
-        [
-          {
-            "node": "Validar Dados",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+
+    .company-block {
+      margin-bottom: 40px;
     }
-  },
-  "active": true,
-  "settings": {
-    "executionOrder": "v1",
-    "binaryMode": "separate"
-  },
-  "versionId": "d7ebee2a-7dc1-4688-be15-38eef36d1811",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "bc109d15d9fa8da9009a5e445f23723e6adc4d7512780536cd9da35901fe78b0"
-  },
-  "id": "XPk3wWyEvGuuP7sH",
-  "tags": []
-}
+
+    .header {
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+
+    .header-info h1 {
+      font-size: 18px;
+      margin: 0 0 5px 0;
+      color: #0f172a;
+    }
+
+    .header-info p {
+      font-size: 11px;
+      margin: 0;
+      color: #64748b;
+    }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9px;
+      table-layout: fixed;
+    }
+
+    .report-table th {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 6px 2px;
+      text-align: center;
+      border: 1px solid #1e293b;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .report-table td {
+      padding: 5px 2px;
+      text-align: center;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .report-table th:first-child, .report-table td:first-child {
+      width: 120px;
+    }
+
+    .report-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .device-header {
+      background: #334155 !important;
+      color: #fff !important;
+      text-align: left !important;
+      padding: 8px 12px !important;
+      font-size: 10px;
+      font-weight: 700;
+      border: none !important;
+    }
+
+    .time-cell {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 1cm;
+    }
+
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      font-size: 8px;
+      color: #94a3b8;
+      text-align: center;
+      padding: 5px 0;
+      border-top: 1px solid #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  {{{ $json.html_content }}}
+  <div class="footer">
+    Gerado automaticamente em {{ $json.stats.report_date }} | &copy; {{ $json.stats.year }} Relatório de Telemetria
+  </div>
+</body>
+</html>
