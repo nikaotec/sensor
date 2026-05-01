@@ -1,62 +1,72 @@
 import { useMemo } from 'react';
 import { useSupabaseData } from './useSupabaseData';
 import { useMqttData } from './useMqttData';
+import type { Device } from '../domain/entities/Device';
 
 export interface TelemetryData {
-    devices: any[];
-    displayDevices: any[];
+    supabaseDevices: Device[];
+    tenantDevices: Device[];
+    displayDevices: Device[];
     mqttConnected: boolean;
 }
 
 export const useTelemetryData = (
-    currentTenant: any,
-    availableTenants: any[],
-    currentUser: any
+    currentTenant: { id: string, name: string } | null,
+    availableTenants: { id: string, name: string }[],
+    currentUser: { role: string } | null
 ) => {
     const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
     const isAdmin = currentUser?.role === 'admin';
 
-    // Fetch initial devices from Supabase and update with live MQTT stream
+    // Fetch initial devices from Supabase
     const { devices: supabaseDevices } = useSupabaseData(
-        currentTenant?.id || '',
+        currentTenant?.id || 'all',
         undefined,
         currentUser?.role
     );
 
-    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData(
-        'all',
+    // Update with live MQTT stream
+    const { devices: tenantDevices, isConnected: mqttConnected, publish, updateDeviceLocal } = useMqttData(
+        { id: currentTenant?.id || 'all', name: currentTenant?.name },
         currentUser?.role,
         supabaseDevices
     );
 
     // Filter refined to respect the selected tab and role permissions
     const displayDevices = useMemo(() => {
-        // If there are no devices, return empty
         if (!tenantDevices || tenantDevices.length === 0) return [];
 
-        // Always filter unlinked devices
-        const assignedDevices = tenantDevices.filter(d => {
-            if (!d || !d.tenantId) return false;
+        // Always filter internal nikaotec devices if needed, but be permissive for managers
+        const filteredDevices = tenantDevices.filter(d => {
+            if (!d) return false;
+            // Managers see everything in 'All' tab, including unassigned devices
+            if ((isManager || isAdmin) && currentTenant?.id === 'all') return true;
+
+            if (!d.tenantId) return false;
             const t = String(d.tenantId).trim().toLowerCase();
-            return t !== "" && t !== "unknown" && t !== "empresa_default" && t !== "nikaotec" && t !== "null" && t !== "undefined";
+            return t !== "" && t !== "null" && t !== "undefined";
         });
 
         // If in a specific tenant tab (not "all"), filter only by it
         if (currentTenant && currentTenant.id !== 'all') {
-            return assignedDevices.filter(d => d.tenantId === currentTenant.id || d.tenantId === currentTenant.name);
+            return filteredDevices.filter(d =>
+                String(d.tenantId).toLowerCase() === String(currentTenant.id).toLowerCase() ||
+                String(d.tenantId).toLowerCase() === String(currentTenant.name).toLowerCase()
+            );
         }
 
-        // If manager and in "All" tab, show all ASSIGNED devices
+        // If manager and in "All" tab, show all filtered devices
         if (isManager || isAdmin) {
-            return assignedDevices;
+            return filteredDevices;
         }
 
-        // Normal user: show only devices from linked tenants
-        const allowedTenantIds = availableTenants.map(t => t.id);
-        const allowedTenantNames = availableTenants.map(t => t.name);
+        // Normal user: show only devices from linked/available tenants
+        const allowedTenantIds = availableTenants.map(t => String(t.id).toLowerCase());
+        const allowedTenantNames = availableTenants.map(t => String(t.name).toLowerCase());
 
-        return assignedDevices.filter(d => {
-            return allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId);
+        return filteredDevices.filter(d => {
+            const dTenant = String(d.tenantId).toLowerCase();
+            return allowedTenantIds.includes(dTenant) || allowedTenantNames.includes(dTenant);
         });
     }, [tenantDevices, currentTenant, availableTenants, isManager, isAdmin]);
 
@@ -64,6 +74,8 @@ export const useTelemetryData = (
         supabaseDevices,
         tenantDevices,
         displayDevices,
-        mqttConnected
+        mqttConnected,
+        publish,
+        updateDeviceLocal
     };
 };

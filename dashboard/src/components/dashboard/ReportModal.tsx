@@ -6,7 +6,7 @@ import type { ReportForm } from '../../hooks/useReportGenerator';
 interface DeviceOption {
     id: string;
     name: string;
-    tenantId?: string;
+    tenantId?: string | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────

@@ -53,7 +53,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const [remoteSync, setRemoteSync] = useState(true);
 
     const { devices: supabaseDevices, history, events } = useSupabaseData(currentTenant.id, deviceId, currentUser?.role);
-    const { devices: tenantDevices, isConnected, publish, updateDeviceLocal } = useMqttData('all', currentUser?.role, supabaseDevices);
+    const { devices: tenantDevices, isConnected, publish, updateDeviceLocal } = useMqttData({ id: 'all' }, currentUser?.role, supabaseDevices);
 
     // Debug: log do history
     console.log('[DeviceDetails] history:', history, 'deviceId:', deviceId);

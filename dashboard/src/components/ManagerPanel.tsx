@@ -72,7 +72,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     // Data hooks
     const { users, isLoading: loadingUsers } = useUsers(currentUser?.role);
     const { devices: supabaseDevices } = useSupabaseData('all', undefined, currentUser?.role);
-    const { devices: mqttDevices, publish: mqttPublish, updateDeviceLocal } = useMqttData('all', currentUser?.role, supabaseDevices);
+    const { devices: mqttDevices, publish: mqttPublish, updateDeviceLocal } = useMqttData({ id: 'all' }, currentUser?.role, supabaseDevices);
 
     const [selectedTenants, setSelectedTenants] = useState<{ [key: string]: string }>({});
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);

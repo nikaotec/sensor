@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
-import { useReports, useSupabaseData } from '../hooks/useSupabaseData';
+import { useSupabaseData } from '../hooks/useSupabaseData';
+import { useReports } from '../hooks/useReports';
+import type { ReportConfig } from '../domain/entities/ReportConfig';
 import {
     BarChart,
     Bar,
@@ -126,20 +128,20 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
             return;
         }
 
-        const config = {
-            id: editingReport?.id,
+        const config: ReportConfig = {
+            id: editingReport?.id || '',
             tenant_id: selectedTenantId as string,
-            name: formData.get('name'),
-            type: formData.get('type'),
-            device_id: formData.get('device_id') || null,
-            schedule_type: formData.get('schedule_type'),
-            schedule_time: formData.get('schedule_time'),
-            schedule_day: parseInt(formData.get('schedule_day') as string) || null,
-            channels: formData.getAll('channels'),
-            recipients: {
-                emails: (formData.get('emails') as string).split(',').map(s => s.trim()).filter(s => s),
-                phones: (formData.get('phones') as string).split(',').map(s => s.trim()).filter(s => s)
-            },
+            name: formData.get('name') as string,
+            type: formData.get('type') as any,
+            device_id: (formData.get('device_id') as string) || undefined,
+            schedule_type: formData.get('schedule_type') as any,
+            schedule_time: formData.get('schedule_time') as string,
+            schedule_day: parseInt(formData.get('schedule_day') as string) || undefined,
+            channels: formData.getAll('channels') as any,
+            recipients: [
+                ...(formData.get('emails') as string).split(',').map(s => s.trim()).filter(s => s),
+                ...(formData.get('phones') as string).split(',').map(s => s.trim()).filter(s => s)
+            ],
             enabled: editingReport ? editingReport.enabled : true
         };
 
@@ -434,7 +436,7 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-white/5">
-                                        {reportConfigs.map((config) => (
+                                        {reportConfigs.map((config: ReportConfig) => (
                                             <tr key={config.id} className="hover:bg-white/5 transition-colors">
                                                 <td className="px-8 py-5">
                                                     <div className="font-bold text-white">{config.name}</div>

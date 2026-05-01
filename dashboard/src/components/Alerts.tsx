@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import { supabase } from '../supabase/config';
 import { BellRing, ShieldAlert, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
+import type { DeviceEvent } from '../domain/entities/Event';
 
 interface AlertsProps {
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
@@ -14,7 +15,35 @@ interface AlertsProps {
 const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
     const { currentTenant } = useTenant();
     const { currentUser } = useAuth();
-    const { events, refreshEvents } = useSupabaseData(currentTenant?.id || 'all', undefined, currentUser?.role);
+
+    useSupabaseData(currentTenant?.id || 'all', undefined, currentUser?.role);
+
+    // Re-implementing event fetching if useSupabaseData doesn't provide it anymore
+    const [events, setEvents] = useState<DeviceEvent[]>([]);
+    const [loadingEvents, setLoadingEvents] = useState(true);
+
+    const fetchEvents = React.useCallback(async () => {
+        try {
+            setLoadingEvents(true);
+            const { data, error } = await supabase
+                .from('events')
+                .select('*')
+                .order('timestamp', { ascending: false })
+                .limit(50);
+
+            if (error) throw error;
+            setEvents(data || []);
+        } catch (err) {
+            console.error('Error fetching events:', err);
+        } finally {
+            setLoadingEvents(false);
+        }
+    }, []);
+
+    React.useEffect(() => {
+        fetchEvents();
+    }, [fetchEvents]);
+
     const [pendingConfirmations, setPendingConfirmations] = useState<Set<string>>(new Set());
     const [confirmedAlerts, setConfirmedAlerts] = useState<Set<string>>(new Set());
 
@@ -22,26 +51,20 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
 
     const [filter, setFilter] = useState<'all' | 'critical' | 'warning'>('all');
 
-    // Mapear eventos do Firestore para o formato da UI
+    // Mapear eventos para o formato da UI
     const tenantAlerts = events
         .filter(e => e.type.startsWith('ALERTA_') || e.type.includes('NORMALIZADA') || e.type.includes('RESTABELECIDA') || e.type.includes('FECHADA'))
         .map(e => {
             let dateStr = 'Recent';
             if (e.timestamp) {
-                // Handle Firestore Timestamp or ISO string
-                const timestamp = (e as any).timestamp;
-                if (timestamp.seconds) {
-                    dateStr = new Date(timestamp.seconds * 1000).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-                } else {
-                    dateStr = new Date(timestamp).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-                }
+                dateStr = new Date(e.timestamp).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
             }
             return {
                 id: e.id,
                 deviceId: e.deviceId,
                 severity: (e as any).severity || (e.type.startsWith('ALERTA_') ? 'critical' : 'info'),
                 device: (e as any).deviceName || e.deviceId,
-                message: e.message || e.msg || 'Alerta detectado',
+                message: e.message || 'Alerta detectado',
                 time: dateStr,
                 value: (e as any).value || 'N/A'
             };
@@ -49,7 +72,6 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
 
     const handleConfirmAlert = async (e: React.MouseEvent, alertId: string) => {
         e.stopPropagation();
-        console.log('Confirming alert:', alertId);
         setPendingConfirmations(prev => new Set(prev).add(alertId));
         try {
             const { error } = await supabase
@@ -59,16 +81,11 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
 
             if (error) throw error;
 
-            console.log('Alert confirmed in DB');
             setConfirmedAlerts(prev => new Set(prev).add(alertId));
-
-            // Força atualização dos dados
-            if (refreshEvents) {
-                await refreshEvents();
-            }
+            await fetchEvents();
         } catch (err) {
             console.error('Error confirming alert:', err);
-            alert('Erro ao confirmar alerta. Verifique o console.');
+            alert('Erro ao confirmar alerta.');
         } finally {
             setPendingConfirmations(prev => {
                 const next = new Set(prev);
@@ -79,7 +96,6 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
     };
 
     const filteredAlerts = filter === 'all' ? tenantAlerts : tenantAlerts.filter(a => a.severity === filter);
-
     const criticalCount = tenantAlerts.filter(a => a.severity === 'critical').length;
     const warningCount = tenantAlerts.filter(a => a.severity === 'warning').length;
 
@@ -96,10 +112,7 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
         <div className="flex h-screen overflow-hidden bg-background-dark text-slate-100 font-display">
             <Sidebar activeItem="alerts" onNavigate={onNavigate} />
 
-            {/* Main Content */}
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background-dark">
-
-                {/* Top Bar */}
                 <header className="h-20 flex-shrink-0 flex items-center justify-between px-4 sm:px-8 bg-[#1A1D17]/80 backdrop-blur-md border-b border-[#2A2E24] sticky top-0 z-30 shadow-sm">
                     <h2 className="text-xl font-bold text-white tracking-tight">Alertas de {currentTenant.name}</h2>
                     <div className="flex items-center gap-4">
@@ -112,11 +125,8 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
                     </div>
                 </header>
 
-                {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-10 pb-24 sm:pb-8 custom-scrollbar 2xl:max-w-[1600px] 2xl:mx-auto w-full">
                     <div className="max-w-7xl mx-auto space-y-6">
-
-                        {/* Summary Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div className="bg-[#1A1D17] p-6 rounded-2xl border border-[#2A2E24] shadow-lg flex items-center justify-between group hover:border-primary/50 transition-all relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity">
@@ -156,7 +166,6 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
                             </div>
                         </div>
 
-                        {/* Alerts List */}
                         <div className="bg-[#1A1D17] rounded-2xl border border-[#2A2E24] shadow-lg overflow-hidden">
                             <div className="overflow-x-auto">
                                 <table className="w-full text-sm text-left">
@@ -170,7 +179,9 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-[#2A2E24]">
-                                        {filteredAlerts.length === 0 ? (
+                                        {loadingEvents ? (
+                                            <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Carregando alertas...</td></tr>
+                                        ) : filteredAlerts.length === 0 ? (
                                             <tr>
                                                 <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
                                                     <div className="flex flex-col items-center justify-center">
@@ -212,9 +223,7 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    console.log('Deep navigating to device:', alert.deviceId);
                                                                     if (onDeviceClick) onDeviceClick(alert.deviceId);
-                                                                    else console.warn('onDeviceClick prop is missing!');
                                                                 }}
                                                                 className="text-slate-500 hover:text-primary bg-[#0F110D] hover:bg-primary/10 border border-[#2A2E24] hover:border-primary/30 p-2 rounded-lg transition-all shadow-sm relative z-10 cursor-pointer"
                                                                 title="Ver Detalhes"
@@ -230,7 +239,6 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
                                 </table>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </main>

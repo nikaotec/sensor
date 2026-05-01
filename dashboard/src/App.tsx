@@ -142,7 +142,7 @@ const AppContent = () => {
 
   // Monitorar Alertas MQTT Globalmente
   useMqttData(
-    currentTenant?.id || 'all',
+    { id: currentTenant?.id || 'all', name: currentTenant?.name },
     currentUser?.role,
     [],
     (alertPayload) => {
