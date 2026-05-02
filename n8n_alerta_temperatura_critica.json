@@ -1,0 +1,179 @@
+{
+    "name": "Alerta Temperatura Critica - EMQX",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "alerta-temperatura",
+                "responseMode": "onReceived",
+                "responseData": "firstEntryJson",
+                "options": {}
+            },
+            "id": "webhook-trigger",
+            "name": "Webhook EMQX Alert",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                300
+            ],
+            "webhookId": "emqx-alerta-temperatura"
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": false,
+                        "leftValue": "",
+                        "typeValidation": "loose"
+                    },
+                    "conditions": [
+                        {
+                            "id": "check-tipo",
+                            "leftValue": "={{ $json.tipo_alerta }}",
+                            "rightValue": "ALERTA_TEMPERATURA_CRITICA",
+                            "operator": {
+                                "type": "string",
+                                "operation": "contains"
+                            }
+                        }
+                    ],
+                    "combinator": "or"
+                },
+                "options": {}
+            },
+            "id": "filter-alerta-critico",
+            "name": "Filtrar Alerta Crítico",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2.2,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const item = $input.first().json;\nconst agora = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\nconst temp = typeof item.temperatura === 'number'\n  ? item.temperatura.toFixed(1)\n  : parseFloat(item.payload?.TEMP_C ?? item.payload?.temp ?? 0).toFixed(1);\n\nreturn [{\n  json: {\n    ...item,\n    mensagem: `🚨 *ALERTA TEMPERATURA CRÍTICA*\\n` +\n              `📍 Dispositivo: *${item.device_id}*\\n` +\n              `🌡️ Temperatura: *${temp}°C*\\n` +\n              `🏢 Empresa: ${item.empresa ?? 'N/A'}\\n` +\n              `🕐 Horário: ${agora}\\n` +\n              `⚠️ Verificar sistema de refrigeração imediatamente!`,\n    temperatura_formatada: temp,\n    horario: agora\n  }\n}];"
+            },
+            "id": "formatar-mensagem",
+            "name": "Formatar Mensagem",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                680,
+                220
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "={{ $env.EVOLUTION_API_KEY }}"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": []
+                },
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"number\": \"{{ $env.ALERTA_PHONE }}\",\n  \"text\": {{ JSON.stringify($json.mensagem) }},\n  \"delay\": 0\n}",
+                "options": {
+                    "timeout": 10000
+                }
+            },
+            "id": "enviar-whatsapp",
+            "name": "Enviar WhatsApp",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                900,
+                220
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={ \"status\": \"ignored\", \"tipo\": \"{{ $json.tipo_alerta }}\" }"
+            },
+            "id": "ignorar-alerta",
+            "name": "Ignorar (não crítico)",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                680,
+                420
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook EMQX Alert": {
+            "main": [
+                [
+                    {
+                        "node": "Filtrar Alerta Crítico",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filtrar Alerta Crítico": {
+            "main": [
+                [
+                    {
+                        "node": "Formatar Mensagem",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Ignorar (não crítico)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Formatar Mensagem": {
+            "main": [
+                [
+                    {
+                        "node": "Enviar WhatsApp",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "pinData": {},
+    "settings": {
+        "executionOrder": "v1",
+        "saveManualExecutions": true,
+        "callerPolicy": "workflowsFromSameOwner",
+        "errorWorkflow": ""
+    },
+    "staticData": null,
+    "tags": [
+        "iot",
+        "mqtt",
+        "emqx",
+        "alertas"
+    ],
+    "triggerCount": 1,
+    "updatedAt": "2026-05-01T19:34:00.000Z",
+    "versionId": "1"
+}

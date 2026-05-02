@@ -67,17 +67,18 @@ void AppNetworkManager::verifyMqtt() {
     if (millis() - lastMqttReconnectAttempt > 15000) {
       lastMqttReconnectAttempt = millis();
       String clientId = "ESP32_" + getIdDispositivo();
-      Serial.println("[MQTT] Tentando conectar ao broker " +
-                     String(MQTT_SERVER) + ":" + String(MQTT_PORT) +
-                     " com ID: " + clientId + "...");
+      Serial.println("[MQTT] Conectando ao EMQX " + String(MQTT_SERVER) + ":" +
+                     String(MQTT_PORT) + " ID: " + clientId +
+                     " USER: " + String(MQTT_USER));
       if (client.connect(clientId.c_str(), MQTT_USER, MQTT_PASS)) {
         client.subscribe(MSG_TOPIC_STATUS);
         client.subscribe(MSG_TOPIC_WEB);
         Serial.println(
-            "[MQTT] CONECTADO! Subscrito em: " + String(MSG_TOPIC_STATUS) +
+            "[MQTT] ✅ CONECTADO! Subscrito em: " + String(MSG_TOPIC_STATUS) +
             " e " + String(MSG_TOPIC_WEB));
       } else {
-        Serial.println("[MQTT] FALHA - codigo: " + String(client.state()));
+        Serial.println("[MQTT] ❌ FALHA - rc=" + String(client.state()) +
+                       " (5=bad credentials, 2=server unavailable)");
       }
     }
   }
@@ -96,15 +97,24 @@ void AppNetworkManager::resetWifi() {
   ESP.restart();
 }
 
-void AppNetworkManager::publish(const char *topic, String payload) {
+void AppNetworkManager::publish(const char *topic, String payload,
+                                uint8_t qos) {
   if (client.connected()) {
-    bool ok = client.publish(topic, payload.c_str());
-    Serial.println("[MQTT TX] " + String(topic) + " (" +
-                   String(payload.length()) + " bytes) " +
-                   (ok ? "OK" : "FALHOU"));
+    bool ok = client.publish(topic, payload.c_str(), false, qos);
+    Serial.println("[MQTT TX] " + String(topic) + " QoS=" + String(qos) + " (" +
+                   String(payload.length()) + "b) " + (ok ? "OK" : "FALHOU"));
   } else {
-    Serial.println("[MQTT TX] ERRO: Nao conectado ao broker!");
+    Serial.println("[MQTT TX] ERRO: Nao conectado ao EMQX!");
   }
+}
+
+/**
+ * Publica no topico padrao EMQX: telemetria/{device_id}
+ * Usa QoS 1 para garantir entrega exactly-once-or-more.
+ */
+void AppNetworkManager::publishTelemetria(String payload) {
+  String topic = String(MSG_TOPIC_TELEMETRIA) + "/" + getIdDispositivo();
+  publish(topic.c_str(), payload, 1);
 }
 
 bool AppNetworkManager::isConnected() { return client.connected(); }

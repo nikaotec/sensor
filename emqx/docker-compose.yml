@@ -1,0 +1,59 @@
+services:
+  # ── EMQX v5 ─────────────────────────────────────────────────────────────────
+  emqx:
+    image: emqx/emqx:5.8.3
+    container_name: emqx
+    restart: unless-stopped
+    ports:
+      - "1883:1883"      # MQTT TCP
+      - "8083:8083"      # MQTT WebSocket (Dashboard React usa esta porta)
+      - "8084:8084"      # MQTT WebSocket/TLS
+      - "8883:8883"      # MQTT TLS
+      - "18083:18083"    # EMQX Dashboard Web UI
+    volumes:
+      - emqx_data:/opt/emqx/data
+      - emqx_log:/opt/emqx/log
+      - ./emqx.conf:/opt/emqx/etc/emqx.conf:ro
+    environment:
+      EMQX_NODE__NAME: "emqx@127.0.0.1"
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: "Nikaotec@2025"
+      # Autenticação via arquivo de senhas (built-in)
+      EMQX_AUTHENTICATION__1__MECHANISM: "password_based"
+      EMQX_AUTHENTICATION__1__BACKEND: "built_in_database"
+      EMQX_AUTHENTICATION__1__PASSWORD_HASH_ALGORITHM__NAME: "sha256"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - iot_net
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: emqx_postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"      # 5433 externo para não conflitar com Supabase local
+    environment:
+      POSTGRES_DB: iot_telemetry
+      POSTGRES_USER: emqx_user
+      POSTGRES_PASSWORD: EmqxPg@2025
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init_postgres.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emqx_user -d iot_telemetry"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - iot_net
+
+volumes:
+  emqx_data:
+  emqx_log:
+  postgres_data:
+
+networks:
+  iot_net:
+    driver: bridge

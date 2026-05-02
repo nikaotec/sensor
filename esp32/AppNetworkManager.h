@@ -29,8 +29,11 @@ public:
   AppNetworkManager();
   void begin(MqttCallback handler);
   void update();
-  void resetWifi(); // Novo: reseta as configurações do WiFiManager
-  void publish(const char *topic, String payload);
+  void resetWifi(); // Reseta as configurações do WiFiManager
+  /** Publica mensagem com QoS configur�vel (default QoS 1 para EMQX) */
+  void publish(const char *topic, String payload, uint8_t qos = 1);
+  /** Publica no tópico telemetria/{device_id} com QoS 1 */
+  void publishTelemetria(String payload);
   bool isConnected();
   bool isWifiConnected();
   int getRSSI();

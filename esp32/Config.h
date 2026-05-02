@@ -14,13 +14,16 @@
 #define WIFI_SSID "VENANCIO"
 #define WIFI_PASS "liza1980"
 // #define MQTT_SERVER "173.249.10.19"
-#define MQTT_SERVER "mqtt.nikaotech.com" //"n8n.nikaotech.com"
+#define MQTT_SERVER "mqtt.nikaotech.com"
 #define MQTT_PORT 1883
-#define MQTT_USER ""
-#define MQTT_PASS ""
+// Credenciais obrigatórias para autenticação EMQX v5
+// IMPORTANTE: Altere para usuário e senha reais antes de produção!
+#define MQTT_USER "esp32_device"
+#define MQTT_PASS "EmqxDevice@2025"
 
 // ---------- TÓPICOS MQTT ----------
-#define MSG_TOPIC_DATA "esp32c3/data"
+#define MSG_TOPIC_TELEMETRIA "telemetria" // Prefixo: telemetria/{device_id}
+#define MSG_TOPIC_DATA "esp32c3/data"     // Legado — manter por compatibilidade
 #define MSG_TOPIC_STATUS "esp32c3/status/action"
 #define MSG_TOPIC_WEB "esp32c3/web/action"
 #define MSG_TOPIC_WEB_STATUS "esp32c3/web_status/action"

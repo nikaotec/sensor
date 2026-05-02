@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { mqttService, type MqttMessage } from '../infrastructure/MqttService';
+import { emqxMqttService, type MqttMessage, type ConnectionState } from '../infrastructure/EmqxMqttService';
 import type { Device } from '../domain/entities/Device';
 import { MqttPayloadNormalizer } from '../domain/services/MqttPayloadNormalizer';
 import { ProcessMqttUpdateUseCase } from '../application/ProcessMqttUpdateUseCase';
@@ -13,6 +13,7 @@ export const useMqttData = (
 ) => {
     const [devices, setDevices] = useState<Device[]>(initialDevices);
     const [isConnected, setIsConnected] = useState(false);
+    const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
 
     // Instantiate use case
     const processMqttUpdate = useMemo(() => new ProcessMqttUpdateUseCase(), []);
@@ -33,11 +34,15 @@ export const useMqttData = (
     }, [initialDevices]);
 
     useEffect(() => {
-        mqttService.connect();
-        setIsConnected(true);
+        emqxMqttService.connect();
 
-        const unsubscribe = mqttService.onMessage((msg: MqttMessage) => {
-            const { topic, payload } = msg;
+        const unsubscribeState = emqxMqttService.onStateChange((state) => {
+            setConnectionState(state);
+            setIsConnected(state === 'connected');
+        });
+
+        const unsubscribeMsg = emqxMqttService.onMessage((msg: MqttMessage) => {
+            const { topic, payload } = msg as { topic: string; payload: any };
 
             if (payload.TIPO === 'MENSAGEM_DISPLAY') return;
 
@@ -85,17 +90,18 @@ export const useMqttData = (
         });
 
         return () => {
-            unsubscribe();
+            unsubscribeMsg();
+            unsubscribeState();
         };
     }, [tenantFilter, onAlert, onDeviceNameChange, processMqttUpdate]);
 
     const publish = useCallback((topic: string, message: any) => {
-        mqttService.publish(topic, message);
+        emqxMqttService.publish(topic, message);
     }, []);
 
     const updateDeviceLocal = useCallback((deviceId: string, data: Partial<Device>) => {
         setDevices(prev => prev.map(d => d.id === deviceId ? { ...d, ...data } : d));
     }, []);
 
-    return { devices, isConnected, publish, updateDeviceLocal };
+    return { devices, isConnected, connectionState, publish, updateDeviceLocal };
 };
