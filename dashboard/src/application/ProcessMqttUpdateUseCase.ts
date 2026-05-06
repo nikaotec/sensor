@@ -50,7 +50,8 @@ export class ProcessMqttUpdateUseCase {
             status: 'online',
             lastSeen: new Date().toISOString(),
             mqttUpdated: true,
-            telemetry: mergedTelemetry
+            telemetry: mergedTelemetry,
+            fwVersion: mergedTelemetry.fwVersion
         };
 
         return {

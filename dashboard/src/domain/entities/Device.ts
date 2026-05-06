@@ -42,6 +42,7 @@ export interface Device {
     lastSeen: string;
     telemetry: DeviceTelemetry;
     mqttUpdated?: boolean;
+    fwVersion?: string;
 }
 
 export interface Tenant {
