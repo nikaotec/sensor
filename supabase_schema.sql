@@ -117,39 +117,53 @@ AS $$
   SELECT tenant_ids FROM users WHERE id = auth.uid()::text;
 $$;
 
+-- Função para verificar se o usuário é admin (SECURITY DEFINER quebra a recursão)
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS boolean 
+LANGUAGE sql 
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM users 
+    WHERE id = auth.uid()::text 
+    AND role = 'admin'
+  );
+$$;
+
 -- TABELA: users
 CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid()::text = id);
-CREATE POLICY "Admins can manage users" ON users FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid()::text AND role = 'admin')
-);
+CREATE POLICY "Admins can manage users" ON users FOR ALL USING (is_admin());
 
 -- TABELA: tenants
 CREATE POLICY "Users can view their tenants" ON tenants FOR SELECT USING (
-  id::text = ANY(get_my_tenants()) OR 
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid()::text AND role = 'admin')
+  id::text = ANY(get_my_tenants()) OR is_admin()
 );
 
 -- TABELA: devices_status
 CREATE POLICY "Users can view their devices" ON devices_status FOR SELECT USING (
-  tenant_id = ANY(get_my_tenants()) OR 
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid()::text AND role = 'admin')
+  tenant_id = ANY(get_my_tenants()) OR is_admin()
+);
+
+CREATE POLICY "Users can update their devices" ON devices_status FOR UPDATE USING (
+  tenant_id = ANY(get_my_tenants()) OR is_admin()
 );
 
 -- TABELA: telemetry
 CREATE POLICY "Users can view their telemetry" ON telemetry FOR SELECT USING (
+  is_admin() OR
   EXISTS (
     SELECT 1 FROM devices_status 
     WHERE devices_status.id = telemetry.device_id 
-    AND (devices_status.tenant_id = ANY(get_my_tenants()) OR 
-         EXISTS (SELECT 1 FROM users WHERE id = auth.uid()::text AND role = 'admin'))
+    AND devices_status.tenant_id = ANY(get_my_tenants())
   )
 );
 
 -- TABELA: events
 CREATE POLICY "Users can view their events" ON events FOR SELECT USING (
-  tenant_id = ANY(get_my_tenants()) OR 
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid()::text AND role = 'admin')
+  tenant_id = ANY(get_my_tenants()) OR is_admin()
 );
+
 
 -- Permissões de escrita do sistema (Ingestão)
 CREATE POLICY "System insert telemetry" ON telemetry FOR INSERT WITH CHECK (true);
