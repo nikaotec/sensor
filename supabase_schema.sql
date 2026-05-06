@@ -99,8 +99,7 @@ CREATE INDEX idx_events_tenant_time ON events(tenant_id, timestamp DESC);
 CREATE INDEX idx_devices_tenant ON devices_status(tenant_id);
 
 -- ============================================
--- RLS (Row Level Security) - Desabilitado para permitir acesso via anon key
--- IMPORTANTE: Em produção, configure RLS adequado!
+-- RLS (Row Level Security) - Hardening Multi-tenant
 -- ============================================
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
@@ -108,9 +107,51 @@ ALTER TABLE devices_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE telemetry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 
--- Políticas permissivas (para desenvolvimento)
-CREATE POLICY "Allow all for users" ON users FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for tenants" ON tenants FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for devices_status" ON devices_status FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for telemetry" ON telemetry FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all for events" ON events FOR ALL USING (true) WITH CHECK (true);
+-- Função auxiliar para buscar tenants do usuário logado
+CREATE OR REPLACE FUNCTION get_my_tenants()
+RETURNS text[] 
+LANGUAGE sql 
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT tenant_ids FROM users WHERE id = auth.uid()::text;
+$$;
+
+-- TABELA: users
+CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid()::text = id);
+CREATE POLICY "Admins can manage users" ON users FOR ALL USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid()::text AND role = 'admin')
+);
+
+-- TABELA: tenants
+CREATE POLICY "Users can view their tenants" ON tenants FOR SELECT USING (
+  id::text = ANY(get_my_tenants()) OR 
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid()::text AND role = 'admin')
+);
+
+-- TABELA: devices_status
+CREATE POLICY "Users can view their devices" ON devices_status FOR SELECT USING (
+  tenant_id = ANY(get_my_tenants()) OR 
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid()::text AND role = 'admin')
+);
+
+-- TABELA: telemetry
+CREATE POLICY "Users can view their telemetry" ON telemetry FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM devices_status 
+    WHERE devices_status.id = telemetry.device_id 
+    AND (devices_status.tenant_id = ANY(get_my_tenants()) OR 
+         EXISTS (SELECT 1 FROM users WHERE id = auth.uid()::text AND role = 'admin'))
+  )
+);
+
+-- TABELA: events
+CREATE POLICY "Users can view their events" ON events FOR SELECT USING (
+  tenant_id = ANY(get_my_tenants()) OR 
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid()::text AND role = 'admin')
+);
+
+-- Permissões de escrita do sistema (Ingestão)
+CREATE POLICY "System insert telemetry" ON telemetry FOR INSERT WITH CHECK (true);
+CREATE POLICY "System update status" ON devices_status FOR UPDATE USING (true);
+

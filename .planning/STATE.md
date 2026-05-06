@@ -2,40 +2,34 @@
 
 ## Status Atual
 
-- **Milestone:** 1 — Estabilidade e Escalabilidade
-- **Fase Atual:** Fase 2 — OTA Firmware Update (Infraestrutura)
-- **Fase Status:** Em planejamento
-- **Última atividade:** 2026-05-06 — Conclusão da Fase 1, iniciando Fase 2
+- **Milestone:** 1 — Estabilidade e Escalabilidade (CONCLUÍDO)
+- **Fase Atual:** Fase 7 — Decomp. DeviceDetails
+- **Fase Status:** Pendente
+- **Última atividade:** 2026-05-06 — Conclusão da Fase 6 (Segurança/Hardening), Milestone 1 finalizado.
 
 ## Contexto para Próxima Sessão
 
-Fase 1 completada em laboratório com sucesso. Iniciando Fase 2 para garantir update remoto OTA do ESP32, viabilizando o rollout sem precisar de cabo USB.
-- Centenas de devices em campo, atualização só via cabo → OTA é Fase 2 (não adiar)
-- Sem rollback de firmware → teste extensivo antes de qualquer deploy
-
-**Decisões tomadas:**
-- Modo interativo (confirma a cada fase)
-- Granularidade fina (11 fases planejadas)
-- Supabase = fonte de verdade para telemetria
-- React Router v7 para migração de navegação
+Milestone 1 (Crítico) concluído com sucesso. O sistema está estável, testado e seguro.
+Próximo foco (Milestone 2): Refatoração e qualidade do código frontend (Fase 7).
 
 ## Próximo Comando
 
 ```
-/gsd-plan-phase 1
+/gsd-plan-phase 7
 ```
 
 ## Histórico de Fases
 
 | Fase | Título | Status |
 |------|--------|--------|
-| 1 | Corrigir AlarmManager | ⏳ Pendente |
-| 2 | OTA Firmware Update | ⏳ Pendente |
-| 3 | Pipeline de Rollout | ⏳ Pendente |
-| 4 | Testes Críticos | ⏳ Pendente |
-| 5 | Segurança | ⏳ Pendente |
-| 6 | Decomp. DeviceDetails | ⏳ Pendente |
-| 7 | Decomp. ManagerPanel+Reports | ⏳ Pendente |
+| 1 | Corrigir AlarmManager | ✅ Concluída |
+| 2 | OTA Firmware Update | ✅ Concluída |
+| 3 | Pipeline de Rollout | ✅ Concluída |
+| 4 | Integração Dashboard | ✅ Concluída |
+| 5 | Testes Críticos | ✅ Concluída |
+| 6 | Segurança | ✅ Concluída |
+| 7 | Decomp. DeviceDetails | ⏳ Pendente |
+| 7 | Decomp. DeviceDetails | ⏳ Pendente |
 | 8 | React Router v7 | ⏳ Pendente |
 | 9 | Consolidação DB | ⏳ Pendente |
 | 10 | Performance | ⏳ Pendente |
