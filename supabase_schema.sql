@@ -132,24 +132,31 @@ AS $$
 $$;
 
 -- TABELA: users
+DROP POLICY IF EXISTS "Users can view own profile" ON users;
 CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid()::text = id);
+
+DROP POLICY IF EXISTS "Admins can manage users" ON users;
 CREATE POLICY "Admins can manage users" ON users FOR ALL USING (is_admin());
 
 -- TABELA: tenants
+DROP POLICY IF EXISTS "Users can view their tenants" ON tenants;
 CREATE POLICY "Users can view their tenants" ON tenants FOR SELECT USING (
   id::text = ANY(get_my_tenants()) OR is_admin()
 );
 
 -- TABELA: devices_status
+DROP POLICY IF EXISTS "Users can view their devices" ON devices_status;
 CREATE POLICY "Users can view their devices" ON devices_status FOR SELECT USING (
   tenant_id = ANY(get_my_tenants()) OR is_admin()
 );
 
+DROP POLICY IF EXISTS "Users can update their devices" ON devices_status;
 CREATE POLICY "Users can update their devices" ON devices_status FOR UPDATE USING (
   tenant_id = ANY(get_my_tenants()) OR is_admin()
 );
 
 -- TABELA: telemetry
+DROP POLICY IF EXISTS "Users can view their telemetry" ON telemetry;
 CREATE POLICY "Users can view their telemetry" ON telemetry FOR SELECT USING (
   is_admin() OR
   EXISTS (
@@ -160,12 +167,17 @@ CREATE POLICY "Users can view their telemetry" ON telemetry FOR SELECT USING (
 );
 
 -- TABELA: events
+DROP POLICY IF EXISTS "Users can view their events" ON events;
 CREATE POLICY "Users can view their events" ON events FOR SELECT USING (
   tenant_id = ANY(get_my_tenants()) OR is_admin()
 );
 
 
 -- Permissões de escrita do sistema (Ingestão)
+DROP POLICY IF EXISTS "System insert telemetry" ON telemetry;
 CREATE POLICY "System insert telemetry" ON telemetry FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "System update status" ON devices_status;
 CREATE POLICY "System update status" ON devices_status FOR UPDATE USING (true);
+
 
