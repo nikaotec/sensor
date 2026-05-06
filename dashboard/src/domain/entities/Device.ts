@@ -19,6 +19,8 @@ export interface DeviceTelemetry {
     voltMinLimit?: number;
     batMinLimit?: number;
     doorMaxTime?: number;
+    tempOn?: number;
+    tempOff?: number;
     modo?: string;
     rele?: boolean;
     silenced?: boolean;

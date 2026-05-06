@@ -829,6 +829,9 @@ void processarMensagemMqtt(String topic, String payload) {
   } else if (intencao == "desabilitar_tensao") {
     storage.data.chkVolt = false;
     storage.save();
+    alertVoltMax.forceReset();
+    alertVoltMin.forceReset();
+    alertPower.forceReset();
     notificarUsuario("Mon. Tensao DESLIGADO", 4000);
     enviarDadosMqtt("feedback_configuracao", false);
     enviarDadosWeb();
@@ -841,6 +844,7 @@ void processarMensagemMqtt(String topic, String payload) {
   } else if (intencao == "desabilitar_bateria") {
     storage.data.chkBat = false;
     storage.save();
+    alertBatLow.forceReset();
     notificarUsuario("Mon. Bateria DESLIGADO", 4000);
     enviarDadosMqtt("feedback_configuracao", false);
     enviarDadosWeb();
@@ -853,6 +857,7 @@ void processarMensagemMqtt(String topic, String payload) {
   } else if (intencao == "desabilitar_porta") {
     storage.data.chkDoor = false;
     storage.save();
+    alertDoor.forceReset();
     notificarUsuario("Mon. Porta DESLIGADO", 4000);
     enviarDadosMqtt("feedback_configuracao", false);
     enviarDadosWeb();

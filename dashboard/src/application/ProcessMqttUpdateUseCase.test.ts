@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ProcessMqttUpdateUseCase } from './ProcessMqttUpdateUseCase';
 import type { Device } from '../domain/entities/Device';
-import type { NormalizedMqttUpdate } from './MqttPayloadNormalizer';
+import type { NormalizedMqttUpdate } from '../domain/services/MqttPayloadNormalizer';
 
 describe('ProcessMqttUpdateUseCase', () => {
     const useCase = new ProcessMqttUpdateUseCase();

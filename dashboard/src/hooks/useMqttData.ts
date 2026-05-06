@@ -12,8 +12,8 @@ export const useMqttData = (
     onDeviceNameChange?: (deviceId: string, newName: string) => void
 ) => {
     const [devices, setDevices] = useState<Device[]>(initialDevices);
-    const [isConnected, setIsConnected] = useState(false);
-    const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected');
+    const [isConnected, setIsConnected] = useState(emqxMqttService.getState() === 'connected');
+    const [connectionState, setConnectionState] = useState<ConnectionState>(emqxMqttService.getState());
 
     // Instantiate use case
     const processMqttUpdate = useMemo(() => new ProcessMqttUpdateUseCase(), []);

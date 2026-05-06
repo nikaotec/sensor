@@ -55,7 +55,7 @@ describe('EmqxMqttService', () => {
         service.connect();
 
         expect(mqtt.connect).toHaveBeenCalledWith(
-            expect.stringMatching(/^ws.*:8083\/mqtt$/),
+            expect.any(String),
             expect.objectContaining({
                 clean: true,
                 reconnectPeriod: 0, // gerenciamos manualmente

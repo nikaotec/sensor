@@ -63,3 +63,9 @@ AlertStatus AlertManager::check(bool isErrorCondition) {
 
   return ALERT_NONE;
 }
+
+void AlertManager::forceReset() {
+  _isActive = false;
+  _startTime = 0;
+  _inRecovery = false;
+}

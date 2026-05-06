@@ -48,7 +48,7 @@ interface DeviceDetailsProps {
 const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) => {
     const { currentTenant, availableTenants } = useTenant();
     const { currentUser } = useAuth();
-    const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
+    const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor' || currentUser?.role === 'admin';
     if (!currentTenant) return <div className="flex h-screen items-center justify-center bg-background-dark text-white">Carregando dados...</div>;
     const [remoteSync, setRemoteSync] = useState(true);
 
@@ -223,16 +223,39 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
         }
     };
 
-    const handleSaveHysteresis = () => {
-        if (!hysteresisOnInput || !hysteresisOffInput) return;
+    const handleSaveHysteresis = async () => {
+        if (!hysteresisOnInput || !hysteresisOffInput || !device) return;
+
+        const tempOn = parseFloat(hysteresisOnInput);
+        const tempOff = parseFloat(hysteresisOffInput);
+
         handleAction('configurar_rele', {
             rele_index: 0,
-            temp_on: parseFloat(hysteresisOnInput),
-            temp_off: parseFloat(hysteresisOffInput)
+            temp_on: tempOn,
+            temp_off: tempOff
         }, `Histerese configurada: Ligar > ${hysteresisOnInput}°C, Desligar < ${hysteresisOffInput}°C`);
+
+        try {
+            await supabase.from('devices_status').update({
+                updated_at: new Date().toISOString()
+            }).eq('id', device.id);
+        } catch (e) {
+            console.error('Save Hysteresis DB error:', e);
+        }
+
+        if (updateDeviceLocal) {
+            updateDeviceLocal(device.id, {
+                telemetry: {
+                    ...device.telemetry,
+                    tempOn: tempOn,
+                    tempOff: tempOff
+                }
+            });
+        }
     };
 
-    const handleSaveLimits = () => {
+    const handleSaveLimits = async () => {
+        if (!device) return;
         const changes = [];
         if (tempMaxInput) changes.push(`T.Máx: ${tempMaxInput}°C`);
         if (tempMinInput) changes.push(`T.Mín: ${tempMinInput}°C`);
@@ -249,6 +272,34 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
             bat_min: batMinInput !== '' ? parseFloat(batMinInput) : undefined,
             tempo_porta: doorTimeInput !== '' ? parseInt(doorTimeInput) : undefined,
         }, `Limites atualizados: ${changes.join(', ')}`);
+
+        try {
+            await supabase.from('devices_status').update({
+                temp_max: tempMaxInput !== '' ? parseFloat(tempMaxInput) : null,
+                temp_min: tempMinInput !== '' ? parseFloat(tempMinInput) : null,
+                alarm_max: tempMaxInput !== '' ? parseFloat(tempMaxInput) : null,
+                alarm_min: tempMinInput !== '' ? parseFloat(tempMinInput) : null,
+                updated_at: new Date().toISOString()
+            }).eq('id', device.id);
+        } catch (e) {
+            console.error('Save Limits DB error:', e);
+        }
+
+        if (updateDeviceLocal) {
+            updateDeviceLocal(device.id, {
+                telemetry: {
+                    ...device.telemetry,
+                    alarmMax: tempMaxInput !== '' ? parseFloat(tempMaxInput) : device.telemetry?.alarmMax,
+                    alarmMin: tempMinInput !== '' ? parseFloat(tempMinInput) : device.telemetry?.alarmMin,
+                    tempMax: tempMaxInput !== '' ? parseFloat(tempMaxInput) : device.telemetry?.tempMax,
+                    tempMin: tempMinInput !== '' ? parseFloat(tempMinInput) : device.telemetry?.tempMin,
+                    voltMaxLimit: voltMaxInput !== '' ? parseFloat(voltMaxInput) : device.telemetry?.voltMaxLimit,
+                    voltMinLimit: voltMinInput !== '' ? parseFloat(voltMinInput) : device.telemetry?.voltMinLimit,
+                    batMinLimit: batMinInput !== '' ? parseFloat(batMinInput) : device.telemetry?.batMinLimit,
+                    doorMaxTime: doorTimeInput !== '' ? parseInt(doorTimeInput) : device.telemetry?.doorMaxTime,
+                }
+            });
+        }
     };
 
     const handleToggleRelay = (action: 'ligar_rele' | 'desligar_rele', index?: number, port?: number) => {
@@ -274,7 +325,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     };
 
     // Handler para habilitar/desabilitar alarmes por sensor
-    const handleToggleAlarm = (sensor: 'habilitar_tensao' | 'desabilitar_tensao' | 'habilitar_bateria' | 'desabilitar_bateria' | 'habilitar_temperatura' | 'desabilitar_temperatura' | 'habilitar_porta' | 'desabilitar_porta') => {
+    const handleToggleAlarm = async (sensor: 'habilitar_tensao' | 'desabilitar_tensao' | 'habilitar_bateria' | 'desabilitar_bateria' | 'habilitar_temperatura' | 'desabilitar_temperatura' | 'habilitar_porta' | 'desabilitar_porta') => {
         const sensorNames: Record<string, string> = {
             'habilitar_tensao': 'Tensão',
             'desabilitar_tensao': 'Tensão',
@@ -286,16 +337,44 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
             'desabilitar_porta': 'Porta'
         };
         const actionType = sensor.startsWith('habilitar') ? 'habilitado' : 'desabilitado';
+        const isEnabled = sensor.startsWith('habilitar');
 
         // Update otimista do estado local para feedback imediato
+        const telemetryUpdates: any = {};
+        const supabaseUpdates: any = { updated_at: new Date().toISOString() };
+
         if (sensor === 'habilitar_tensao' || sensor === 'desabilitar_tensao') {
-            setChkVolt(sensor.startsWith('habilitar'));
+            setChkVolt(isEnabled);
+            telemetryUpdates.chkVolt = isEnabled;
+            supabaseUpdates.chk_volt = isEnabled;
         } else if (sensor === 'habilitar_bateria' || sensor === 'desabilitar_bateria') {
-            setChkBat(sensor.startsWith('habilitar'));
+            setChkBat(isEnabled);
+            telemetryUpdates.chkBat = isEnabled;
+            supabaseUpdates.chk_bat = isEnabled;
         } else if (sensor === 'habilitar_temperatura' || sensor === 'desabilitar_temperatura') {
-            setChkTemp(sensor.startsWith('habilitar'));
+            setChkTemp(isEnabled);
+            telemetryUpdates.chkTemp = isEnabled;
+            supabaseUpdates.chk_temp = isEnabled;
         } else if (sensor === 'habilitar_porta' || sensor === 'desabilitar_porta') {
-            setChkDoor(sensor.startsWith('habilitar'));
+            setChkDoor(isEnabled);
+            telemetryUpdates.chkDoor = isEnabled;
+            supabaseUpdates.chk_door = isEnabled;
+        }
+
+        if (device) {
+            if (updateDeviceLocal) {
+                updateDeviceLocal(device.id, {
+                    telemetry: {
+                        ...device.telemetry,
+                        ...telemetryUpdates
+                    }
+                });
+            }
+            try {
+                await supabase.from('devices_status').update(supabaseUpdates).eq('id', device.id);
+            } catch (e) {
+                console.error('Error saving alarm toggle to db:', e);
+            }
         }
 
         handleAction(sensor, {}, `Alarme de ${sensorNames[sensor]} ${actionType} via dashboard`);

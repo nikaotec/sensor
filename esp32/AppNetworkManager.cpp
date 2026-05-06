@@ -100,7 +100,11 @@ void AppNetworkManager::resetWifi() {
 void AppNetworkManager::publish(const char *topic, String payload,
                                 uint8_t qos) {
   if (client.connected()) {
-    bool ok = client.publish(topic, payload.c_str(), false, qos);
+    // A biblioteca padrão PubSubClient não possui suporte a QoS em publish.
+    // Assinatura correta com 4 params é: (topic, payload_ptr, plength,
+    // retained)
+    bool ok = client.publish(topic, (const uint8_t *)payload.c_str(),
+                             payload.length(), false);
     Serial.println("[MQTT TX] " + String(topic) + " QoS=" + String(qos) + " (" +
                    String(payload.length()) + "b) " + (ok ? "OK" : "FALHOU"));
   } else {

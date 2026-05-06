@@ -41,7 +41,7 @@ services:
     command: [ "postgres", "-c", "max_connections=200", "-c", "listen_addresses=*", "-c", "shared_buffers=256MB", "-c", "effective_cache_size=1GB", "-c", "work_mem=4MB" ]
     restart: always
     ports:
-      - 5432:5432
+      - 5433:5432
     environment:
       - POSTGRES_USER=nikaotec
       - POSTGRES_PASSWORD=nikao28
@@ -67,17 +67,25 @@ services:
   #   networks:
   #     - evolution-net
 
-  mosquitto:
-    image: eclipse-mosquitto:latest
-    container_name: mosquitto
+  emqx:
+    image: emqx/emqx:5.8.3
+    container_name: emqx
     restart: always
     ports:
-      - "1883:1883"
-      - "9001:9001"
+      - "1883:1883" # MQTT TCP
+      - "8083:8083" # MQTT WebSocket
+      - "8084:8084" # MQTT WebSocket/TLS
+      - "8883:8883" # MQTT TLS
+      - "18083:18083" # EMQX Dashboard Web UI
     volumes:
-      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf
-      - ./mosquitto/data:/mosquitto/data
-      - ./mosquitto/log:/mosquitto/log
+      - emqx_data:/opt/emqx/data
+      - emqx_log:/opt/emqx/log
+    environment:
+      EMQX_NODE__NAME: "emqx@127.0.0.1"
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: "Nikaotec@2025"
+      EMQX_AUTHENTICATION__1__MECHANISM: "password_based"
+      EMQX_AUTHENTICATION__1__BACKEND: "built_in_database"
+      EMQX_AUTHENTICATION__1__PASSWORD_HASH_ALGORITHM__NAME: "sha256"
     networks:
       - evolution-net
 
@@ -101,14 +109,15 @@ services:
       - evolution-net
     depends_on:
       - redis
-      - mosquitto
+      - emqx
 
 volumes:
   evolution_instances:
   evolution_redis:
   postgres_data:
   n8n_data:
-
+  emqx_data:
+  emqx_log:
 
 networks:
   evolution-net:

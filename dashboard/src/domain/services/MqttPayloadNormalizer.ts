@@ -19,6 +19,18 @@ export interface NormalizedMqttUpdate {
         mode?: string;
         is_auto?: boolean;
         buzzer?: boolean;
+        alarmMax?: number;
+        alarmMin?: number;
+        voltMaxLimit?: number;
+        voltMinLimit?: number;
+        batMinLimit?: number;
+        doorMaxTime?: number;
+        tempOn?: number;
+        tempOff?: number;
+        chkVolt?: boolean;
+        chkBat?: boolean;
+        chkTemp?: boolean;
+        chkDoor?: boolean;
     };
     alertType?: string;
     rawPayload: any;
@@ -58,6 +70,18 @@ export class MqttPayloadNormalizer {
             mode: payload.mode || payload.MODO,
             is_auto: payload.is_auto !== undefined ? Boolean(payload.is_auto) : (payload.AUTO !== undefined ? Boolean(payload.AUTO) : undefined),
             buzzer: payload.buzzer !== undefined ? Boolean(payload.buzzer) : (payload.BUZZ !== undefined ? Boolean(payload.BUZZ) : undefined),
+            alarmMax: this.parseNumber(payload.ALARM_MAX ?? payload.alarmMax),
+            alarmMin: this.parseNumber(payload.ALARM_MIN ?? payload.alarmMin),
+            voltMaxLimit: this.parseNumber(payload.VOLT_MAX_LIMIT ?? payload.voltMaxLimit),
+            voltMinLimit: this.parseNumber(payload.VOLT_MIN_LIMIT ?? payload.voltMinLimit),
+            batMinLimit: this.parseNumber(payload.BAT_MIN_LIMIT ?? payload.batMinLimit),
+            doorMaxTime: this.parseNumber(payload.TEMPO_PORTA ?? payload.doorMaxTime),
+            tempOn: this.parseNumber(payload.R0_TEMP_ON ?? payload.tempOn ?? payload.temp_on),
+            tempOff: this.parseNumber(payload.R0_TEMP_OFF ?? payload.tempOff ?? payload.temp_off),
+            chkVolt: payload.CHK_VOLT !== undefined ? Boolean(payload.CHK_VOLT) : undefined,
+            chkBat: payload.CHK_BAT !== undefined ? Boolean(payload.CHK_BAT) : undefined,
+            chkTemp: payload.CHK_TEMP !== undefined ? Boolean(payload.CHK_TEMP) : undefined,
+            chkDoor: payload.CHK_DOOR !== undefined ? Boolean(payload.CHK_DOOR) : undefined,
         };
 
         return {

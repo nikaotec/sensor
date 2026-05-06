@@ -32,6 +32,7 @@ public:
   bool isActive() { return _isActive; }
   String getName() { return _name; }
   void setDebounce(unsigned long time) { _debounceTime = time; }
+  void forceReset();
 };
 
 #endif

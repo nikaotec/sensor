@@ -22,6 +22,7 @@ export interface IMqttService {
     publish(topic: string, message: unknown): void;
     onMessage(handler: (msg: MqttMessage) => void): () => void;
     onStateChange(handler: (state: ConnectionState) => void): () => void;
+    getState(): ConnectionState;
 }
 
 export interface EmqxMqttConfig {
@@ -37,9 +38,13 @@ export interface EmqxMqttConfig {
 
 // ── Implementação ────────────────────────────────────────────────────────────
 
+const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
+const defaultHostUrl = isSecure ? 'wss://mqtt.nikaotech.com:8084/mqtt' : 'ws://mqtt.nikaotech.com:8083/mqtt';
+
 const DEFAULT_URL =
     (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_EMQX_WS_URL) ||
-    'ws://mqtt.nikaotech.com:8083/mqtt';
+    (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_MQTT_BROKER_URL) ||
+    defaultHostUrl;
 
 const DEFAULT_TOPICS = ['telemetria/#', 'esp32c3/#', 'nikaotec/#'];
 
@@ -77,6 +82,10 @@ export class EmqxMqttService implements IMqttService {
     }
 
     // ── Estado ──────────────────────────────────────────────────────────────
+
+    getState(): ConnectionState {
+        return this.state;
+    }
 
     private setState(s: ConnectionState): void {
         this.state = s;
