@@ -12,6 +12,7 @@
 #include <OneWire.h>
 #include <WiFi.h>
 #include <Wire.h>
+#include <esp_task_wdt.h>
 
 // ---------- OBJETOS GLOBAIS ----------
 StorageManager storage;
@@ -143,11 +144,20 @@ void setup() {
   configTime(-3 * 3600, 0, "pool.ntp.org");
 
   Serial.println("Sistema Iniciado (Modular)");
+
+  // Initialize Hardware Watchdog (30 seconds, panic on fire)
+  esp_task_wdt_config_t wdt_config = {
+      .timeout_ms = 30000,
+      .idle_core_mask = (1 << portNUM_PROCESSORS) - 1, // Monitor all cores
+      .trigger_panic = true};
+  esp_task_wdt_init(&wdt_config);
+  esp_task_wdt_add(NULL);
 }
 
 // ---------- LOOP ----------
 void loop() {
-  delay(1); // Watchdog Feed
+  delay(1);             // Watchdog Feed
+  esp_task_wdt_reset(); // Pat the Hardware Watchdog
   unsigned long now = millis();
 
   // 0. Ler Botões e Gerenciar Menu
@@ -289,13 +299,13 @@ void loop() {
 
       // 1. Declaração de status de temperatura
       AlertStatus stMax = alertTempMax.check(
-          storage.data.chkTemp && (temperaturaAtual >= storage.data.alarmMax));
+          (temperaturaAtual >= storage.data.alarmMax), storage.data.chkTemp);
       AlertStatus stMin = alertTempMin.check(
-          storage.data.chkTemp && (temperaturaAtual <= storage.data.alarmMin));
+          (temperaturaAtual <= storage.data.alarmMin), storage.data.chkTemp);
 
       // 2. Falta de Energia
-      AlertStatus stPower = alertPower.check(storage.data.chkVolt &&
-                                             (tVoltagem < VOLT_OUTAGE_THR));
+      AlertStatus stPower =
+          alertPower.check((tVoltagem < VOLT_OUTAGE_THR), storage.data.chkVolt);
       if (stPower == ALERT_STARTED)
         enviarDadosMqtt("ALERTA_FALTA_ENERGIA", false);
       else if (stPower == ALERT_REPEATED && !alertasSilenciados)
@@ -306,7 +316,7 @@ void loop() {
 
       // 3. Bateria Baixa
       AlertStatus stBat = alertBatLow.check(
-          storage.data.chkBat && (tBateria < storage.data.batMinLimit));
+          (tBateria < storage.data.batMinLimit), storage.data.chkBat);
       if (stBat == ALERT_STARTED)
         enviarDadosMqtt("ALERTA_BATERIA_BAIXA", false);
       else if (stBat == ALERT_REPEATED && !alertasSilenciados)
@@ -316,7 +326,7 @@ void loop() {
         enviarDadosMqtt("BATERIA_NORMALIZADA", false);
 
       // 4. Porta
-      AlertStatus stDoor = alertDoor.check(storage.data.chkDoor && isDoorOpen);
+      AlertStatus stDoor = alertDoor.check(isDoorOpen, storage.data.chkDoor);
 
       // Registro Único no DB
       if (stDoor == ALERT_STARTED) {
@@ -335,9 +345,9 @@ void loop() {
       bool activeVoltMonitoring =
           storage.data.chkVolt && (tVoltagem > VOLT_OUTAGE_THR);
       AlertStatus stVoltMax = alertVoltMax.check(
-          activeVoltMonitoring && (tVoltagem > storage.data.voltMax));
+          (tVoltagem > storage.data.voltMax), activeVoltMonitoring);
       AlertStatus stVoltMin = alertVoltMin.check(
-          activeVoltMonitoring && (tVoltagem < storage.data.voltMin));
+          (tVoltagem < storage.data.voltMin), activeVoltMonitoring);
 
       if (stVoltMax == ALERT_STARTED) {
         enviarDadosMqtt("ALERTA_TENSAO_ALTA", false);
@@ -1041,6 +1051,7 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
   doc["CHK_BAT"] = storage.data.chkBat;
   doc["CHK_TEMP"] = storage.data.chkTemp;
   doc["CHK_DOOR"] = storage.data.chkDoor;
+  doc["FW_VERSION"] = FW_VERSION;
   doc["TEMP_CAL_OFFSET"] = storage.data.tempCalOffset;
 
   // Sensor Ambiente (DHT11)

@@ -10,6 +10,11 @@
 #define DEFAULT_COMPANY_NAME "Nikaotec"
 #define DEFAULT_DEVICE_LOCATION "Nao Definida"
 
+// ---------- FIRMWARE INFO & OTA ----------
+#define FW_VERSION "1.3.1-test"
+#define OTA_PASSWORD "nikaotec@admin"
+#define OTA_PORT 3232
+
 // ---------- REDE ----------
 #define WIFI_SSID "VENANCIO"
 #define WIFI_PASS "liza1980"

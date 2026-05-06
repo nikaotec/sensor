@@ -11,7 +11,12 @@ AlertManager::AlertManager(String name, unsigned long debounceTime,
   _inRecovery = false;
 }
 
-AlertStatus AlertManager::check(bool isErrorCondition) {
+AlertStatus AlertManager::check(bool isErrorCondition, bool isEnabled) {
+  if (!isEnabled) {
+    forceReset();
+    return ALERT_NONE;
+  }
+
   unsigned long now = millis();
 
   if (isErrorCondition) {

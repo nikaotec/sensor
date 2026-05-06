@@ -3,17 +3,13 @@
 ## Status Atual
 
 - **Milestone:** 1 — Estabilidade e Escalabilidade
-- **Fase Atual:** Fase 1 — Corrigir AlarmManager (Firmware)
-- **Fase Status:** Não iniciada
-- **Última atividade:** 2026-05-05 — Inicialização do projeto GSD
+- **Fase Atual:** Fase 2 — OTA Firmware Update (Infraestrutura)
+- **Fase Status:** Em planejamento
+- **Última atividade:** 2026-05-06 — Conclusão da Fase 1, iniciando Fase 2
 
 ## Contexto para Próxima Sessão
 
-O projeto está pronto para execução. O primeiro trabalho é a **Fase 1: AlarmManager**.
-
-**Contexto crítico:**
-- Bug ativo em produção: `chkVolt`, `chkBat`, `chkTemp`, `chkDoor` não respeitadas pelo firmware
-- Trabalho anterior (conv. 92ffc94a) ficou incompleto — verificar `AlertManager.cpp` pelo estado atual
+Fase 1 completada em laboratório com sucesso. Iniciando Fase 2 para garantir update remoto OTA do ESP32, viabilizando o rollout sem precisar de cabo USB.
 - Centenas de devices em campo, atualização só via cabo → OTA é Fase 2 (não adiar)
 - Sem rollback de firmware → teste extensivo antes de qualquer deploy
 

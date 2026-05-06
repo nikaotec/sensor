@@ -535,6 +535,11 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                         <span className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border tracking-widest ${getStatusStyle(device?.status || 'offline')}`}>
                             {getStatusLabel(device?.status || 'offline')}
                         </span>
+                        {device?.fwVersion && (
+                            <span className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border tracking-widest border-blue-500/20 bg-blue-500/10 text-blue-400">
+                                FW: v{device.fwVersion}
+                            </span>
+                        )}
                         <div className="h-8 w-px bg-[#2A2E24] mx-2"></div>
                         <button className="p-2 text-slate-400 hover:text-primary transition-colors">
                             <SettingsIcon size={20} />

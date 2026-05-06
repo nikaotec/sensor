@@ -29,6 +29,7 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
                 chkBat: row.chk_bat !== null ? row.chk_bat : true,
                 chkTemp: row.chk_temp !== null ? row.chk_temp : true,
                 chkDoor: row.chk_door !== null ? row.chk_door : true,
+                fwVersion: row.fw_version,
             }
         };
     }

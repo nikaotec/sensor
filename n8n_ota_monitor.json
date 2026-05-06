@@ -1,0 +1,174 @@
+{
+    "name": "OTA Monitor & Notifier",
+    "nodes": [
+        {
+            "parameters": {
+                "topics": "esp32c3/data"
+            },
+            "name": "MQTT Trigger",
+            "type": "n8n-nodes-base.mqttTrigger",
+            "typeVersion": 1,
+            "position": [
+                200,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const payloadString = $input.item.json.message;\ntry {\n  const payload = JSON.parse(payloadString);\n  return { json: payload };\n} catch(e) {\n  return { json: { error: 'Invalid JSON', payload: payloadString } };\n}"
+            },
+            "name": "Parse Payload",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 1,
+            "position": [
+                420,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.TIPO}}",
+                            "value2": "relatorio_diario"
+                        }
+                    ]
+                }
+            },
+            "name": "Filter Diário",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                640,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "string": [
+                        {
+                            "value1": "={{$json.FW_VERSION}}",
+                            "value2": "1.3.2-OTA",
+                            "operation": "notEqual"
+                        }
+                    ]
+                }
+            },
+            "name": "Check Outdated Version",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 1,
+            "position": [
+                860,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "const item = $input.first().json;\n\nreturn [{\n  json: {\n    ...item,\n    mensagem: `🔄 *Alerta de Atualização de Firmware*\\n` +\n              `📍 Dispositivo: *${item.ID_DISPOSITIVO}*\\n` +\n              `🏢 Empresa: ${item.EMPRESA ?? 'N/A'}\\n` +\n              `⚙️ Versão Atual: *${item.FW_VERSION || 'Desconhecida'}*\\n` +\n              `🚀 Versão Disponível: *1.3.2-OTA*\\n\\n` +\n              `Por favor, execute o upload via ArduinoOTA conectado à rede local para regularizar o dispositivo.`\n  }\n}];"
+            },
+            "name": "Formatar Mensagem",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1080,
+                280
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{ $env.EVOLUTION_API_URL }}/message/sendText/{{ $env.EVOLUTION_INSTANCE }}",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "apikey",
+                            "value": "={{ $env.EVOLUTION_API_KEY }}"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "bodyParameters": {
+                    "parameters": []
+                },
+                "specifyBody": "json",
+                "jsonBody": "={\n  \"number\": \"{{ $env.ALERTA_PHONE }}\",\n  \"text\": {{ JSON.stringify($json.mensagem) }},\n  \"delay\": 0\n}",
+                "options": {
+                    "timeout": 10000
+                }
+            },
+            "name": "Enviar WhatsApp",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                1300,
+                280
+            ]
+        }
+    ],
+    "connections": {
+        "MQTT Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Payload",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Payload": {
+            "main": [
+                [
+                    {
+                        "node": "Filter Diário",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Filter Diário": {
+            "main": [
+                [
+                    {
+                        "node": "Check Outdated Version",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check Outdated Version": {
+            "main": [
+                [
+                    {
+                        "node": "Formatar Mensagem",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Formatar Mensagem": {
+            "main": [
+                [
+                    {
+                        "node": "Enviar WhatsApp",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

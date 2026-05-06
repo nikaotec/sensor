@@ -73,7 +73,14 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                 <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-loose font-heading">Monitoramento em Tempo Real</h3>
                 <div className="flex justify-between items-center mt-1">
                     <div>
-                        <h4 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{device.name}</h4>
+                        <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{device.name}</h4>
+                            {device.fwVersion && (
+                                <span className="text-[9px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.5 rounded font-mono tracking-tighter" title="Versão do Firmware">
+                                    v{device.fwVersion}
+                                </span>
+                            )}
+                        </div>
                         {device.location && (
                             <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
                                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>

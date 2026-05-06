@@ -27,6 +27,7 @@ export interface DeviceTelemetry {
     ip?: string;
     uptime?: number;
     secondsOpen?: number;
+    fwVersion?: string;
 }
 
 export type DeviceStatus = 'online' | 'offline' | 'alert';

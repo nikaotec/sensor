@@ -28,6 +28,8 @@ SELECT
     float(coalesce(payload.VOLT, payload.voltage, null))       AS tensao_entrada,
     float(coalesce(payload.BAT, payload.battery, null))        AS tensao_bateria,
     int(coalesce(payload.RSSI, payload.signalStrength, null))  AS sinal_rssi,
+    coalesce(payload.FW_VERSION, payload.fw_version, 
+             payload.VER, payload.version)                     AS fw_version,
     coalesce(payload.doorOpen, false)                          AS porta_aberta,
     coalesce(str(payload.relay), null)                         AS rele_estado,
     payload                                                    AS payload_raw,

@@ -27,7 +27,7 @@ public:
                unsigned long repeatInterval);
 
   // Retorna o estado do alerta baseada na condição atual
-  AlertStatus check(bool isErrorCondition);
+  AlertStatus check(bool isErrorCondition, bool isEnabled = true);
 
   bool isActive() { return _isActive; }
   String getName() { return _name; }

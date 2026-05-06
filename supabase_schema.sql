@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS devices_status (
   temp_max REAL,
   temp_min REAL,
   temp_ext REAL,
+  fw_version TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -58,6 +59,7 @@ CREATE TABLE IF NOT EXISTS telemetry (
   battery REAL,
   voltage REAL,
   signal INTEGER,
+  fw_version TEXT,
   timestamp TIMESTAMPTZ DEFAULT NOW()
 );
 

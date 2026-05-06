@@ -1,4 +1,6 @@
 #include "AppNetworkManager.h"
+#include <esp_ota_ops.h>
+#include <esp_task_wdt.h>
 
 AppNetworkManager *AppNetworkManager::instance = nullptr;
 
@@ -53,6 +55,7 @@ void AppNetworkManager::verifyWifi() {
     if (!wasConnected) {
       Serial.println("[NET] WiFi CONECTADO - IP: " + WiFi.localIP().toString() +
                      " RSSI: " + String(WiFi.RSSI()) + "dBm");
+      initOTA();
     }
   } else {
     wifiConnected = false;
@@ -76,6 +79,9 @@ void AppNetworkManager::verifyMqtt() {
         Serial.println(
             "[MQTT] ✅ CONECTADO! Subscrito em: " + String(MSG_TOPIC_STATUS) +
             " e " + String(MSG_TOPIC_WEB));
+
+        // Anti-bricking: Confirm OTA success
+        esp_ota_mark_app_valid_cancel_rollback();
       } else {
         Serial.println("[MQTT] ❌ FALHA - rc=" + String(client.state()) +
                        " (5=bad credentials, 2=server unavailable)");
@@ -84,8 +90,32 @@ void AppNetworkManager::verifyMqtt() {
   }
 }
 
+void AppNetworkManager::initOTA() {
+  static bool otaInitialized = false;
+  if (otaInitialized)
+    return;
+
+  ArduinoOTA.setPort(OTA_PORT);
+  ArduinoOTA.setPassword(OTA_PASSWORD);
+  ArduinoOTA.onStart([]() { Serial.println("[OTA] Update iniciado..."); });
+  ArduinoOTA.onEnd([]() { Serial.println("\n[OTA] Update concluido!"); });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+    esp_task_wdt_reset(); // Feed watchdog during long upload
+    Serial.printf("[OTA] Progresso: %u%%\r", (progress / (total / 100)));
+  });
+  ArduinoOTA.onError(
+      [](ota_error_t error) { Serial.printf("[OTA] Erro [%u]: ", error); });
+  ArduinoOTA.begin();
+  otaInitialized = true;
+  Serial.println("[OTA] Pronto no IP " + WiFi.localIP().toString() + ":" +
+                 String(OTA_PORT));
+}
+
 void AppNetworkManager::update() {
   verifyWifi();
+  if (wifiConnected) {
+    ArduinoOTA.handle();
+  }
   verifyMqtt();
   client.loop();
 }

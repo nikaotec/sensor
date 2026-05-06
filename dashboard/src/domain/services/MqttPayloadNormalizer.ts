@@ -31,6 +31,7 @@ export interface NormalizedMqttUpdate {
         chkBat?: boolean;
         chkTemp?: boolean;
         chkDoor?: boolean;
+        fwVersion?: string;
     };
     alertType?: string;
     rawPayload: any;
@@ -82,6 +83,7 @@ export class MqttPayloadNormalizer {
             chkBat: payload.CHK_BAT !== undefined ? Boolean(payload.CHK_BAT) : undefined,
             chkTemp: payload.CHK_TEMP !== undefined ? Boolean(payload.CHK_TEMP) : undefined,
             chkDoor: payload.CHK_DOOR !== undefined ? Boolean(payload.CHK_DOOR) : undefined,
+            fwVersion: payload.FW_VERSION || payload.fw_version || payload.VER || payload.version,
         };
 
         return {

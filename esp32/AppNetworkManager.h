@@ -3,6 +3,7 @@
 
 #include "Config.h"
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
 #include <PubSubClient.h>
 #include <WiFi.h>
 #include <functional>
@@ -23,6 +24,7 @@ private:
 
   void verifyWifi();
   void verifyMqtt();
+  void initOTA();
   String getIdDispositivo();
 
 public:
