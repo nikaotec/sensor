@@ -1,6 +1,6 @@
 import mqtt from 'mqtt';
 
-const MQTT_BROKER_URL = 'ws://localhost:9001';
+const MQTT_BROKER_URL = 'wss://mqtt.nikaotech.com/mqtt';
 const clientId = 'test_runner_' + Math.random().toString(16).substr(2, 4);
 
 console.log(`Tentando conectar ao broker: ${MQTT_BROKER_URL} com clientId: ${clientId}`);
@@ -13,9 +13,9 @@ const client = mqtt.connect(MQTT_BROKER_URL, {
 
 client.on('connect', () => {
     console.log('✅ Conectado com sucesso via WebSockets!');
-    client.subscribe('sensor/telemetry/#', (err) => {
+    client.subscribe('#', (err) => {
         if (err) console.error('❌ Erro na inscrição:', err);
-        else console.log('📡 Inscrito em sensor/telemetry/#');
+        else console.log('📡 Inscrito em #');
     });
 });
 
@@ -28,7 +28,7 @@ client.on('error', (err) => {
 });
 
 setTimeout(() => {
-    console.log('Finalizando teste após 10 segundos...');
+    console.log('Finalizando teste após 20 segundos...');
     client.end();
     process.exit(0);
-}, 10000);
+}, 20000);
