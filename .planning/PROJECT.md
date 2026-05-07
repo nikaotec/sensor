@@ -46,19 +46,23 @@ Dispositivos em campo emitem alarme físico (buzzer) mesmo quando o operador des
 - ✓ Firmware ESP32 com 4 relés, sensores de temperatura/umidade/tensão/bateria/porta
 - ✓ EEPROM persistência de configurações no firmware
 
+## Current Milestone: v1.1.0 Telemetria e Relatórios
+
+**Goal:** Restaurar a visibilidade da telemetria em tempo real (corrigir status offline) e aprimorar o sistema de relatórios seguindo os princípios SOLID, TDD e modularização.
+
+**Target features:**
+- Correção do status "Offline" indevido nos cards.
+- Restauração do fluxo de dados MQTT para exibição nos cards.
+- Implementação de melhorias no módulo de relatórios (PDF e visualização).
+- Refatoração modular dos hooks e componentes de telemetria.
+
 ### Active (a implementar neste ciclo)
 
-- [ ] Alarm flags respeitadas pelo firmware (chkVolt/chkBat/chkTemp/chkDoor)
-- [ ] Silenciar via dashboard para esta ocorrência (buzzer para, volta se condição persistir)
-- [ ] OTA firmware update via WiFi (ArduinoOTA ou ESP-IDF OTA)
-- [ ] Rollout staged de firmware (lote por lote, não todos de una vez)
-- [ ] Testes unitários para hooks críticos (useMqttData, useSupabaseData)
-- [ ] Testes de componente para DeviceDetails e ManagerPanel
-- [ ] Decomposição de god components (DeviceDetails, ManagerPanel, Reports)
-- [ ] React Router v7 com rotas tipadas
-- [ ] Fonte única de verdade para telemetria (consolidar Supabase + EMQX PostgreSQL)
-- [ ] Remoção de credenciais hardcoded (WiFi, MQTT) do firmware
-- [ ] Lazy loading de componentes pesados (React.lazy + Suspense)
+- [ ] Status online/offline confiável nos cards (REQ-TELE-01)
+- [ ] Fluxo de dados MQTT visível nos cards de telemetria (REQ-TELE-02)
+- [ ] Refatoração modular do `EmqxMqttService` e hooks relacionados (REQ-ARCH-01)
+- [ ] Implementação de testes (TDD) para o fluxo de telemetria (REQ-TEST-01)
+- [ ] Melhorias no sistema de geração de relatórios (REQ-REP-01)
 
 ### Out of Scope
 
@@ -88,4 +92,4 @@ Este documento evolui a cada transição de fase.
 4. Decisões a registrar? → Adicionar em Key Decisions
 
 ---
-*Último update: 2026-05-05 — inicialização do projeto*
+*Último update: 2026-05-07 — Início do Milestone 2*

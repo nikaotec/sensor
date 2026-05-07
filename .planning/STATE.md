@@ -2,35 +2,28 @@
 
 ## Status Atual
 
-- **Milestone:** 1 — Estabilidade e Escalabilidade (CONCLUÍDO)
-- **Fase Atual:** Fase 7 — Decomp. DeviceDetails
-- **Fase Status:** Pendente
-- **Última atividade:** 2026-05-06 — Conclusão da Fase 6 (Segurança/Hardening), Milestone 1 finalizado.
+- **Milestone:** 2 — Telemetria e Relatórios (INICIADO)
+- **Fase Atual:** Fase 12 — Debug Status Offline
+- **Fase Status:** Planejando
+- **Última atividade:** 2026-05-07 — Inicialização do Milestone 2 focado em telemetria e relatórios.
 
 ## Contexto para Próxima Sessão
 
-Milestone 1 (Crítico) concluído com sucesso. O sistema está estável, testado e seguro.
-Próximo foco (Milestone 2): Refatoração e qualidade do código frontend (Fase 7).
+O Milestone 1 foi focado em firmware e OTA. O Milestone 2 foca no dashboard: cards não mostram dados e aparecem offline.
+Próximo passo: Investigar por que os dispositivos aparecem offline e corrigir seguindo SOLID/TDD.
 
 ## Próximo Comando
 
 ```
-/gsd-plan-phase 7
+/gsd-plan-phase 12
 ```
 
 ## Histórico de Fases
 
 | Fase | Título | Status |
 |------|--------|--------|
-| 1 | Corrigir AlarmManager | ✅ Concluída |
-| 2 | OTA Firmware Update | ✅ Concluída |
-| 3 | Pipeline de Rollout | ✅ Concluída |
-| 4 | Integração Dashboard | ✅ Concluída |
-| 5 | Testes Críticos | ✅ Concluída |
-| 6 | Segurança | ✅ Concluída |
-| 7 | Decomp. DeviceDetails | ⏳ Pendente |
-| 7 | Decomp. DeviceDetails | ⏳ Pendente |
-| 8 | React Router v7 | ⏳ Pendente |
-| 9 | Consolidação DB | ⏳ Pendente |
-| 10 | Performance | ⏳ Pendente |
-| 11 | Limpeza | ⏳ Pendente |
+| 1-6 | Milestone 1 (Firmware/OTA/Segurança) | ✅ Concluído |
+| 12 | Debug Status Offline | ⏳ Pendente |
+| 13 | Reparo Fluxo Telemetria MQTT | ⏳ Pendente |
+| 14 | Refatoração Modular Hooks | ⏳ Pendente |
+| 15 | Melhorias de Relatórios | ⏳ Pendente |

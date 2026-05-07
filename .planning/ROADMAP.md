@@ -249,5 +249,85 @@ Milestone 2 (Qualidade)
 └── Fase 11: Limpeza
 ```
 
+## Milestone 2 — Telemetria e Relatórios
+
+> **Objetivo:** Restaurar a visibilidade da telemetria, corrigir o status offline falso e aprimorar relatórios com foco em SOLID e TDD.
+
 ---
-*ROADMAP criado: 2026-05-05 | Próximo: `/gsd-plan-phase 1`*
+
+### Fase 12 — Debug e Fix: Status Offline
+
+**Objetivo:** Identificar por que os dispositivos aparecem como "Offline" mesmo enviando mensagens e corrigir a lógica de detecção de presença.
+
+**Planos:**
+1. Auditar `EmqxMqttService` e o hook de detecção de presença.
+2. Verificar se o tópico LWT (Last Will and Testament) está sendo processado corretamente.
+3. Criar teste unitário que simula mensagem de "Online" e verifica se o estado do card muda.
+4. Corrigir lógica de timeout ou parsing de status.
+
+**Critérios de Aceite:**
+- [ ] Cards mostram "Online" quando o dispositivo publica telemetria.
+- [ ] Cards mostram "Offline" apenas quando há desconexão real ou timeout expirado.
+- [ ] Teste unitário para `PresenceService` (ou equivalente) passando.
+
+---
+
+### Fase 13 — Restauração do Fluxo de Dados MQTT
+
+**Objetivo:** Garantir que os dados de sensores cheguem aos cards e sejam exibidos sem atraso ou inconsistência.
+
+**Planos:**
+1. Mapear o trajeto do dado: `MQTT Message` -> `Service` -> `Use Case` -> `Hook` -> `Component`.
+2. Implementar testes (TDD) para cada etapa dessa cadeia.
+3. Corrigir falhas de merge de payload (problema comum onde campos parciais sobrescrevem dados existentes).
+4. Validar exibição em tempo real nos cards de temperatura, tensão e bateria.
+
+**Critérios de Aceite:**
+- [ ] Valores mudam no dashboard instantaneamente ao receber MQTT.
+- [ ] Sem perda de dados ao receber updates parciais.
+- [ ] Cobertura de testes aumentada na camada de aplicação.
+
+---
+
+### Fase 14 — Refatoração Modular (SOLID)
+
+**Objetivo:** Desacoplar a lógica de MQTT da UI para evitar que mudanças futuras quebrem o dashboard.
+
+**Planos:**
+1. Isolar a lógica de parsing em classes puras (Domain).
+2. Criar interfaces para os serviços de MQTT para facilitar mocks.
+3. Reduzir o tamanho dos hooks injetando dependências.
+
+**Critérios de Aceite:**
+- [ ] Camada de domínio isolada da infraestrutura.
+- [ ] Código modular e fácil de testar isoladamente.
+
+---
+
+### Fase 15 — Melhorias no Sistema de Relatórios
+
+**Objetivo:** Corrigir a geração de PDFs e melhorar a UX de visualização de histórico.
+
+**Planos:**
+1. Investigar falhas no webhook do n8n para relatórios.
+2. Corrigir o processamento de dados para o template HTML do relatório.
+3. Adicionar feedback visual ("Gerando relatório...") no dashboard.
+
+**Critérios de Aceite:**
+- [ ] PDF gerado com dados corretos e completos.
+- [ ] Status de geração visível para o usuário.
+
+---
+
+## Ordem de Execução Atualizada
+
+```
+Milestone 2 (Prioridade: Telemetria)
+├── Fase 12: Debug Status Offline   ← COMEÇAR AQUI
+├── Fase 13: Reparo Fluxo MQTT
+├── Fase 14: Refatoração SOLID
+└── Fase 15: Relatórios
+```
+
+---
+*Último update: 2026-05-07 | Próximo: `/gsd-plan-phase 12`*
