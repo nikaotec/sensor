@@ -22,7 +22,7 @@ export class GetEventsUseCase {
             return await this.eventRepository.listByDevice(request.deviceId);
         }
 
-        if (request.userRole === 'gestor') {
+        if (request.userRole === 'gestor' || request.userRole === 'manager' || request.userRole === 'admin') {
             return await this.eventRepository.listAll(limit);
         }
 

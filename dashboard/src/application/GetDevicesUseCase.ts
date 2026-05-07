@@ -14,11 +14,13 @@ export class GetDevicesUseCase {
     }
 
     async execute(request: GetDevicesRequest): Promise<Device[]> {
-        if (request.userRole === 'gestor') {
+        // Admins and managers can see all devices
+        if (request.userRole === 'gestor' || request.userRole === 'manager' || request.userRole === 'admin') {
             return await this.deviceRepository.listAll();
         }
 
         if (request.userRole === 'user' && request.tenantId) {
+            // Also fetch by tenant name just in case
             return await this.deviceRepository.listByTenant(request.tenantId);
         }
 

@@ -103,12 +103,17 @@ export class EmqxMqttService implements IMqttService {
         if (this.client || this.destroyed) return;
 
         this.setState(ConnectionState.Connecting);
+        console.group('[EmqxMqttService] 🔄 Iniciando Conexão MQTT');
+        console.info('📡 Broker URL:', this.url);
+        console.info('🆔 Client ID:', `dashboard_${Math.random().toString(16).slice(2, 10)}`);
+        console.groupEnd();
 
         const options: mqtt.IClientOptions = {
             clean: true,
-            connectTimeout: 20_000,
+            connectTimeout: 30_000,
             reconnectPeriod: 0, // gerenciamos reconexão manualmente para backoff exponencial
             clientId: `dashboard_${Math.random().toString(16).slice(2, 10)}`,
+            protocolVersion: 4, // forçar MQTT 3.1.1 para compatibilidade
         };
 
         if (this.username) options.username = this.username;
@@ -120,18 +125,20 @@ export class EmqxMqttService implements IMqttService {
         this.client.on('message', this.handleMessage);
         this.client.on('close', this.handleClose);
         this.client.on('error', this.handleError);
+        this.client.on('offline', () => console.warn('[EmqxMqttService] 📉 Cliente MQTT ficou OFFLINE (handshake falhou ou rede caiu)'));
+        this.client.on('reconnect', () => console.info('[EmqxMqttService] ♻️ Tentando reconectar via MQTT.js...'));
     }
 
     private handleConnect = (): void => {
         this.reconnectAttempt = 0;
         this.setState(ConnectionState.Connected);
-        console.info('[EmqxMqttService] ✅ Conectado ao broker EMQX');
+        console.info(`[EmqxMqttService] ✅ Conectado com sucesso ao broker: ${this.url}`);
 
         this.client?.subscribe(this.topics, (err) => {
             if (err) {
                 console.error('[EmqxMqttService] ❌ Erro na subscrição:', err);
             } else {
-                console.info('[EmqxMqttService] 📡 Subscrito em:', this.topics);
+                console.info('[EmqxMqttService] 📡 Subscrito nos tópicos:', this.topics);
             }
         });
     };
@@ -140,20 +147,25 @@ export class EmqxMqttService implements IMqttService {
         try {
             const payload = JSON.parse(raw.toString());
             this.messageHandlers.forEach(h => h({ topic, payload }));
-        } catch {
-            // payload inválido — ignorar silenciosamente
+        } catch (e: any) {
+            console.warn(`[EmqxMqttService] ⚠️ Payload inválido recebido em ${topic}:`, e.message);
         }
     };
 
     private handleClose = (): void => {
         if (this.destroyed) return;
         this.setState(ConnectionState.Disconnected);
-        console.warn('[EmqxMqttService] 🔌 Conexão encerrada. Agendando reconexão...');
+        console.warn(`[EmqxMqttService] 🔌 Conexão encerrada com ${this.url}. Agendando reconexão...`);
         this.scheduleReconnect();
     };
 
     private handleError = (err: Error): void => {
-        console.error('[EmqxMqttService] ❌ Erro:', err.message);
+        console.error('[EmqxMqttService] ❌ Erro de Conexão:', err.message, err);
+
+        if (err.message.includes('WebSocket') || err.message.length === 0) {
+            console.warn('[EmqxMqttService] 💡 Dica: Se estiver usando Cloudflare, a porta 8084 não é suportada em modo Proxy (Nuvem Laranja).');
+            console.warn('👉 Use a porta 2083, 2053, 2087 ou 2096, ou mude o DNS para "DNS Only" (Nuvem Cinza).');
+        }
     };
 
     // ── Reconexão com backoff exponencial ───────────────────────────────────

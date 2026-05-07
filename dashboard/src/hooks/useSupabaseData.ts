@@ -63,7 +63,7 @@ export const useSupabaseData = (
             const endDate = new Date().toISOString();
             const startDate = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-            const [devicesResult, eventsResult, historyResult] = await Promise.all([
+            const [devicesResult, eventsResult, historyResult] = await Promise.allSettled([
                 getDevicesUseCase.execute({
                     userRole: role,
                     tenantId: tenantId === 'all' ? undefined : tenantId
@@ -81,9 +81,15 @@ export const useSupabaseData = (
                 }) : Promise.resolve([])
             ]);
 
-            setDevices(devicesResult);
-            setEvents(eventsResult);
-            setHistory(historyResult);
+            if (devicesResult.status === 'fulfilled') setDevices(devicesResult.value);
+            else console.error("Error fetching devices:", devicesResult.reason);
+
+            if (eventsResult.status === 'fulfilled') setEvents(eventsResult.value);
+            else console.error("Error fetching events:", eventsResult.reason);
+
+            if (historyResult.status === 'fulfilled') setHistory(historyResult.value);
+            else console.error("Error fetching history:", historyResult.reason);
+
             setError(null);
         } catch (err: any) {
             console.error('[useSupabaseData] Error:', err);

@@ -15,8 +15,14 @@ export class ProcessMqttUpdateUseCase {
     execute(update: NormalizedMqttUpdate, currentDevices: Device[]): ProcessMqttUpdateResult {
         const { deviceId, company, deviceName, telemetry } = update;
 
-        // 1. Find by exact ID (case-insensitive)
-        let index = currentDevices.findIndex(d => d.id.toLowerCase() === deviceId.toLowerCase());
+        const normalizedIncomingId = this.normalizeId(deviceId);
+
+        // 1. Find by exact ID or normalized ID match
+        let index = currentDevices.findIndex(d => {
+            const dbId = d.id.toLowerCase();
+            const incomingId = deviceId.toLowerCase();
+            return dbId === incomingId || this.normalizeId(dbId) === normalizedIncomingId;
+        });
 
         // 2. Find by Name if ID didn't match (for generic IDs from MQTT)
         if (index === -1 && deviceName) {
@@ -59,5 +65,12 @@ export class ProcessMqttUpdateUseCase {
             isNew: index === -1,
             index
         };
+    }
+
+    /**
+     * Strips non-alphanumeric characters for robust ID comparison (e.g. MAC addresses).
+     */
+    private normalizeId(id: string): string {
+        return id.toLowerCase().replace(/[^a-z0-9]/g, '');
     }
 }

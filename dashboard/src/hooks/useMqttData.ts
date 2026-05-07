@@ -55,11 +55,17 @@ export const useMqttData = (
             // 2. Tenant Filtering
             const isAll = tenantFilter.id === 'all';
             const company = normalizedUpdate.company.toLowerCase();
-            const matchesId = tenantFilter.id && company === String(tenantFilter.id).toLowerCase();
-            const matchesName = tenantFilter.name && company === String(tenantFilter.name).toLowerCase();
+            const filterId = String(tenantFilter.id || '').toLowerCase();
+            const filterName = String(tenantFilter.name || '').toLowerCase();
 
-            if (!isAll && !matchesId && !matchesName) {
-                console.log(`[useMqttData] Ignored: ${normalizedUpdate.company} mismatch`, tenantFilter);
+            // Matches if filter is 'all', or if company matches ID or Name
+            const matchesTenant = isAll || (filterId && company === filterId) || (filterName && company === filterName);
+
+            if (!matchesTenant) {
+                // Log mismatch only once per unique company in dev mode to avoid spam
+                if (import.meta.env?.DEV) {
+                    console.debug(`[useMqttData] ⏭️ Ignored: payload from '${normalizedUpdate.company}' does not match filter`, tenantFilter);
+                }
                 return;
             }
 

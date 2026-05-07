@@ -47,13 +47,16 @@ export class MqttPayloadNormalizer {
 
         // 1. Extract Device ID
         const deviceId = payload.id || payload.ID_DISPOSITIVO || payload.ID || payload.deviceId || payload.device_id || payload.MAC;
-        if (!deviceId) return null;
+        if (!deviceId) {
+            console.warn('[MqttPayloadNormalizer] ⚠️ Payload sem Device ID:', payload);
+            return null;
+        }
 
         // 2. Extract Company/Tenant
-        const company = payload.company || payload.EMPRESA || payload.empresa || payload.tenant || 'Unknown';
+        const company = payload.company || payload.EMPRESA || payload.empresa || payload.tenant || payload.tenant_id || payload.tenantId || 'Unknown';
 
         // 3. Extract Device Name
-        const deviceName = payload.device_name || payload.DISPOSITIVO || payload.NOME || payload.name || payload.deviceName;
+        const deviceName = payload.device_name || payload.DISPOSITIVO || payload.NOME || payload.name || payload.deviceName || payload.device_id;
 
         // 4. Normalize Telemetry
         const telemetry = {
