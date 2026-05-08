@@ -1,145 +1,128 @@
-<!-- refreshed: 2026-05-07 -->
-# Codebase Structure
+# Structure
 
-**Analysis Date:** 2026-05-07
+**Mapped:** 2026-05-08
 
 ## Directory Layout
 
 ```
-sensor/                          # Project root
-├── .stitch/                    # Stitch design system
-├── .opencode/                  # OpenCode AI configuration and skills
-├── .planning/                  # Planning artifacts (generated)
-├── dashboard/                  # React frontend application
-├── esp32/                      # ESP32 firmware (C++)
-├── docs/                       # Documentation and deployment guides
-├── evolution-api-main/         # WhatsApp API integration
-├── frontend/                   # Legacy frontend (deprecated)
-├── test_env/                   # Test environment files
-├── inspirations/               # Design inspiration images
-├── n8n_*.json                  # n8n workflow definitions
-├── supabase_schema.sql         # Database schema
-├── *.sql                       # Database migrations and patches
-├── *.py                        # Utility scripts
-├── *.js                        # Test and utility scripts
-└── *.md                        # Documentation files
+sensor/
+├── .planning/              # GSD workflow artifacts
+│   ├── codebase/          # Codebase maps
+│   ├── PROJECT.md
+│   ├── ROADMAP.md
+│   └── STATE.md
+├── esp32/                # ESP32-C3 firmware
+│   ├── esp32.ino         # Main program
+│   ├── Config.h          # Constants & pins
+│   ├── AppNetworkManager.h/cpp
+│   ├── AlertManager.h/cpp
+│   ├── DisplayManager.h/cpp
+│   ├── StorageManager.h/cpp
+│   ├── VoltageSensor.h
+│   ├── AmbientSensor.h
+│   ├── BatterySensor.h
+│   └── ButtonManager.h
+├── dashboard/            # React dashboard
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── Dashboard.tsx
+│   │   │   ├── DeviceList.tsx
+│   │   │   ├── DeviceDetails.tsx
+│   │   │   ├── Login.tsx
+│   │   │   ├── ManagerPanel.tsx
+│   │   │   └── device/
+│   │   ├── contexts/
+│   │   ├── hooks/
+│   │   ├── services/
+│   │   ├── firebase/
+│   │   └── supabase/
+│   ├── package.json
+│   └── vite.config.ts
+├── *.json               # n8n workflows
+├── *.sql                # Database migrations
+├── docs/                # Documentation
+└── evolution-api-main/  # WhatsApp bot (external)
 ```
-
-## Directory Purposes
-
-**dashboard/:**
-- Purpose: Main React web application
-- Contains: Frontend source code, build configuration, Express server
-- Key files: `[dashboard/package.json]`, `[dashboard/server.js]`, `[dashboard/vite.config.ts]`
-
-**esp32/:**
-- Purpose: ESP32-C3 firmware for sensor devices
-- Contains: Arduino C++ source files, configuration
-- Key files: `[esp32/esp32.ino]`, `[esp32/Config.h]`, `[esp32/AlertManager.cpp]`
-
-**docs/:**
-- Purpose: Deployment guides and configuration examples
-- Contains: Nginx configs, VPS deployment docs
-- Key files: `[docs/DEPLOY_VPS.md]`, `[docs/nginx-*.conf]`
-
-**n8n workflows (root JSON files):**
-- Purpose: Automation workflows for data processing
-- Contains: Workflow definitions with nodes and connections
-- Key files: `[n8n_hourly_telemetry.json]`, `[mqtt receive.json]`, `[n8n_events_logger.json]`
 
 ## Key File Locations
 
-**Entry Points:**
-- `[dashboard/src/main.tsx]`: React app entry point
-- `[dashboard/server.js]`: Express server entry point (line 173)
-- `[esp32/esp32.ino]`: ESP32 firmware entry (setup/loop functions)
-- `[dashboard/vite.config.ts]`: Vite build configuration
+### ESP32 Firmware
 
-**Configuration:**
-- `[dashboard/package.json]`: NPM dependencies and scripts
-- `[dashboard/vite.config.ts]`: Vite bundler config
-- `[esp32/Config.h]`: ESP32 WiFi/MQTT configuration
-- `[supabase_schema.sql]`: Database schema and RLS policies
+| File | Purpose |
+|------|---------|
+| `esp32/esp32.ino` | Main program (1185 lines) |
+| `esp32/Config.h` | Pin definitions, constants |
+| `esp32/AppNetworkManager.cpp` | WiFi + MQTT + callbacks |
+| `esp32/AlertManager.cpp` | Alert debounce logic |
+| `esp32/StorageManager.cpp` | EEPROM read/write |
 
-**Core Logic:**
-- `[dashboard/src/App.tsx]`: Main React component with routing
-- `[dashboard/src/components/Dashboard.tsx]`: Dashboard view component
-- `[dashboard/src/hooks/useMqttData.ts]`: MQTT connection and message handling
-- `[esp32/esp32.ino]`: Main ESP32 firmware (41KB)
+### Dashboard
 
-**Testing:**
-- `[dashboard/src/tests/]`: Test files directory
-- `[test_user_flow.js]`: User flow tests
-- `[test_number.js]`: Number utility tests
+| File | Purpose |
+|------|---------|
+| `dashboard/src/App.tsx` | Root component |
+| `dashboard/src/main.tsx` | Entry point |
+| `dashboard/src/contexts/AuthContext.tsx` | Firebase auth |
+| `dashboard/src/hooks/useMqttData.ts` | MQTT subscription |
+| `dashboard/src/components/DeviceDetails.tsx` | Device view + charts |
+
+### n8n Workflows
+
+| File | Purpose |
+|------|---------|
+| `n8n_mqtt_to_supabase.json` | Telemetry ingestion |
+| `n8n_events_logger.json` | Alert logging |
+| `n8n_dashboard_actions.json` | Dashboard updates |
+| `gerador-relatorios-pdf.json` | PDF generation |
+| `mqtt receive.json` | WhatsApp bot |
+
+### Database
+
+| File | Purpose |
+|------|---------|
+| `supabase_schema.sql` | Full schema |
+| `add_telemetry_columns.sql` | Migration |
+| `add_alarm_columns.sql` | Migration |
+| `apply_triggers.sql` | Row protection |
 
 ## Naming Conventions
 
-**Files:**
-- React components: PascalCase (`Dashboard.tsx`, `DeviceDetails.tsx`)
-- Hooks: camelCase with `use` prefix (`useMqttData.ts`)
-- Contexts: PascalCase (`AuthContext.tsx`, `TenantContext.tsx`)
-- Services: camelCase (`firebaseAuth.ts`)
-- n8n workflows: snake_case with descriptive prefix (`n8n_hourly_telemetry.json`)
-- SQL migrations: snake_case (`add_alarm_columns.sql`)
-- ESP32: PascalCase for classes (`AlertManager.h`), snake_case for files
+### ESP32 (Arduino)
+- **Files:** `PascalCase.h/cpp`, `lowercase.ino`
+- **Classes:** `PascalCase`
+- **Methods:** `camelCase`
+- **Constants:** `SCREAMING_SNAKE_CASE`
+- **Variables:** `camelCase` with type prefix (`fVoltage`, `iRelay`)
 
-**Directories:**
-- kebab-case: `dashboard/src/components/`, `esp32/`
-- PascalCase for contexts and hooks: `dashboard/src/contexts/`, `dashboard/src/hooks/`
+### React Dashboard
+- **Components:** `PascalCase.tsx`
+- **Hooks:** `camelCase.ts` (use prefix)
+- **Utilities:** `camelCase.ts`
+- **Types:** `PascalCase` in `types.ts`
 
-## Where to Add New Code
+### n8n Workflows
+- **Files:** `kebab-case.json`
+- **Nodes:** Descriptive names in snake_case
+- **Variables:** $json.fieldName
 
-**New Feature (Frontend):**
-- Primary code: `[dashboard/src/components/]`
-- Hooks: `[dashboard/src/hooks/]`
-- Contexts: `[dashboard/src/contexts/]`
-- Tests: `[dashboard/src/tests/]`
+## Subdirectories Worth Noting
 
-**New Feature (Backend/n8n):**
-- Workflow: Root directory `[*.json]` files
-- Code snippets: Use Code node within n8n UI
-- Database changes: `[*.sql]` migration files
+| Directory | Description |
+|-----------|-------------|
+| `dashboard/src/components/device/` | Device-related subcomponents |
+| `dashboard/src/hooks/` | Custom React hooks |
+| `dashboard/src/services/` | API services |
+| `esp32/` | All ESP32 source files (flat) |
+| `docs/` | Project documentation |
 
-**New ESP32 Feature:**
-- Implementation: `[esp32/]` directory
-- New sensor: Create `SensorName.h` and `.cpp` files
-- Configuration: Edit `[esp32/Config.h]`
+## Git Structure
 
-**Utilities:**
-- Shared helpers: `[dashboard/src/services/]`
-- Shared types: Add to existing files or create `[dashboard/src/types.ts]`
+```
+sensor/
+├── .git/                 # Single git repo
+├── esp32/               # Firmware subdir
+├── dashboard/          # Frontend subdir
+└── *.json              # Workflows at root
+```
 
-## Special Directories
-
-**.stitch/:**
-- Purpose: Design system from Stitch (AI website builder)
-- Contains: `DESIGN.md`, `next-prompt.md`
-- Generated: Yes (by Stitch AI)
-- Committed: Yes
-
-**.opencode/:**
-- Purpose: OpenCode AI agent skills and configuration
-- Contains: Skills for different domains (tailwind-patterns, powershell-windows, etc.)
-- Generated: Yes (by OpenCode setup)
-- Committed: Yes
-
-**evolution-api-main/:**
-- Purpose: WhatsApp Business API integration
-- Contains: Docker-based API server
-- Generated: No (external dependency)
-- Committed: Yes (for reference)
-
-**frontend/:**
-- Purpose: Deprecated legacy frontend
-- Contains: Old build output in `dist/`
-- Generated: Deprecated
-- Committed: Yes (for reference)
-
-**node_modules/:**
-- Purpose: NPM dependencies (not committed to git)
-- Generated: Yes (by `npm install`)
-- Committed: No (in .gitignore)
-
----
-
-*Structure analysis: 2026-05-07*
+Note: Single repo with ESP32 and Dashboard in subdirectories. Evolution API is separate repo.

@@ -1,201 +1,112 @@
-# Testing Patterns
+# Testing
 
-**Analysis Date:** 2026-05-07
+**Mapped:** 2026-05-08
 
-## Test Framework
+## Testing Stack
 
-**None formally configured** — the codebase has minimal automated testing infrastructure.
+### Dashboard (React)
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **Vitest** | 4.1.5 | Test runner |
+| **React Testing Library** | 16.3.2 | Component testing |
+| **Jest DOM** | 6.9.1 | DOM assertions |
+| **User Event** | 14.6.1 | User interaction simulation |
+| **jsdom** | 29.1.1 | DOM environment |
 
-### Evolution API (evolution-api-main)
-
-- **Test runner:** Manual — `npm test` runs `tsx watch ./test/all.test.ts`
-- **Framework:** ad-hoc Node.js test script
-- **No Jest, Vitest, or Mocha detected in package.json**
-
-### Dashboard (dashboard)
-
-- **No test framework installed** — no test scripts, no test runner
-- **No testing library** (no `@testing-library/react`, no Jest/Vitest)
-
-## Test File Organization
-
-**No standard testing directory found.**
-
-- `test/` folder exists in `evolution-api-main/` but only contains `all.test.ts`
-- Dashboard has no `__tests__` or `.test.ts` files
-- One manual test script in root: `test_user_flow.js`
-
-### Observed Test Files
-
-| File | Type | Purpose |
-|------|------|---------|
-| `test_user_flow.js` | ad-hoc Node script | Phone formatting + payload validation |
-| `dashboard/src/tests/provision_user.js` | ad-hoc Node script | User provisioning test |
-| `evolution-api-main/test/all.test.ts` | Manual tsx test | Unknown scope |
-| `dashboard/test_supabase.js` | ad-hoc Node script | Supabase connection test |
+### ESP32
+- **No automated tests** (hardware-dependent)
+- Manual testing via Serial Monitor
+- OTA updates for field testing
 
 ## Test Structure
 
-### Manual Test Scripts (Node.js)
+```
+dashboard/src/
+├── tests/
+│   ├── setup.ts           # Test configuration
+│   └── SupabaseMapper.test.ts
+├── services/
+│   └── __tests__/
+│       └── TelemetryService.test.ts
+└── components/           # Manual testing
+```
 
-**Location:** `test_user_flow.js`
+## Test Patterns
 
-```javascript
-const formatPhone = (value) => {
-    const digits = value.replace(/\D/g, '');
-    // ...
-};
+### Hook Testing
+```typescript
+// tests/SupabaseMapper.test.ts
+import { renderHook, waitFor } from '@testing-library/react';
+import { useSupabaseData } from '../hooks/useSupabaseData';
 
-const testCases = [
-    { input: '5', expected: '+5' },
-    // ...
-];
-
-console.log('--- Testando Formatação ---');
-testCases.forEach(tc => {
-    const result = formatPhone(tc.input);
-    const status = result === tc.expected ? 'PASS' : 'FAIL';
-    console.log(`Input: ${tc.input} | Expected: ${tc.expected} | Result: ${result} | ${status}`);
-    if (status === 'FAIL') process.exit(1);
+describe('useSupabaseData', () => {
+  it('fetches telemetry data', async () => {
+    const { result } = renderHook(() => useSupabaseData('device1'));
+    
+    await waitFor(() => {
+      expect(result.current.data).toBeDefined();
+    });
+  });
 });
 ```
 
-**Pattern:** Simple input→expected validation with console output and exit code on failure.
+### Service Testing
+```typescript
+// services/__tests__/TelemetryService.test.ts
+import { describe, it, expect } from 'vitest';
+import { TelemetryService } from '../TelemetryService';
 
-### Supabase Connection Test
+describe('TelemetryService', () => {
+  it('aggregates hourly averages', () => {
+    const data = [
+      { timestamp: '2024-01-01T00:00:00Z', temperature: 25 },
+      { timestamp: '2024-01-01T01:00:00Z', temperature: 26 },
+    ];
+    const result = TelemetryService.aggregateHourly(data);
+    expect(result[0].avg).toBe(25.5);
+  });
+});
+```
 
-**Location:** `dashboard/test_supabase.js`
+## Test Commands
 
-- Tests Supabase client connectivity
-- Validates query execution
+```bash
+# Run all tests
+npm test
 
-## Mocking
+# Run with coverage
+npm test -- --coverage
 
-**No mocking framework detected.**
+# Run specific file
+npm test -- TelemetryService.test.ts
 
-- No `sinon`, `jest.mock()`, `vi.fn()`, or equivalent
-- Tests use real data/connections where needed
+# Watch mode
+npm test -- --watch
+```
 
-## Fixtures and Factories
+## Manual Testing
 
-**No test data factories found.**
+### ESP32 Testing
+1. Serial Monitor at 115200 baud
+2. Test commands via MQTT (MQTT.fx)
+3. Physical sensor manipulation
+4. Alert trigger verification
 
-- `dashboard/src/data/mockData.ts` — contains mock device data for UI development, not testing
-- `server.js` writes to `src/data/telemetry.json` as runtime fixture
+### Dashboard Testing
+1. `npm run dev` for local development
+2. Supabase emulator for local DB
+3. Mock MQTT messages for real-time tests
 
 ## Coverage
 
-**Not enforced.**
+- **Dashboard:** Services and hooks tested
+- **Components:** Manual verification
+- **ESP32:** No automated coverage
 
-- No coverage tool configured (no Istanbul, no v8 coverage)
-- No coverage thresholds in package.json
+## Test Data
 
-## Integration Testing
-
-### n8n Workflow Testing
-
-n8n workflows are stored as JSON in the repository:
-
-- `mqtt receive.json`
-- `n8n_hourly_telemetry.json`
-- `n8n_events_logger.json`
-- `dashboard/n8n_workflow_mqtt.json`
-
-These are tested by:
-1. Importing JSON into n8n UI
-2. Triggering via webhook/manual execution
-3. Verifying database/state changes manually
-
-## Common Patterns
-
-### Phone Formatting Tests
-
-```javascript
-const formatPhone = (value) => {
-    const digits = value.replace(/\D/g, '');
-    if (digits.length <= 0) return '';
-    const limited = digits.slice(0, 13);
-    let result = '+' + limited;
-    // format with spaces and dash
-    return result;
-};
-```
-
-**Location:** `test_user_flow.js`
-
-### Payload Validation
-
-```javascript
-const payload = {
-    phone: newUserWhatsapp || null,
-};
-console.log('Payload phone:', payload.phone);
-if (payload.phone !== newUserWhatsapp) {
-    console.log('FAIL: Payload field mismatch');
-    process.exit(1);
-}
-```
-
-**Location:** `test_user_flow.js`
-
-### Runtime State Verification
-
-```javascript
-// Check telemetry.json after API call
-let existingContent = { history: [] };
-if (fs.existsSync(filePath)) {
-    try {
-        existingContent = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    } catch (e) {
-        // Ignore parse errors
-    }
-}
-```
-
-**Location:** `dashboard/server.js` (used for manual verification)
-
-## Build-time Verification
-
-### TypeScript Type Checking
-
-```bash
-# evolution-api-main
-npm run build        # runs: tsc --noEmit && tsup
-
-# dashboard
-npm run build        # runs: tsc -b && vite build
-```
-
-Both projects run TypeScript compilation as part of build, catching type errors before deployment.
-
-### Linting
-
-```bash
-# evolution-api-main
-npm run lint         # eslint --fix --ext .ts src
-npm run lint:check   # eslint --ext .ts src (read-only)
-
-# dashboard
-npm run lint         # eslint .
-```
-
-## Quality Gaps
-
-### Missing Testing Infrastructure
-
-- **No unit test runner** — projects lack Jest/Vitest
-- **No mocking library** — cannot isolate units
-- **No test coverage** — no visibility into untested code
-- **No E2E testing** — no Playwright/Cypress
-
-### Recommended Improvements
-
-1. Add Vitest (lighter than Jest, good TypeScript support)
-2. Write unit tests for utility functions (`formatPhone`, data normalization)
-3. Add integration tests for API routes
-4. Add E2E tests for dashboard UI flows
-5. Enforce coverage thresholds in CI
-
----
-
-*Testing analysis: 2026-05-07*
+| Type | Location |
+|------|----------|
+| Mock devices | `dashboard/src/data/mockData.ts` |
+| Mock telemetry | `dashboard/src/data/telemetry.json` |
+| SQL fixtures | Not present |

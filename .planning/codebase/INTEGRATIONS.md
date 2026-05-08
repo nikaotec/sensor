@@ -1,138 +1,86 @@
-# External Integrations
+# Integrations
 
-**Analysis Date:** 2026-05-07
+**Mapped:** 2026-05-08
 
-## APIs & External Services
+## External Services
 
-**AI/LLM:**
-- OpenAI API - GPT-4, GPT-5-mini for AI chatbot integration
-  - SDK: `openai` npm package
-  - Used in: `esp32.json` workflow with `gpt-5-mini` model
-  - Credential: `openAiApi` named "OpenAi account"
-- Ollama (local) - Self-hosted LLM (`qwen2.5:3b` model)
-  - Used in: `esp32.json` workflow
-  - Credential: `ollamaApi` named "Ollama account"
+### Supabase (Database)
+- **URL:** `https://ueyizghzblngswukfmr.supabase.co`
+- **Pooler:** `ueyizghzblngswukfmr.supabase.co:6543`
+- **Tables:** `users`, `tenants`, `devices_status`, `telemetry`, `events`
+- **Features:** Realtime subscriptions, Row Level Security
 
-**Communication:**
-- Evolution API - WhatsApp multi-device gateway
-  - SDK: Custom integration via REST API
-  - Used in: `mqtt receive.json` workflow for WhatsApp messaging
-  - Credential: `evolutionApi` named "Evolution account"
-  - Instance: `sensor_temperatura`
-  - Base URL: Internal Docker network, port 8080
+### Firebase (Authentication)
+- **Project:** `smartrf-f9962`
+- **Services:** Firebase Auth (email/password, Google)
+- **Legacy:** Firestore for old data
 
-**IoT/MQTT:**
-- MQTT Broker (Mosquitto) - Sensor data ingestion
-  - Topic: `esp32c3/data` for telemetry
-  - Topic: `esp32c3/status/action` for dashboard actions
-  - Used in: Multiple n8n workflows
-  - Running in Docker container
+### MQTT Broker
+- **Server:** `mqtt.nikaotech.com` / `wss://nikaotech.com/mqtt`
+- **Port:** 1883 (MQTT), 9001 (WebSocket)
+- **Protocols:** MQTT over TCP + WSS
 
-**Cloud/Misc:**
-- Google Sheets API - User management spreadsheet
-  - Used in: `mqtt receive.json` for admin/user storage
-  - Spreadsheet ID: `1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4`
-  - Credential: `googleSheetsOAuth2Api` named "Google Sheets account"
+### Evolution API (WhatsApp)
+- **Instance:** `sensor_temperatura`
+- **Endpoints:**
+  - `POST /message/sendText/{instance}`
+  - `POST /message/sendFile/{instance}`
+- **Features:** Send/receive WhatsApp messages
 
-## Data Storage
+### Google Sheets
+- **Document:** `1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4`
+- **Sheet:** `users_casinhas`
+- **Purpose:** User validation for WhatsApp bot
+- **Columns:** `NUMERO`, `RULE`
 
-**PostgreSQL (Supabase):**
-- Type: Cloud-hosted PostgreSQL (Supabase)
-- Project ID: `ueyizghzblngswgukfmr`
-- Tables: `users`, `tenants`, `devices_status`, `telemetry`, `events`
-- Features: Realtime subscriptions enabled
-- Connection: Via `@supabase/supabase-js` client
+### OpenRouter (AI)
+- **Model:** `qwen/qwen3-235b-a22b-2507`
+- **Purpose:** Intent classification for WhatsApp bot
 
-**PostgreSQL (Evolution API):**
-- Type: Docker-hosted PostgreSQL 15
-- Database: `evolution_db`
-- User: `nikaotec`
-- Container: `postgres` on port 5432
-- Managed by: Prisma ORM
+## API Integrations
 
-**Firestore (Firebase):**
-- Type: Firebase Cloud Firestore (NoSQL)
-- Database: `(default)` in `us-central`
-- Project: `tech-smartrf` / `smartrf-iot-dashboard`
-- Collections: Real-time sensor data
-- Used in: Web dashboard for live telemetry
+### MQTT Topics
+| Topic | Direction | Purpose |
+|-------|-----------|---------|
+| `esp32c3/data` | ESP32 → n8n | Telemetry + alerts |
+| `esp32c3/dashboard` | ESP32 → Dashboard | Real-time updates |
+| `esp32c3/status/action` | n8n → ESP32 | Commands (WhatsApp) |
+| `sensor/telemetry/data` | n8n → Dashboard | Processed telemetry |
 
-**Local File Storage:**
-- Dashboard: `dashboard/src/data/telemetry.json` for mock/dev telemetry
-- Evolution API: `/evolution/instances` Docker volume for WhatsApp session data
+### Supabase Tables (Realtime)
+- `devices_status` - Current device state
+- `telemetry` - Historical sensor data
+- `events` - Alert logs
+- `tenants` - Multi-tenant support
+- `users` - User management
 
-## Authentication & Identity
+### Webhooks
+| Endpoint | Source | Purpose |
+|----------|--------|---------|
+| `POST /esp32` | Evolution API | WhatsApp message relay |
+| `POST /webhook/pdf` | Dashboard | PDF report generation |
 
-**Firebase Authentication:**
-- Provider: Firebase Auth
-- Methods: Email/Password + Anonymous
-- Config: `dashboard/firebase.json`
-- Used in: Web dashboard user sessions
+## Hardware Integration
 
-**Supabase Auth:**
-- Note: RLS policies set to permissive for development
-- Future: Should configure proper RLS policies
+### ESP32-C3 Sensors
+| Sensor | Protocol | GPIO |
+|--------|----------|------|
+| DS18B20 | 1-Wire | GPIO 13 |
+| AHT10 | I2C (0x38) | GPIO 20/21 |
+| ZMPT101B | ADC | GPIO 35 |
+| Battery | ADC | GPIO 34 |
+| Door | Digital | GPIO 32 |
+| Relays (x4) | Digital | GPIO 23, 19, 18, 5 |
+| OLED SH1106 | I2C | GPIO 20/21 |
 
-**Evolution API JWT:**
-- Token-based authentication for WhatsApp API
-- Managed by: Evolution API middleware
+### Display
+- **Type:** OLED 128x64
+- **Driver:** SH1106
+- **Interface:** I2C
 
-## Monitoring & Observability
+## Security
 
-**Error Tracking:**
-- Sentry (`@sentry/node`) - Error monitoring
-- Version: 8.47.0
-- Used in: Evolution API
-
-**Logs:**
-- Pino (structured logging) - Evolution API
-- n8n built-in logging (`N8N_LOG_LEVEL=debug`)
-- Location: Application logs + n8n database
-
-## CI/CD & Deployment
-
-**Hosting:**
-- Cloud server: `109.123.240.215` (deployment target)
-- DNS: `n8n.nikaotech.com` (n8n instance)
-- Web dashboard: `/var/www/nikaotech`
-- Process manager: PM2
-
-**CI Pipeline:**
-- GitHub Actions workflows in `evolution-api-main/.github/workflows/`
-- Docker image publishing to registry
-- Code quality checks
-
-**Containers:**
-- Docker Compose orchestration (`docker-compose.yaml`)
-- Services: Evolution API, Redis, PostgreSQL, Mosquitto, n8n
-- Network: `evolution-net` bridge driver
-
-## Environment Configuration
-
-**Required env vars:**
-- Supabase: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
-- Firebase: `VITE_FIREBASE_*` credentials
-- MQTT: Broker connection settings
-- n8n: `WEBHOOK_URL`, `N8N_HOST`, `N8N_PROTOCOL`
-- Evolution API: `DATABASE_PROVIDER`, Redis/Postgres connection
-
-**Secrets location:**
-- `.env` files (gitignored)
-- n8n credentials storage (encrypted)
-- Service account JSON files for Google APIs
-
-## Webhooks & Callbacks
-
-**n8n Webhooks:**
-- MQTT trigger for real-time sensor data
-- Scheduled workflows (hourly snapshots)
-- Webhook endpoints for external triggers
-
-**Outgoing:**
-- WhatsApp messages via Evolution API
-- Google Sheets API updates
-- Supabase database writes
-
----
-
-*Integration audit: 2026-05-07*
+- **n8n:** Service Account for Firebase (OAuth2 fixed)
+- **Supabase:** Row Level Security policies
+- **Firebase Auth:** JWT tokens
+- **VPS:** SSH key-based access

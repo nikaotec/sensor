@@ -1,129 +1,83 @@
-# Technology Stack
+# Tech Stack
 
-**Analysis Date:** 2026-05-07
+**Mapped:** 2026-05-08
 
-## Languages
+## Languages & Runtimes
 
-**Primary:**
-- JavaScript/TypeScript - Web dashboard, n8n workflows, Evolution API
-- Arduino/C++ - ESP32 embedded firmware
+| Runtime | Version | Purpose |
+|---------|---------|---------|
+| **C++ (Arduino)** | ESP32 Core 2.0.2+ | ESP32-C3 firmware |
+| **TypeScript** | 5.9.3 | React dashboard |
+| **JavaScript** | ES2022 | n8n workflows, Node.js |
 
-**Secondary:**
-- Python - Dashboard scripting utilities (`edit_dashboard.py`, `patch_n8n_telemetry.py`, `revert.py`)
-- SQL - Database migrations and schemas
+## Frontend Stack
 
-## Runtime
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **React** | 19.2.0 | UI framework |
+| **Vite** | 7.3.1 | Build tool |
+| **TypeScript** | 5.9.3 | Type safety |
+| **TailwindCSS** | 3.4.19 | Styling |
+| **Recharts** | 3.7.0 | Charts/graphs |
+| **Framer Motion** | 12.35.2 | Animations |
+| **Lucide React** | 0.575.0 | Icons |
+| **MQTT.js** | 5.15.0 | MQTT client |
+| **Firebase** | 12.10.0 | Authentication |
+| **Supabase** | 2.101.0 | Database client |
 
-**Node.js:**
-- Dashboard: Node.js with Vite dev server
-- Evolution API: Node.js with Express
-- n8n: Self-hosted Node.js automation platform
+## Backend/Infrastructure
 
-**Embedded:**
-- ESP32 firmware runtime (Arduino framework)
+| Technology | Purpose |
+|------------|---------|
+| **n8n** | Workflow automation |
+| **Supabase** | PostgreSQL + Realtime |
+| **Mosquitto** | MQTT broker (Docker) |
+| **Evolution API** | WhatsApp integration |
+| **Nginx** | Reverse proxy (VPS) |
+| **PM2** | Node.js process manager |
 
-**Package Manager:**
-- npm (version locked via `package-lock.json`)
-- pip (Python scripts)
+## ESP32 Firmware Stack
 
-## Frameworks
-
-**Core Web:**
-- React 19.2.0 - Frontend framework for dashboard
-- Vite 7.3.1 - Build tool and dev server
-- Express 5.2.1 - Backend server for dashboard API proxy
-- TailwindCSS 3.4.19 - Styling
-- Recharts 3.7.0 - Data visualization charts
-
-**IoT/Automation:**
-- n8n - Workflow automation platform
-- MQTT.js 5.15.0 - MQTT client for sensor communication
-
-**Communication:**
-- Evolution API v2.3.1 - WhatsApp multi-device API
-- Baileys (WhiskeySockets) - WhatsApp Web protocol
-
-**Database:**
-- Prisma 6.1.0 - ORM for Evolution API
-- @supabase/supabase-js 2.101.0 - Supabase client for IoT data
-
-**Testing:**
-- ESLint 9.39.1 - Linting
-- TypeScript 5.9.3 (dashboard), 5.7.2 (Evolution API)
-
-## Key Dependencies
-
-**Critical:**
-- `firebase` 12.10.0 - Firebase authentication and Firestore for dashboard
-- `@supabase/supabase-js` 2.101.0 - IoT data storage and real-time subscriptions
-- `mqtt` 5.15.0 - MQTT protocol for ESP32 communication
-- `framer-motion` 12.35.2 - Dashboard animations
-- `axios` 1.7.9 - HTTP client for API calls
-- `socket.io` 4.8.1 - Real-time communication
-
-**Infrastructure:**
-- `express` 4.21.2 - HTTP server framework
-- `cors` 2.8.x - Cross-origin resource sharing
-- `http-proxy-middleware` 3.0.3 - API proxy in dashboard
-
-**AI Integration:**
-- `openai` 4.77.3 - OpenAI API client (GPT-4, GPT-5-mini)
-- Ollama (local) - Self-hosted LLM integration
-
-**Media Processing:**
-- `sharp` 0.34.2 - Image processing
-- `fluent-ffmpeg` 2.1.3 - Video/audio processing
-- `@ffmpeg-installer/ffmpeg` 1.1.0 - FFmpeg binary
-
-**Storage:**
-- `minio` 8.0.3 - S3-compatible object storage
-- Prisma + PostgreSQL - Evolution API database
-- Supabase (PostgreSQL) - IoT sensor database
-
-**Messaging:**
-- `amqplib` 0.10.5 - RabbitMQ client
-- `redis` 4.7.0 - Redis client for caching/sessions
-
-**Monitoring:**
-- `@sentry/node` 8.47.0 - Error tracking
-- `pino` 8.11.0 - Structured logging
+| Library | Purpose |
+|---------|---------|
+| **PubSubClient** | MQTT client |
+| **DallasTemperature** | DS18B20 sensors |
+| **Adafruit_AHTX0** | AHT10 I2C sensor |
+| **Adafruit_GFX** | OLED display |
+| **Adafruit_SSD1306** | SSD1306 OLED |
+| **ESPAsyncMQTT** | Async MQTT |
+| **FreeRTOS** | Task scheduling |
 
 ## Configuration
 
-**Environment:**
-- Environment variables via `.env` files
-- Docker Compose for service orchestration
-- Firebase project configuration (`firebase.json`)
+### Environment Variables (Dashboard)
 
-**Build:**
-- `tsconfig.json` - TypeScript configuration
-- `vite.config.ts` - Vite bundler configuration with custom MQTT proxy
-- `tailwind.config.cjs` - Tailwind CSS configuration
+```
+VITE_SUPABASE_URL=https://ueyizghzblngswgukfmr.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon-key>
+VITE_MQTT_BROKER_URL=wss://nikaotech.com/mqtt
+```
 
-**Deployment:**
-- PM2 process manager for dashboard production
-- Docker containers for all services
-- SSH-based deployment script in `package.json`
+### ESP32 Configuration (`esp32/Config.h`)
 
-## Platform Requirements
+```cpp
+#define WIFI_SSID "VENANCIO"
+#define WIFI_PASS "liza1980"
+#define MQTT_SERVER "mqtt.nikaotech.com"
+#define MQTT_PORT 1883
+```
 
-**Development:**
-- Node.js 18+
-- npm 9+
-- ESP32 Arduino development environment
-- Docker + Docker Compose
+## Build Tools
 
-**Production:**
-- Linux server (Debian/Ubuntu observed)
-- PM2 for Node.js process management
-- Reverse proxy (nginx implied for n8n.nikaotech.com)
-- MQTT broker (Mosquitto)
+| Tool | Version | Purpose |
+|------|---------|---------|
+| **Node.js** | 18+ | Dashboard build |
+| **Arduino CLI** | 1.0+ | ESP32 compile |
+| **Vitest** | 4.1.5 | Testing |
+| **ESLint** | 9.39.1 | Linting |
 
-**Cloud Services:**
-- Supabase (PostgreSQL + Auth + Realtime)
-- Firebase (Auth + Firestore)
-- Evolution API self-hosted WhatsApp gateway
+## VPS Configuration
 
----
-
-*Stack analysis: 2026-05-07*
+- **IP:** 109.123.240.215
+- **Ports:** Dashboard on 4000
+- **Nginx proxy:** `/` → `127.0.0.1:4000`

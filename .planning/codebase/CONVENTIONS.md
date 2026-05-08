@@ -1,220 +1,188 @@
-# Coding Conventions
+# Conventions
 
-**Analysis Date:** 2026-05-07
-
-## Languages & Tooling
-
-- **TypeScript** - Used in `evolution-api-main/` (v5.7.2) and `dashboard/` (v5.9.3)
-- **JavaScript** - Used in Node.js server files, n8n workflow JSON, and ad-hoc scripts
-
-## Naming Conventions
-
-### Files
-
-- **TypeScript classes/components:** PascalCase — `InstanceDto.ts`, `useMqttData.ts`
-- **Routes/services/controllers:** PascalCase — `instance.router.ts`, `auth.service.ts`
-- **Utils/helpers:** camelCase — `findBotByTrigger.ts`, `createJid.ts`
-- **Config files:** camelCase or kebab-case — `env.config.ts`, `tsconfig.json`
-- **Exceptions:** PascalCase with `.exception` suffix — `400.exception.ts`, `404.exception.ts`
-
-### Variables & Functions
-
-- **Functions:** camelCase — `formatPhone()`, `getLockedData()`
-- **State variables:** camelCase — `mqttClient`, `isConnected`
-- **Constants:** camelCase or UPPER_SNAKE — `MQTT_BROKER_URL`, `OFFLINE_TIMEOUT`
-- **Class properties:** camelCase (TypeScript)
-- **Hooks:** camelCase with `use` prefix — `useMqttData`, `useSupabaseData`
+**Mapped:** 2026-05-08
 
 ## Code Style
 
-### TypeScript (evolution-api-main)
+### ESP32 (Arduino C++)
 
-**Formatter:** Prettier
-- Semicolons: `true`
-- Single quotes: `true`
-- Trailing commas: `all`
-- Print width: `120`
-- Arrow parens: `always`
-- Tab width: `2`
+**Formatting:**
+- 2-space indentation
+- Braces on same line
+- Max line length: 120 chars
 
-**Linting:** ESLint with TypeScript support
-- `@typescript-eslint/eslint-plugin`
-- `eslint-plugin-prettier`
-- `eslint-plugin-simple-import-sort`
+**Naming:**
+- Classes: `PascalCase`
+- Methods: `camelCase`
+- Constants: `SCREAMING_SNAKE_CASE`
+- Variables: `camelCase`, type prefixes optional
 
-**Import order (not enforced but observed):**
-1. Node built-ins
-2. External packages
-3. Internal `@` aliased imports (config, utils, api)
-4. Relative imports
+**Patterns:**
+```cpp
+// Class definition
+class AlertManager {
+public:
+    AlertStatus getStatus() const;
+    void checkAlert(float value);
+private:
+    AlertStatus _status = ALERT_NONE;
+    unsigned long _lastAlertTime = 0;
+};
 
-### React/TypeScript (dashboard)
-
-**Formatter:** ESLint flat config (v9)
-- Uses `typescript-eslint`
-- React Hooks plugin required
-- React Refresh plugin for Vite
-
-**No Prettier config observed** — relies on ESLint for formatting only.
-
-## TypeScript Patterns
-
-### Class-based DTOs
-
-```typescript
-export class InstanceDto extends IntegrationDto {
-  instanceName: string;
-  instanceId?: string;
-  // ... optional fields
-}
-```
-
-**Location:** `evolution-api-main/src/api/dto/instance.dto.ts`
-
-### Functional React Hooks
-
-```typescript
-export const useMqttData = (
-  tenantId: string | null,
-  currentUserRole: string | undefined,
-  initialDevices: Device[] = [],
-  onAlert?: (payload: any) => void
-) => {
-  // state, effects, callbacks
-  return { devices, isConnected, publish, updateDeviceLocal };
+// State machine pattern
+enum AlertStatus {
+    ALERT_NONE,
+    ALERT_STARTED,
+    ALERT_REPEATED,
+    ALERT_NORMALIZED
 };
 ```
 
-**Location:** `dashboard/src/hooks/useMqttData.ts`
+**Error Handling:**
+- Return codes for functions
+- Serial debug output for errors
+- Reset on unrecoverable errors
 
-### Express Router Pattern (RouterBroker)
+### React Dashboard (TypeScript)
 
-```typescript
-export class InstanceRouter extends RouterBroker {
-  public readonly router: Router = Router();
+**Formatting:**
+- ESLint + Prettier defaults
+- 2-space indentation
+- Single quotes for strings
 
-  constructor(readonly configService: ConfigService, ...guards: RequestHandler[]) {
-    super();
-    this.router
-      .post('/create', ...guards, async (req, res) => {
-        const response = await this.dataValidate({...});
-        return res.status(HttpStatus.CREATED).json(response);
-      });
-  }
+**Component Patterns:**
+```tsx
+interface DeviceProps {
+  deviceId: string;
+  onSelect: (id: string) => void;
+}
+
+export function DeviceCard({ deviceId, onSelect }: DeviceProps) {
+  return (
+    <div className="device-card" onClick={() => onSelect(deviceId)}>
+      <DeviceHeader id={deviceId} />
+      <DeviceTelemetryCard id={deviceId} />
+    </div>
+  );
 }
 ```
 
-**Location:** `evolution-api-main/src/api/routes/instance.router.ts`
-
-## Error Handling
-
-### Custom Exceptions
-
-Exception classes throw plain objects with status, error, and message fields:
-
+**Hook Patterns:**
 ```typescript
-// 400.exception.ts
-export class BadRequestException {
-  constructor(...objectError: any[]) {
-    throw {
-      status: HttpStatus.BAD_REQUEST,
-      error: 'Bad Request',
-      message: objectError.length > 0 ? objectError : undefined,
-    };
-  }
+export function useMqttData() {
+  const [data, setData] = useState<MqttMessage[]>([]);
+  
+  useEffect(() => {
+    const client = mqtt.connect(BROKER_URL);
+    client.subscribe('esp32c3/#');
+    client.on('message', (topic, payload) => {
+      setData(prev => [...prev, JSON.parse(payload.toString())]);
+    });
+    return () => client.end();
+  }, []);
+  
+  return data;
 }
 ```
 
-**Available exceptions:** `400.exception.ts`, `401.exception.ts`, `403.exception.ts`, `404.exception.ts`, `500.exception.ts`
-**Location:** `evolution-api-main/src/exceptions/`
+**Type Patterns:**
+```typescript
+interface TelemetryData {
+  TEMP_C: number;
+  UMIDADE: number;
+  BATERIA: number;
+  VOLTAGEM: number;
+}
 
-### Global Error Middleware
+interface DeviceStatus {
+  id: string;
+  name: string;
+  temperature: number;
+  status: 'online' | 'offline' | 'warning';
+}
+```
 
-**Location:** `evolution-api-main/src/main.ts` (lines 67-126)
+### n8n Workflows (JSON)
 
-- Catches all errors and sends JSON with `{ status, error, response: { message } }`
-- Sends webhook on errors if configured
-- 404 catch-all for unmatched routes
+**Node Naming:** `snake_case descriptive`
+**Variable Access:** `$json.fieldName`, `$env.VAR_NAME`
+**Expression Syntax:** `{{ $json.value }}`
 
-### Try/Catch Pattern
-
+**Common Patterns:**
 ```javascript
-try {
-  const data = req.body;
-  // process
-} catch (error) {
-  console.error('Erro na API:', error);
-  res.status(400).send('Invalid request');
+// Code node
+const data = $json;
+return data.items.map(item => ({
+  json: {
+    ...item,
+    processed: true
+  }
+}));
+
+// Expression
+{{ $json.temperature > $json.temp_max ? 'HIGH' : 'NORMAL' }}
+```
+
+## Patterns
+
+### ESP32 MQTT Callback
+```cpp
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  StaticJsonDocument<512> doc;
+  deserializeJson(doc, payload, length);
+  // Process message
 }
 ```
 
-**Location:** `dashboard/server.js` (lines 99-156)
-
-## Logging
-
-**Framework:** Pino (evolution-api-main)
-- Imported via `import { Logger } from '@config/logger.config'`
-
-**Console:** Used in dashboard/Node scripts
-- `console.log()` for info
-- `console.error()` for errors
-- Emojis in log prefixes: `🗑️`, `✅`, `❌`, `🚀`, `📡`
-
-```typescript
-const logger = new Logger('SERVER');
-logger.info('Provider:Files - ON');
-logger.error(errorData);
+### Alert Debounce
+```cpp
+bool checkDebounce(unsigned long now, unsigned long lastTime, int interval) {
+  return (now - lastTime) >= interval;
+}
 ```
+
+### React Context
+```tsx
+const TenantContext = createContext<TenantContextType | null>(null);
+
+export function TenantProvider({ children }) {
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  
+  return (
+    <TenantContext.Provider value={{ tenants, setTenants }}>
+      {children}
+    </TenantContext.Provider>
+  );
+}
+```
+
+## State Management
+
+| Layer | Pattern |
+|-------|---------|
+| ESP32 | Global variables + class instances |
+| React | Context API (Auth, Tenant, Notification) |
+| n8n | Node-level state (no persistence) |
+| Supabase | RLS + row ownership |
+
+## File Organization
+
+| Type | Pattern |
+|------|---------|
+| Components | `components/Name.tsx` |
+| Hooks | `hooks/useName.ts` |
+| Context | `contexts/NameContext.tsx` |
+| Utils | `utils/name.ts` |
+| Types | `data/types.ts` or inline |
 
 ## Comments
 
-**Inline comments:** Used sparingly for non-obvious logic:
+- ESP32: Minimal, only for complex logic
+- React: JSDoc for exports, inline for non-obvious
+- n8n: Node descriptions only
 
-```typescript
-// Ignore messages de display (MENSAGEM_DISPLAY)
-// não são telemetria e podem criar cards fantasmas após reset.
-if (payload.TIPO === 'MENSAGEM_DISPLAY') {
-  return;
-}
-```
+## Testing Conventions
 
-**TODO markers found:**
-- `evolution-api-main/src/api/routes/chat.router.ts` — `// TODO: corrigir updateMessage para medias tambem`
-- `evolution-api-main/src/api/routes/sendMessage.router.ts` — `// TODO: Revisar funcionamento do envio de Status`
-
-## Module Design
-
-### Barrel Exports (index pattern)
-
-```typescript
-// src/exceptions/index.ts
-export * from './400.exception';
-export * from './401.exception';
-// ...
-```
-
-**Location:** `evolution-api-main/src/exceptions/index.ts`, `evolution-api-main/src/api/routes/index.router.ts`
-
-### Abstract Base Classes
-
-- `RouterBroker` — base for all routers
-- `AbstractCache`, `AbstractRepository` — base patterns
-
-**Location:** `evolution-api-main/src/api/abstract/`
-
-### Path Aliases (tsconfig.json)
-
-```json
-{
-  "paths": {
-    "@api/*": ["src/api/*"],
-    "@config/*": ["src/config/*"],
-    "@utils/*": ["src/utils/*"],
-    "@validate/*": ["src/validate/*"]
-  }
-}
-```
-
----
-
-*Convention analysis: 2026-05-07*
+- **Unit tests:** `*.test.ts` for hooks/services
+- **Setup:** `tests/setup.ts` for test utilities
+- **Mock data:** `data/mockData.ts`
