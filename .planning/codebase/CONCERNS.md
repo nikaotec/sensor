@@ -4,227 +4,235 @@
 
 ## Tech Debt
 
-### Database Schema Patches
+### Database Schema Instability
+- **Issue:** Multiple SQL migration files scattered across project root
+- **Files:** `add_telemetry_columns.sql`, `add_phone_column.sql`, `add_chk_columns.sql`, `create_report_configs.sql`, `apply_triggers.sql`, `report_logs_table.sql`
+- **Impact:** Schema changes are additive but not properly versioned; no rollback capability
+- **Fix approach:** Create a consolidated migration strategy with versioned SQL files and a migration runner
 
-**Issue:** Multiple database schema migrations executed ad-hoc to fix data types
-- Files: `fix_telemetry_types.sql`, `migrate_telemetry_datetime.sql`, `add_telemetry_columns.sql`, `add_chk_columns.sql`
-- Impact: Schema evolution unclear; some columns may have been dropped/re-added multiple times
-- Fix approach: Consolidate migrations into single authoritative schema, document history
+### ESP32 Monolithic Main File
+- **Issue:** Main sketch file (`esp32/esp32.ino`) contains ~1185 lines - violates separation of concerns
+- **Files:** `esp32/esp32.ino`
+- **Impact:** Difficult to maintain, test, or debug; all logic in single file despite having modular managers
+- **Fix approach:** Refactor to use proper .cpp/.h separation with App class that delegates to managers
 
-### Permissive RLS Policies
+### Firebase + Supabase Hybrid Authentication
+- **Issue:** Two authentication systems (Firebase Auth + Supabase) with no clear single source of truth
+- **Files:** `dashboard/src/firebase/config.ts`, `dashboard/src/supabase/config.ts`, `supabase_schema.sql` (users table)
+- **Impact:** User sync issues; double maintenance; confusion about which system owns user data
+- **Fix approach:** Migrate fully to Supabase Auth and deprecate Firebase for auth; use Supabase for all user management
 
-**Issue:** Row Level Security enabled but with overly permissive policies
-- Files: `supabase_schema.sql` (lines 103-114)
-- Current policy: `"Allow all for users" ON users FOR ALL USING (true) WITH CHECK (true)`
-- Impact: Any client with anon key has full table access - no data isolation between tenants
-- Fix approach: Implement proper RLS policies filtering by tenant_id, user_id
+### Hardcoded Configuration in ESP32
+- **Issue:** WiFi credentials and MQTT server hardcoded in header file
+- **Files:** `esp32/Config.h` (lines 14-15: WIFI_SSID, WIFI_PASS; line 17: MQTT_SERVER)
+- **Impact:** Recompilation required to change credentials; committed to repository
+- **Fix approach:** Implement WiFi/MQTT provisioning via web portal or BLE configuration
 
-### Hardcoded Credentials in Workflows
+### Multiple Test/Debug Scripts
+- **Issue:** Multiple standalone test scripts with overlapping functionality
+- **Files:** `dashboard/test_mqtt_ws.js`, `dashboard/test_supabase.js`, `dashboard/test_supabase2.js`, `dashboard/query_*.js`
+- **Impact:** No clear which test to use; maintenance burden
+- **Fix approach:** Consolidate into a single test utility with subcommands
 
-**Issue:** Workflow JSON files contain credential IDs and references
-- Files: `mqtt receive.json`, `gerador-relatorios-pdf.json`, `n8n_hourly_telemetry.json`
-- Impact: Credentials stored in JSON; moving workflows between environments requires credential re-linking
-- Fix approach: Use environment variables or n8n's credential management
+### Hardcoded External Service URLs
+- **Issue:** Production URLs hardcoded in server.js and n8n workflows
+- **Files:** `dashboard/server.js` (line 39: n8n.nikaotech.com), `esp32/Config.h` (MQTT_SERVER)
+- **Impact:** No environment-specific configuration; difficult to test locally
+- **Fix approach:** Add environment variable configuration for all external URLs
 
-### Unused/Missing Code
+## Known Bugs
 
-**Issue:** Dashboard contains functions for multiple data operations
-- Files: `dashboard/server.js` (lines 99-156)
-- Example: `/api/sensors` endpoint writing to JSON file alongside Supabase
-- Impact: Dual data paths; potential sync issues
-- Fix approach: Remove file-based fallback, use only database
+### n8n Hourly Telemetry Filter Incomplete
+- **Issue:** Workflow `n8n_hourly_telemetry.json` only processes messages with TIPO="relatorio_diario", missing other periodic data
+- **Files:** `n8n_hourly_telemetry.json` (lines 30-46)
+- **Trigger:** MQTT messages with different TIPO values are filtered out silently
+- **Workaround:** Modify filter to handle additional TIPO values (periodic, status, etc.)
 
-### Evolving Telemetry Schema
+### MQTT Broker Without Authentication
+- **Issue:** Mosquitto broker allows anonymous connections in development mode
+- **Files:** Documentation mentions "Sem autenticação (dev)" in `COMPLETE_PROJECT_ANALYSIS.md`
+- **Trigger:** Any device can publish/subscribe to any topic
+- **Workaround:** Enable MQTT authentication before production deployment
 
-**Issue:** `telemetry` table has had multiple column additions
-- Files: `supabase_schema.sql`, `add_telemetry_columns.sql`, `fix_telemetry_types.sql`
-- Columns: device_id, temperature, temp_max, temp_min, humidity, battery, voltage, signal, timestamp, data_registro, hora_registro
-- Impact: Some records may have NULL values for newer columns
-- Fix approach: Add NOT NULL constraints only where appropriate, document column purposes
-
----
+### RLS Policies Too Permissive
+- **Issue:** All RLS policies use "Allow all" rule (true + WITH CHECK)
+- **Files:** `supabase_schema.sql` (lines 109-114)
+- **Trigger:** Any client with anon key has full read/write access to all tables
+- **Workaround:** Implement proper RLS policies based on authenticated user roles
 
 ## Security Considerations
 
-### Permissive Database Access
+### Hardcoded Credentials in Source Code
+- **Risk:** WiFi password "liza1980" hardcoded in ESP32 firmware
+- **Files:** `esp32/Config.h` line 15
+- **Current mitigation:** None
+- **Recommendations:** Remove hardcoded credentials; use secure provisioning or environment-based config
 
-**Risk:** RLS policies allow unrestricted access via anon key
-- Files: `supabase_schema.sql` (lines 110-114)
-- Current: `CREATE POLICY "Allow all for telemetry" ON telemetry FOR ALL USING (true) WITH CHECK (true);`
-- Recommendation: Implement tenant-based filtering
+### Exposed Supabase Anon Key
+- **Risk:** Client-side code uses Supabase anon key which has full table access due to permissive RLS
+- **Files:** `dashboard/src/supabase/config.ts`
+- **Current mitigation:** None - key is exposed in browser
+- **Recommendations:** Enable proper RLS, implement row-level security per user, consider RLS for anon key
 
-**Risk:** JSON file with device data accessible
-- Files: `dashboard/src/data/telemetry.json`
-- Current approach: File system read exposed via API
-- Recommendation: Remove file-based persistence, database only
+### MQTT WebSocket Proxy Without Rate Limiting
+- **Risk:** No throttling on MQTT messages proxied through VPS server
+- **Files:** `dashboard/server.js` (lines 25-33)
+- **Current mitigation:** None
+- **Recommendations:** Add rate limiting middleware to prevent DoS via MQTT
 
-### API Security
+### Admin API Endpoint Without Authentication
+- **Risk:** `/api/admin/delete-user` endpoint may not verify caller is admin
+- **Files:** `dashboard/server.js` (lines 50-76)
+- **Current mitigation:** Basic UID validation but no auth check
+- **Recommendations:** Add Firebase auth verification before executing admin operations
 
-**Risk:** Firebase admin operations exposed via server.js
-- Files: `dashboard/server.js` (lines 50-76)
-- Endpoint: `/api/admin/delete-user` uses firebase CLI
-- Current mitigation: Basic UID validation
-- Recommendations: Add authentication middleware, use Firebase Admin SDK directly
-
-### Content Security Policy
-
-**Risk:** CSP allows unsafe-inline and unsafe-eval
-- Files: `dashboard/server.js` (lines 82-93)
-- Current: `"script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:"`
-- Recommendation: Refactor to remove inline scripts
-
-### External Dependencies
-
-**Risk:** Evolution API included as submodule/copy
-- Files: `evolution-api-main/`
-- Impact: Large codebase (hundreds of MB), security patches needed externally
-- Recommendations: Use containerized version, track CVEs
-
----
+### CORS and CSP Configuration
+- **Risk:** Server.js CSP allows 'unsafe-inline' and 'unsafe-eval' which weakens XSS protection
+- **Files:** `dashboard/server.js` (lines 82-92)
+- **Current mitigation:** Basic CSP headers present but too permissive
+- **Recommendations:** Remove unsafe directives; use CSP nonce or hash-based policy
 
 ## Performance Bottlenecks
 
-### Dual Data Persistence
+### No Database Connection Pooling
+- **Problem:** Each n8n workflow instance creates new Supabase connection
+- **Files:** All n8n workflow JSON files using Supabase node
+- **Cause:** Supabase client creates connection per request
+- **Improvement path:** Implement connection pooling via Supabase session management; consider PgBouncer for high loads
 
-**Problem:** Sensor data written to both Supabase AND local JSON file
-- Files: `dashboard/server.js` (lines 99-156), `dashboard/src/data/telemetry.json`
-- Cause: Redundant write path; JSON updates on every webhook
-- Improvement path: Remove JSON file path, database only
+### WebSocket MQTT Proxy Reliability
+- **Problem:** HTTP proxy middleware may drop WebSocket connections under load
+- **Files:** `dashboard/server.js` (lines 25-33)
+- **Cause:** http-proxy-middleware not optimized for high-frequency MQTT over WebSocket
+- **Improvement path:** Use dedicated MQTT WebSocket proxy (mosquitto ws prefix) or nginx stream proxy
 
-### Large Workflow Files
+### Large Telemetry Table Without Partitioning
+- **Problem:** `telemetry` table grows unbounded; queries will slow over time
+- **Files:** `supabase_schema.sql` (lines 51-62)
+- **Cause:** No data lifecycle management; no partitioning strategy
+- **Improvement path:** Implement table partitioning by time (monthly); add data retention policy
 
-**Problem:** `mqtt receive.json` is 2547 lines of JSON
-- Files: `mqtt receive.json`
-- Impact: Slower n8n editor loading
-- Improvement path: Break into sub-workflows with triggers
-
-### Database Index Gaps
-
-**Current indices:**
-- `idx_telemetry_device_time` ON (device_id, timestamp DESC)
-- `idx_events_device_time` ON (device_id, timestamp DESC)
-- Missing index: tenant_id on telemetry table
-- Impact: Queries filtering by tenant slow without tenant_id index
-- Improvement path: Add composite index on (tenant_id, device_id, timestamp)
-
-### Realtime Subscription Overhead
-
-**Risk:** Multiple tables in supabase_realtime publication
-- Files: `supabase_schema.sql` (lines 85-89)
-- Publication: devices_status, telemetry, events, tenants, users
-- Impact: Connection overhead, bandwidth on subscribe
-- Recommendation: Enable per-table, not blanket
-
----
+### n8n AI Agent Latency
+- **Problem:** WhatsApp bot workflow depends on OpenRouter AI classification adding ~2-5s latency
+- **Files:** `mqtt receive.json`
+- **Cause:** Sequential AI call before command execution
+- **Improvement path:** Add local command parsing fallback; cache common intents; async AI processing
 
 ## Fragile Areas
 
-### MQTT Message Parsing
+### Complex n8n Workflow (2500+ lines)
+- **Files:** `mqtt receive.json` (2547 lines as indicated by offset)
+- **Why fragile:** Single massive workflow with AI agent, memory buffer, Google Sheets, Evolution API - failure in one node cascades
+- **Safe modification:** Test in isolated environment; use workflow version control; add error boundaries
+- **Test coverage:** No automated workflow tests; manual testing required
 
-**Why fragile:** Payload parsing assumes JSON structure
-- Files: `n8n_hourly_telemetry.json` (lines 17-19)
-- Pattern: `JSON.parse(payloadString)` without try-catch at workflow level
-- Safe modification: Wrap in IF node checking parse result
+### Multiple External Dependencies Chain
+- **Files:** WhatsApp bot depends on: Evolution API → OpenRouter AI → Google Sheets → Firebase Auth
+- **Why fragile:**任何一个服务故障都会导致整个命令系统失效
+- **Safe modification:** Add timeout handling and fallback logic for each external service
+- **Test coverage:** No integration tests covering failure scenarios
 
-### Timezone Handling
+### ESP32 EEPROM Memory Layout
+- **Files:** `esp32/Config.h` (addresses 0-239), `esp32/StorageManager.cpp`
+- **Why fragile:** Fixed memory addresses; no version migration; corruption causes undefined behavior
+- **Safe modification:** Add schema version byte; implement migration on boot; add CRC validation
 
-**Why fragile:** Hardcoded timezone "America/Sao_Paulo"
-- Files: `n8n_hourly_telemetry.json` (lines 83, 87, 91)
-- Current: `$now.setZone('America/Sao_Paulo')`
-- Safe modification: Use timezone from config/env variable
-
-### Display Format Assumptions
-
-**Why fragile:** Report generator assumes specific telemetry_data structure
-- Files: `gerador-relatorios-pdf.json` (lines 116-127)
-- Pattern: Direct access to input fields assuming types
-- Safe modification: Add type checking/validation node
-
-### Dashboard API Validation
-
-**Why fragile:** Minimal validation on `/api/sensors` endpoint
-- Files: `dashboard/server.js` (lines 99-156)
-- Pattern: `data?.data?.temperature ?? data?.temperature` fallback chain
-- Safe modification: Add JSON schema validation
-
----
+### Dashboard Firebase Auth Race Condition
+- **Files:** `dashboard/src/contexts/AuthContext.tsx`
+- **Why fragile:** Auth state may not sync with Supabase client state on initial load
+- **Safe modification:** Add auth state synchronization; implement loading states properly
 
 ## Scaling Limits
 
 ### Supabase Free Tier
+- **Current capacity:** 500MB database, 1GB bandwidth, 100K realtime messages/day
+- **Limit:** Exceeded with continuous telemetry ingestion (one reading per minute = 43K rows/month minimum)
+- **Scaling path:** Upgrade to Pro tier; implement data aggregation/archival for historical data
 
-**Current capacity:** ~500MB database, 100 concurrent connections
-- Limit: Database size and concurrent connections
-- Scaling path: Upgrade to Pro plan ($25/month)
+### MQTT Message Throughput
+- **Current capacity:** Single ESP32 device - limited testing
+- **Limit:** Unknown - no load testing performed
+- **Scaling path:** Implement message batching; add MQTT QoS1 persistence; cluster Mosquitto if needed
 
-### MQTT Broker
+### n8n Workflow Concurrency
+- **Current capacity:** Single n8n instance
+- **Limit:** Concurrent MQTT triggers may queue
+- **Scaling path:** Scale n8n horizontally; implement workflow queue with Redis
 
-**Current setup:** Single Mosquitto instance via Docker
-- Limit: Single broker = no HA
-- Scaling path: Set up MQTT clustering (EMQX, HiveMQ)
+### VPS WebSocket Connections
+- **Current capacity:** PM2 single process with http-proxy-middleware
+- **Limit:** ~500-1000 concurrent WebSocket connections
+- **Scaling path:** Use nginx for WebSocket handling; implement connection pooling
 
-### n8n Workflow Execution
+## Dependencies at Risk
 
-**Current limit:** Host-dependent (self-hosted or cloud)
-- Constraint: No horizontal scaling without external queue
-- Scaling path: Add Redis queue for execution
+### OpenRouter AI API
+- **Risk:** External API with unknown uptime; rate limits may apply; pricing changes
+- **Impact:** WhatsApp bot command classification fails; users cannot use natural language commands
+- **Migration plan:** Implement local keyword-based command parser as fallback; cache AI responses
 
-### Static File Storage
+### Evolution API (WhatsApp)
+- **Risk:** Third-party WhatsApp API wrapper; may break with WhatsApp policy changes
+- **Impact:** WhatsApp control channel stops working entirely
+- **Migration plan:** Monitor alternative solutions (bot-api, wa-js); implement webhook fallback
 
-**Current approach:** Dashboard build served statically
-- Artifacts: `dashboard/dist/`
-- No CDN integration
-- Scaling path: Deploy to Cloudflare Pages/Vercel with CDN
+### Google Sheets for User Management
+- **Risk:** Google Sheets API rate limits; document sharing issues; not designed for auth
+- **Impact:** User permission management fails; new users cannot be added
+- **Migration plan:** Migrate to Supabase users table with proper role management
 
----
+### Firebase SDK (Legacy)
+- **Risk:** Using both Firebase and Supabase creates redundancy; Firebase may deprecate services
+- **Impact:** Duplicate user records; confusion about which system is authoritative
+- **Migration plan:** Complete Supabase Auth migration; remove Firebase dependency
 
-## Known Issues
+## Missing Critical Features
 
-### Telemetry Data Type Mismatch
+### Backup and Disaster Recovery
+- **Problem:** No automated database backups; no offsite replication
+- **Blocks:** Recovery from data loss; migration to new Supabase project
 
-**Issue:** telemetry table column types changed during development
-- Files: `fix_telemetry_types.sql`
-- Fix status: Migrations applied, schema should be stable
-- Verification: Run `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'telemetry';`
+### Monitoring and Alerting for Infrastructure
+- **Problem:** No system-level monitoring (CPU, memory, disk) for VPS
+- **Blocks:** Proactive issue detection; capacity planning
 
-### Credential Links
+### Logging Aggregation
+- **Problem:** No centralized logging - console.log scattered across components
+- **Blocks:** Debugging production issues; audit trails
 
-**Issue:** Workflow credential references are environment-specific
-- Files: `mqtt receive.json`
-- Example: `"credentials": { "evolutionApi": { "id": "QqcSRveOqQAdkYAB" } }`
-- Workaround: Re-link credentials when importing workflow
+### Error Boundary in React
+- **Problem:** Dashboard crashes completely on uncaught errors
+- **Blocks:** User experience degradation; no error recovery
 
-### Git History
-
-**Issue:** Large external dependency committed
-- Files: `evolution-api-main/` (~200MB)
-- Impact: Large clone size, slow git operations
-- Fix approach: Add to .gitignore, use submodule, or remove entirely
-
----
+### Version Control for n8n Workflows
+- **Problem:** Workflows exist only as JSON files; no git history per workflow
+- **Blocks:** Rollback capability; change tracking; collaboration
 
 ## Test Coverage Gaps
 
 ### n8n Workflow Testing
+- **What's not tested:** No automated tests for workflow logic, error handling, or edge cases
+- **Files:** All `*.json` workflow files
+- **Risk:** Silent failures in production; broken workflows undiscovered until manually triggered
+- **Priority:** High
 
-**What's not tested:** No automated tests for workflow logic
-- Files: All `*.json` workflow files
-- Risk: Logic errors only caught in production
-- Priority: Medium
+### ESP32 Integration Testing
+- **What's not tested:** Full sensor suite; MQTT message format; edge cases (sensor failures)
+- **Files:** `esp32/esp32.ino`, `esp32/*.cpp`
+- **Risk:** Hardware failures not detected; bad data published to broker
+- **Priority:** Medium
 
-### Database Migrations
+### Dashboard Component Testing
+- **What's not tested:** No unit tests for React components; no integration tests
+- **Files:** `dashboard/src/components/*.tsx`
+- **Risk:** UI regressions; broken functionality after updates
+- **Priority:** Medium
 
-**What's not tested:** SQL migrations applied blindly
-- Files: `*.sql` migration files
-- Risk: Schema errors only caught after apply
-- Priority: Medium
-
-### Dashboard API
-
-**What's not tested:** No test suite for server.js
-- Files: `dashboard/server.js`
-- Risk: Runtime errors not caught
-- Priority: Low
+### API Endpoint Testing
+- **What's not tested:** server.js endpoints (except manual curl tests)
+- **Files:** `dashboard/server.js`
+- **Risk:** API failures in production; security vulnerabilities
+- **Priority:** High
 
 ---
 

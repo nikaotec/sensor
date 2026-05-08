@@ -2,313 +2,199 @@
 
 **Analysis Date:** 2026-05-07
 
-## Test Framework Status
+## Test Framework
 
-**Critical Finding:** This codebase has **no test framework or test files** implemented.
+**None formally configured** — the codebase has minimal automated testing infrastructure.
 
-The project lacks:
-- Unit tests
-- Integration tests
-- E2E tests
-- Test configuration files
-- Test scripts in `package.json`
+### Evolution API (evolution-api-main)
 
----
+- **Test runner:** Manual — `npm test` runs `tsx watch ./test/all.test.ts`
+- **Framework:** ad-hoc Node.js test script
+- **No Jest, Vitest, or Mocha detected in package.json**
 
-## Dashboard (TypeScript/React)
+### Dashboard (dashboard)
 
-### Current State
+- **No test framework installed** — no test scripts, no test runner
+- **No testing library** (no `@testing-library/react`, no Jest/Vitest)
 
-**Framework:** Not configured
+## Test File Organization
 
-**Package.json test scripts:** None
-```json
-// Current package.json scripts (no test commands)
-{
-  "scripts": {
-    "start": "node server.js",
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "deploy": "npm run build && tar -czvf ...",
-    "preview": "vite preview"
-  }
+**No standard testing directory found.**
+
+- `test/` folder exists in `evolution-api-main/` but only contains `all.test.ts`
+- Dashboard has no `__tests__` or `.test.ts` files
+- One manual test script in root: `test_user_flow.js`
+
+### Observed Test Files
+
+| File | Type | Purpose |
+|------|------|---------|
+| `test_user_flow.js` | ad-hoc Node script | Phone formatting + payload validation |
+| `dashboard/src/tests/provision_user.js` | ad-hoc Node script | User provisioning test |
+| `evolution-api-main/test/all.test.ts` | Manual tsx test | Unknown scope |
+| `dashboard/test_supabase.js` | ad-hoc Node script | Supabase connection test |
+
+## Test Structure
+
+### Manual Test Scripts (Node.js)
+
+**Location:** `test_user_flow.js`
+
+```javascript
+const formatPhone = (value) => {
+    const digits = value.replace(/\D/g, '');
+    // ...
+};
+
+const testCases = [
+    { input: '5', expected: '+5' },
+    // ...
+];
+
+console.log('--- Testando Formatação ---');
+testCases.forEach(tc => {
+    const result = formatPhone(tc.input);
+    const status = result === tc.expected ? 'PASS' : 'FAIL';
+    console.log(`Input: ${tc.input} | Expected: ${tc.expected} | Result: ${result} | ${status}`);
+    if (status === 'FAIL') process.exit(1);
+});
+```
+
+**Pattern:** Simple input→expected validation with console output and exit code on failure.
+
+### Supabase Connection Test
+
+**Location:** `dashboard/test_supabase.js`
+
+- Tests Supabase client connectivity
+- Validates query execution
+
+## Mocking
+
+**No mocking framework detected.**
+
+- No `sinon`, `jest.mock()`, `vi.fn()`, or equivalent
+- Tests use real data/connections where needed
+
+## Fixtures and Factories
+
+**No test data factories found.**
+
+- `dashboard/src/data/mockData.ts` — contains mock device data for UI development, not testing
+- `server.js` writes to `src/data/telemetry.json` as runtime fixture
+
+## Coverage
+
+**Not enforced.**
+
+- No coverage tool configured (no Istanbul, no v8 coverage)
+- No coverage thresholds in package.json
+
+## Integration Testing
+
+### n8n Workflow Testing
+
+n8n workflows are stored as JSON in the repository:
+
+- `mqtt receive.json`
+- `n8n_hourly_telemetry.json`
+- `n8n_events_logger.json`
+- `dashboard/n8n_workflow_mqtt.json`
+
+These are tested by:
+1. Importing JSON into n8n UI
+2. Triggering via webhook/manual execution
+3. Verifying database/state changes manually
+
+## Common Patterns
+
+### Phone Formatting Tests
+
+```javascript
+const formatPhone = (value) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 0) return '';
+    const limited = digits.slice(0, 13);
+    let result = '+' + limited;
+    // format with spaces and dash
+    return result;
+};
+```
+
+**Location:** `test_user_flow.js`
+
+### Payload Validation
+
+```javascript
+const payload = {
+    phone: newUserWhatsapp || null,
+};
+console.log('Payload phone:', payload.phone);
+if (payload.phone !== newUserWhatsapp) {
+    console.log('FAIL: Payload field mismatch');
+    process.exit(1);
 }
 ```
 
-**Linting only:** Only `npm run lint` is configured (ESLint)
+**Location:** `test_user_flow.js`
 
-### Recommended Testing Setup
+### Runtime State Verification
 
-**Runner:** Vitest (matches Vite ecosystem)
-```bash
-npm install -D vitest @vitejs/plugin-react @testing-library/react @testing-library/jest-dom jsdom
+```javascript
+// Check telemetry.json after API call
+let existingContent = { history: [] };
+if (fs.existsSync(filePath)) {
+    try {
+        existingContent = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    } catch (e) {
+        // Ignore parse errors
+    }
+}
 ```
 
-**Configuration:** Add to `vite.config.ts`:
-```typescript
-import { defineConfig } from 'vitest/config';
+**Location:** `dashboard/server.js` (used for manual verification)
 
-export default defineConfig({
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: ['./src/test/setup.ts'],
-  },
-});
-```
+## Build-time Verification
 
-**Run commands:**
-```bash
-npm run test              # Run all tests
-npm run test -- --watch  # Watch mode
-npm run test -- --coverage # Coverage report
-```
-
-### Test File Organization
-
-**Location:** Co-located with source files
-```
-dashboard/src/
-├── hooks/
-│   ├── useTelemetryData.ts
-│   └── useTelemetryData.test.ts  # Co-located test
-├── components/
-│   └── DeviceCard.tsx
-│   └── DeviceCard.test.tsx
-└── test/
-    └── setup.ts           # Test configuration
-```
-
-**Naming:** `{filename}.test.ts` or `{filename}.spec.ts`
-
-### Test Structure Pattern
-
-```typescript
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useTelemetryData } from './useTelemetryData';
-
-describe('useTelemetryData', () => {
-  beforeEach(() => {
-    // Reset mocks
-    vi.clearAllMocks();
-  });
-
-  it('should return devices from Supabase', () => {
-    const { result } = renderHook(() => useTelemetryData(
-      { id: 'tenant-1' },
-      [],
-      { role: 'manager' }
-    ));
-
-    expect(result.current.supabaseDevices).toEqual([]);
-  });
-
-  it('should filter unlinked devices', () => {
-    // Test filtering logic
-  });
-});
-```
-
----
-
-## Mocking Patterns (Recommended)
-
-### What to Mock
-
-**External services:**
-- Supabase client
-- MQTT client
-- Firebase Auth
-
-**Approach:** Create mock modules in `__mocks__/` directories
-
-```typescript
-// dashboard/src/__mocks__/supabase.ts
-const mockSupabase = {
-  from: vi.fn(() => ({
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockResolvedValue({ data: [], error: null }),
-    on: vi.fn().mockReturnThis(),
-    subscribe: vi.fn(),
-  })),
-  removeChannel: vi.fn(),
-};
-
-export const supabase = mockSupabase;
-```
-
-### Test Fixtures
-
-**Location:** `dashboard/src/test/fixtures/`
-
-```typescript
-// dashboard/src/test/fixtures/devices.ts
-export const mockDevices = [
-  {
-    id: 'device-001',
-    name: 'Sensor A1',
-    tenantId: 'tenant-1',
-    type: 'sensor_temp',
-    status: 'online',
-    telemetry: {
-      temp: 25.5,
-      humidity: 60,
-      batteryVoltage: 12.1,
-    },
-  },
-];
-
-export const mockTenant = {
-  id: 'tenant-1',
-  name: 'Nikaotec',
-};
-```
-
----
-
-## Python Scripts
-
-### Current State
-
-**No test framework detected**
-
-Test files for Python utilities: None found
-
-### Recommended Pattern (if tests are added)
-
-**Framework:** pytest
-
-**Structure:**
-```
-scripts/
-├── test_patch_n8n_telemetry.py
-├── patch_n8n_telemetry.py
-└── fixtures/
-    └── sample_workflow.json
-```
-
-**Pattern:**
-```python
-import pytest
-import json
-from patch_n8n_telemetry import modify_workflow
-
-def test_add_filter_node():
-    with open('fixtures/sample_workflow.json') as f:
-        data = json.load(f)
-
-    result = modify_workflow(data)
-
-    assert 'Filter Telemetry' in [n['name'] for n in result['nodes']]
-```
-
----
-
-## ESP32 / Arduino
-
-### Current State
-
-**No test framework for embedded code**
-
-Unit testing for microcontroller code requires platform-specific tooling (e.g., Arduino Unit Testing framework)
-
-### Recommended Approach
-
-**For ESP32 testing:**
-- Use Arduino Unit Testing library
-- Test logic separately (pure C++ functions)
-- Integration tests via actual hardware
-
----
-
-## n8n Workflows
-
-### Current State
-
-**No automated testing**
-
-Workflows are JSON files that can be validated structurally
-
-### Recommended Pattern
-
-**Schema validation:** Use n8n CLI or JSON Schema
-```bash
-# Validate workflow JSON structure
-n8n import:workflow --input workflow.json
-```
-
-**Manual testing:** Deploy to test environment and run test triggers
-
----
-
-## Test Coverage Gaps
-
-### Critical Gaps
-
-| Area | Risk | Priority |
-|------|------|----------|
-| React hooks (useMqttData, useSupabaseData) | High - core data flow untested | High |
-| Device filtering logic | High - permission filtering critical | High |
-| MQTT message parsing | Medium - complex normalization | Medium |
-| Supabase queries | High - database access untested | High |
-| Server.js API endpoints | Medium - backend logic untested | Medium |
-| Python scripts | Low - simple transformations | Low |
-| ESP32 firmware | Low - requires hardware | Low |
-
----
-
-## Recommended Next Steps
-
-### 1. Add Testing Framework
+### TypeScript Type Checking
 
 ```bash
-# Dashboard - Install Vitest
-cd dashboard
-npm install -D vitest @testing-library/react @testing-library/jest-dom jsdom
+# evolution-api-main
+npm run build        # runs: tsc --noEmit && tsup
+
+# dashboard
+npm run build        # runs: tsc -b && vite build
 ```
 
-### 2. Create First Test
+Both projects run TypeScript compilation as part of build, catching type errors before deployment.
 
-Test the simplest hook: `useTelemetryData.ts`
-- Test role-based filtering
-- Test device assignment logic
+### Linting
 
-### 3. Add CI/CD Test Pipeline
+```bash
+# evolution-api-main
+npm run lint         # eslint --fix --ext .ts src
+npm run lint:check   # eslint --ext .ts src (read-only)
 
-```yaml
-# .github/workflows/test.yml
-name: Test
-on: [push, pull_request]
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-      - run: npm ci
-      - run: npm run test -- --coverage
+# dashboard
+npm run lint         # eslint .
 ```
 
----
+## Quality Gaps
 
-## Existing Test-Like Files
+### Missing Testing Infrastructure
 
-The codebase contains some test-adjacent files that aren't formal tests:
+- **No unit test runner** — projects lack Jest/Vitest
+- **No mocking library** — cannot isolate units
+- **No test coverage** — no visibility into untested code
+- **No E2E testing** — no Playwright/Cypress
 
-| File | Purpose |
-|------|---------|
-| `dashboard/test_firebase.js` | Manual Firebase connection test |
-| `dashboard/test_supabase.js` | Manual Supabase query test |
-| `dashboard/test_supabase2.js` | Additional Supabase tests |
-| `dashboard/test_dates.js` | Date manipulation tests |
-| `dashboard/test_mqtt_ws.js` | MQTT WebSocket manual tests |
-| `dashboard/query_*.js` | Query debugging scripts |
-| `test_user_flow.js` | User flow testing |
-| `test_number.js` | Utility testing |
+### Recommended Improvements
 
-**Pattern:** These are standalone scripts, not proper test suite
+1. Add Vitest (lighter than Jest, good TypeScript support)
+2. Write unit tests for utility functions (`formatPhone`, data normalization)
+3. Add integration tests for API routes
+4. Add E2E tests for dashboard UI flows
+5. Enforce coverage thresholds in CI
 
 ---
 

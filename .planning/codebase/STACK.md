@@ -5,102 +5,124 @@
 ## Languages
 
 **Primary:**
-- TypeScript 5.7.2 - Core language for evolution-api-main; TypeScript ~5.9.3 for dashboard
-- JavaScript - Dashboard server-side and React client scripts
+- JavaScript/TypeScript - Web dashboard, n8n workflows, Evolution API
+- Arduino/C++ - ESP32 embedded firmware
 
 **Secondary:**
-- Python 3.x - Utility scripts for data patching and device management (`patch_n8n_telemetry.py`, `revert.py`, `edit_device_list.py`, `patch_dashboard.py`)
+- Python - Dashboard scripting utilities (`edit_dashboard.py`, `patch_n8n_telemetry.py`, `revert.py`)
+- SQL - Database migrations and schemas
 
 ## Runtime
 
-**Environment:**
-- Node.js 20+ - Runtime for both dashboard and evolution-api
-- Python 3.x - Runtime for utility scripts
+**Node.js:**
+- Dashboard: Node.js with Vite dev server
+- Evolution API: Node.js with Express
+- n8n: Self-hosted Node.js automation platform
+
+**Embedded:**
+- ESP32 firmware runtime (Arduino framework)
 
 **Package Manager:**
-- npm - Primary package manager
-- Lockfile: `package-lock.json` present in both projects
+- npm (version locked via `package-lock.json`)
+- pip (Python scripts)
 
 ## Frameworks
 
-**Core:**
-- React 19.2.0 - Dashboard UI framework
-- Express 4.21.2 (evolution-api) / 5.2.1 (dashboard) - HTTP server
+**Core Web:**
+- React 19.2.0 - Frontend framework for dashboard
+- Vite 7.3.1 - Build tool and dev server
+- Express 5.2.1 - Backend server for dashboard API proxy
+- TailwindCSS 3.4.19 - Styling
+- Recharts 3.7.0 - Data visualization charts
 
-**Frontend Build:**
-- Vite 7.3.1 - Build tool and dev server for dashboard
-- TailwindCSS 3.4.19 - CSS framework
-- TypeScript ~5.9.3 - Type checking and compilation
+**IoT/Automation:**
+- n8n - Workflow automation platform
+- MQTT.js 5.15.0 - MQTT client for sensor communication
 
-**Backend (evolution-api):**
-- Express 4.21.2 - REST API framework
-- Socket.IO 4.8.1 - Real-time WebSocket communication
-- Prisma 6.1.0 - ORM for database operations
+**Communication:**
+- Evolution API v2.3.1 - WhatsApp multi-device API
+- Baileys (WhiskeySockets) - WhatsApp Web protocol
+
+**Database:**
+- Prisma 6.1.0 - ORM for Evolution API
+- @supabase/supabase-js 2.101.0 - Supabase client for IoT data
 
 **Testing:**
-- No dedicated test framework detected in package.json scripts
-
-**Build/Dev:**
-- tsup 8.3.5 - TypeScript bundler for evolution-api
-- tsx 4.20.3 - TypeScript executor for development
+- ESLint 9.39.1 - Linting
+- TypeScript 5.9.3 (dashboard), 5.7.2 (Evolution API)
 
 ## Key Dependencies
 
 **Critical:**
-- `@adiwajshing/keyed-db` 0.2.4 - WhatsApp message storage (evolution-api)
-- `baileys` (GitHub:WhiskeySockets/Baileys) - WhatsApp Web protocol library
-- `@prisma/client` 6.1.0 - Database ORM (evolution-api)
-- `pg` 8.13.1 - PostgreSQL driver
-- `socket.io` 4.8.1 - Real-time messaging
+- `firebase` 12.10.0 - Firebase authentication and Firestore for dashboard
+- `@supabase/supabase-js` 2.101.0 - IoT data storage and real-time subscriptions
+- `mqtt` 5.15.0 - MQTT protocol for ESP32 communication
+- `framer-motion` 12.35.2 - Dashboard animations
+- `axios` 1.7.9 - HTTP client for API calls
+- `socket.io` 4.8.1 - Real-time communication
 
 **Infrastructure:**
-- `redis` 4.7.0 - Cache and session storage (evolution-api)
-- `amqplib` 0.10.5 - RabbitMQ client (evolution-api)
-- `@aws-sdk/client-sqs` 3.723.0 - AWS SQS integration
+- `express` 4.21.2 - HTTP server framework
+- `cors` 2.8.x - Cross-origin resource sharing
+- `http-proxy-middleware` 3.0.3 - API proxy in dashboard
+
+**AI Integration:**
+- `openai` 4.77.3 - OpenAI API client (GPT-4, GPT-5-mini)
+- Ollama (local) - Self-hosted LLM integration
+
+**Media Processing:**
+- `sharp` 0.34.2 - Image processing
+- `fluent-ffmpeg` 2.1.3 - Video/audio processing
+- `@ffmpeg-installer/ffmpeg` 1.1.0 - FFmpeg binary
+
+**Storage:**
 - `minio` 8.0.3 - S3-compatible object storage
-- `pusher` 5.2.0 - Pusher WebSocket service
+- Prisma + PostgreSQL - Evolution API database
+- Supabase (PostgreSQL) - IoT sensor database
 
-**Dashboard Specific:**
-- `@supabase/supabase-js` 2.101.0 - Supabase client
-- `firebase` 12.10.0 - Firebase authentication
-- `mqtt` 5.15.0 - MQTT client for telemetry subscriptions
-- `recharts` 3.7.0 - Data visualization
-- `framer-motion` 12.35.2 - Animation library
+**Messaging:**
+- `amqplib` 0.10.5 - RabbitMQ client
+- `redis` 4.7.0 - Redis client for caching/sessions
 
-**Observability:**
-- `@sentry/node` 8.47.0 - Error tracking (evolution-api)
-- `pino` 8.11.0 - Structured logging (evolution-api)
+**Monitoring:**
+- `@sentry/node` 8.47.0 - Error tracking
+- `pino` 8.11.0 - Structured logging
 
 ## Configuration
 
 **Environment:**
-- `.env` files present in both `dashboard/` and `evolution-api-main/`
-- `.env.example` provided in evolution-api-main for reference
-- Key configs: `SERVER_PORT`, `DATABASE_PROVIDER`, `CACHE_REDIS_*`, `AUTHENTICATION_API_KEY`
+- Environment variables via `.env` files
+- Docker Compose for service orchestration
+- Firebase project configuration (`firebase.json`)
 
 **Build:**
 - `tsconfig.json` - TypeScript configuration
-- `tsup.config.ts` - Build configuration (evolution-api)
-- `vite.config.ts` - Vite configuration (dashboard)
-- `eslint.config.js` - Linting configuration
+- `vite.config.ts` - Vite bundler configuration with custom MQTT proxy
+- `tailwind.config.cjs` - Tailwind CSS configuration
 
-**Database Schema:**
-- `prisma/postgresql-schema.prisma` - PostgreSQL schema
-- `prisma/mysql-schema.prisma` - MySQL schema
-- `prisma/psql_bouncer-schema.prisma` - PgBouncer schema
+**Deployment:**
+- PM2 process manager for dashboard production
+- Docker containers for all services
+- SSH-based deployment script in `package.json`
 
 ## Platform Requirements
 
 **Development:**
-- Node.js 20+
-- npm or yarn
-- TypeScript knowledge
+- Node.js 18+
+- npm 9+
+- ESP32 Arduino development environment
+- Docker + Docker Compose
 
 **Production:**
-- Node.js runtime with process manager (pm2 recommended)
-- PostgreSQL or MySQL database
-- Redis server for caching (optional but recommended)
-- WhatsApp Web connection requirements
+- Linux server (Debian/Ubuntu observed)
+- PM2 for Node.js process management
+- Reverse proxy (nginx implied for n8n.nikaotech.com)
+- MQTT broker (Mosquitto)
+
+**Cloud Services:**
+- Supabase (PostgreSQL + Auth + Realtime)
+- Firebase (Auth + Firestore)
+- Evolution API self-hosted WhatsApp gateway
 
 ---
 

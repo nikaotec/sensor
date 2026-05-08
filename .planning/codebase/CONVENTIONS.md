@@ -2,383 +2,218 @@
 
 **Analysis Date:** 2026-05-07
 
-## Project Overview
+## Languages & Tooling
 
-This codebase is a mixed-technology IoT sensor monitoring system consisting of:
-- **Dashboard**: React/TypeScript frontend with Vite
-- **ESP32**: Arduino C++ firmware
-- **n8n Workflows**: JSON workflow definitions
-- **Python Scripts**: Utility scripts for database and workflow patches
+- **TypeScript** - Used in `evolution-api-main/` (v5.7.2) and `dashboard/` (v5.9.3)
+- **JavaScript** - Used in Node.js server files, n8n workflow JSON, and ad-hoc scripts
 
----
+## Naming Conventions
 
-## Language-Specific Conventions
+### Files
 
-### TypeScript / React (`dashboard/`)
+- **TypeScript classes/components:** PascalCase — `InstanceDto.ts`, `useMqttData.ts`
+- **Routes/services/controllers:** PascalCase — `instance.router.ts`, `auth.service.ts`
+- **Utils/helpers:** camelCase — `findBotByTrigger.ts`, `createJid.ts`
+- **Config files:** camelCase or kebab-case — `env.config.ts`, `tsconfig.json`
+- **Exceptions:** PascalCase with `.exception` suffix — `400.exception.ts`, `404.exception.ts`
 
-**Files:**
-- Naming: `camelCase.ts` for source files
-- Examples: `useTelemetryData.ts`, `useMqttData.ts`, `useSupabaseData.ts`
+### Variables & Functions
 
-**Functions:**
-- Naming: `camelCase`
-- React hooks: Prefixed with `use` (e.g., `useTelemetryData`, `useMqttData`, `useSupabaseData`)
-- Custom hooks return objects with camelCase properties
-
-**Types/Interfaces:**
-- Naming: `PascalCase`
-- Examples: `TelemetryData`, `DeviceEvent`, `Device`, `MqttMessageHandler`
-- Interfaces defined with `export interface`
-
-**Variables:**
-- Naming: `camelCase`
-- Examples: `currentTenant`, `tenantDevices`, `mqttConnected`
-
-**Constants:**
-- Naming: `UPPER_SNAKE_CASE` for environment-driven constants
-- Examples: `MQTT_BROKER_URL`, `VITE_SUPABASE_URL`
-
-```typescript
-// TypeScript conventions
-export interface TelemetryData {
-    devices: any[];
-    displayDevices: any[];
-    mqttConnected: boolean;
-}
-
-export const useTelemetryData = (
-    currentTenant: any,
-    availableTenants: any[],
-    currentUser: any
-) => {
-    const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
-    // ...
-};
-```
-
-### Python Scripts (`.py` files)
-
-**Files:**
-- Naming: `snake_case.py`
-- Examples: `patch_n8n_telemetry.py`, `edit_device_list.py`, `edit_dashboard.py`
-
-**Functions:**
-- Naming: `snake_case`
-- No type hints in most scripts (Python 3.x without annotations)
-
-**Variables:**
-- Naming: `snake_case`
-
-```python
-# Python conventions
-file_path = "/path/to/file.json"
-
-with open(file_path, "r") as f:
-    data = json.load(f)
-```
-
-### ESP32 C++ (`esp32/`)
-
-**Files:**
-- Header files: `.h` suffix (e.g., `Config.h`, `AlertManager.h`)
-- Implementation: `.cpp` suffix
-- Main sketch: `.ino`
-
-**Preprocessor Defines:**
-- Naming: `UPPER_SNAKE_CASE`
-- Examples: `#define WIFI_SSID`, `#define MQTT_PORT`, `#define DS18B20_PIN`
-
-**Structs:**
-- Naming: `PascalCase`
-- Example: `struct RelayConfig`, `struct SystemSettings`
-
-**Enums:**
-- Naming: `PascalCase` with UPPER_SNAKE_CASE values
-- Example: `enum RelayFunc { RELAY_FUNC_OFF = 0, RELAY_FUNC_AUTO = 1, ... }`
-
-**Constants (non-preprocessor):**
-- Naming: `camelCase` (e.g., `const int RELAY_COUNT`)
-
-```cpp
-// C++ conventions
-#define DEFAULT_DEVICE_NAME "ESP32 Sensor"
-#define DEFAULT_COMPANY_NAME "Nikaotec"
-
-enum RelayFunc {
-  RELAY_FUNC_OFF = 0,
-  RELAY_FUNC_AUTO = 1,
-  RELAY_FUNC_MANUAL = 2
-};
-
-struct RelayConfig {
-  char name[17];
-  uint8_t func;
-  float tempOn;
-};
-```
-
----
+- **Functions:** camelCase — `formatPhone()`, `getLockedData()`
+- **State variables:** camelCase — `mqttClient`, `isConnected`
+- **Constants:** camelCase or UPPER_SNAKE — `MQTT_BROKER_URL`, `OFFLINE_TIMEOUT`
+- **Class properties:** camelCase (TypeScript)
+- **Hooks:** camelCase with `use` prefix — `useMqttData`, `useSupabaseData`
 
 ## Code Style
 
-### TypeScript/React
+### TypeScript (evolution-api-main)
 
-**Formatting:**
-- Tool: ESLint + TypeScript ESLint
-- Config: `dashboard/eslint.config.js`
-- Indentation: Spaces (default from ESLint/Vite)
+**Formatter:** Prettier
+- Semicolons: `true`
+- Single quotes: `true`
+- Trailing commas: `all`
+- Print width: `120`
+- Arrow parens: `always`
+- Tab width: `2`
 
-**Linting:**
-- Plugins: `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`
-- Framework: Flat config format (`eslint.config.js`)
-- Ignored: `dist/` directory
+**Linting:** ESLint with TypeScript support
+- `@typescript-eslint/eslint-plugin`
+- `eslint-plugin-prettier`
+- `eslint-plugin-simple-import-sort`
 
-**Comments:**
-- Language: Mix of English (code) and Portuguese (business logic)
-- Example: `"Banco de dados tem prioridade — preservar nome do Supabase sobre o MQTT"`
+**Import order (not enforced but observed):**
+1. Node built-ins
+2. External packages
+3. Internal `@` aliased imports (config, utils, api)
+4. Relative imports
 
-### Python
+### React/TypeScript (dashboard)
 
-**Style:**
-- No enforced formatting tool detected
-- Basic PEP8-like indentation
+**Formatter:** ESLint flat config (v9)
+- Uses `typescript-eslint`
+- React Hooks plugin required
+- React Refresh plugin for Vite
 
-### C++ (ESP32)
+**No Prettier config observed** — relies on ESLint for formatting only.
 
-**Style:**
-- Arduino framework conventions
-- Comments in Portuguese for hardware-specific logic
+## TypeScript Patterns
 
----
-
-## Import Organization
-
-### TypeScript
-
-```typescript
-// React imports
-import { useState, useEffect, useRef, useCallback } from 'react';
-
-// External libraries
-import mqtt from 'mqtt';
-
-// Internal modules - relative paths
-import type { Device } from '../data/mockData';
-import { supabase } from '../supabase/config';
-import { useTenant } from '../contexts/TenantContext';
-```
-
-**Order:**
-1. React core hooks
-2. External libraries
-3. Internal relative imports (type imports first when using `type` keyword)
-
----
-
-## Error Handling
-
-### TypeScript
-
-**Pattern:** Console-based with no custom exception classes
+### Class-based DTOs
 
 ```typescript
-// Error logging
-console.error('MQTT Connection Error:', err);
-console.error('Failed to parse MQTT message:', e);
-console.error("Supabase Error (devices):", error);
-
-// Warning logging
-console.warn('⚠️ Supabase URL ou Anon Key não configurados no .env');
-
-// Info logging
-console.log('Connected to MQTT Broker via WebSockets');
-```
-
-**No throw/try-catch patterns in hooks** - Errors are logged but don't throw
-
-### Python
-
-```python
-try:
-    data = json.load(f)
-except Exception as e:
-    print(f"Error: {e}")
-```
-
-### C++ (ESP32)
-
-```cpp
-// Serial output for debugging
-Serial.println("Error message");
-```
-
----
-
-## Logging Patterns
-
-### Dashboard (TypeScript)
-
-**Framework:** `console` API
-
-**Levels used:**
-- `console.log` - General flow (connections, subscriptions)
-- `console.error` - Failures (connection errors, parse errors)
-- `console.warn` - Configuration warnings
-
-**Pattern:** Prefix with emoji for category
-```typescript
-console.log('✅ [VPS] Telemetria recebida e salva!');
-console.error('❌ [Admin] Erro ao deletar no Firebase:', error.message);
-console.log('📡 MQTT WebSocket proxy: /mqtt -> ${MOSQUITTO_WS_TARGET}');
-```
-
----
-
-## Function Design
-
-### React Hooks - Size Guidelines
-
-**Hooks are long (>100 lines)** - `useMqttData.ts` is 432 lines, `useSupabaseData.ts` is 392 lines
-
-**Characteristics:**
-- Multiple `useEffect` blocks for different concerns
-- Large state management in single file
-- Mixed responsibilities (connection, data processing, device management)
-
-**Pattern observed:**
-```typescript
-export const useMqttData = (
-    tenantId: string | null,
-    currentUserRole: string | undefined,
-    initialDevices: Device[] = [],
-    onAlert?: (payload: any) => void,
-    onDeviceNameChange?: (deviceId: string, newName: string) => void
-) => {
-    const [devices, setDevices] = useState<any[]>(...);
-    const [isConnected, setIsConnected] = useState(false);
-    const [mqttClient, setMqttClient] = useState<mqtt.MqttClient | null>(null);
-
-    // Multiple useEffect blocks...
-
-    // Public methods
-    const publish = (topic: string, message: string) => { ... };
-    const updateDeviceLocal = useCallback((deviceId: string, updates: Partial<Device>) => { ... });
-
-    return { devices, isConnected, publish, updateDeviceLocal };
-};
-```
-
----
-
-## Module Design
-
-### Exports
-
-**Pattern:** Named exports only
-
-```typescript
-// Hooks - default export
-export const useTelemetryData = () => { ... };
-
-// Types - named export
-export interface TelemetryData { ... };
-export type MqttMessageHandler = ...;
-```
-
-### Barrel Files
-
-**Not used** - Direct imports from modules
-
----
-
-## Anti-Patterns
-
-### 1. Mixed Language Comments
-
-**What happens:** Code uses English variable/function names but Portuguese comments
-**Why it's wrong:** Inconsistent documentation, harder for international contributors
-**Do this instead:** Use English for all comments, or establish clear bilingual standard
-
-```typescript
-// Current (mixed)
-const getLockedData = (deviceId: string): LockedData | null => {
-    try {
-        const lockStr = localStorage.getItem(`device_lock_${deviceId}`);
-        // Banco de dados tem prioridade — preservar nome do Supabase sobre o MQTT
-        // ...
-    } catch (e) { }
-};
-```
-
-### 2. Excessive use of `any` Type
-
-**What happens:** TypeScript interfaces use `any` extensively
-**Why it's wrong:** No type safety, defeats TypeScript purpose
-**Do this instead:** Define proper interfaces
-
-```typescript
-// Current (not recommended)
-const [devices, setDevices] = useState<any[]>(initialDevices...);
-const currentTenant: any
-
-// Better approach
-interface Device {
-    id: string;
-    name: string;
-    tenantId: string;
-    // ...
+export class InstanceDto extends IntegrationDto {
+  instanceName: string;
+  instanceId?: string;
+  // ... optional fields
 }
 ```
 
-### 3. Long Files with Mixed Responsibilities
+**Location:** `evolution-api-main/src/api/dto/instance.dto.ts`
 
-**What happens:** Hook files like `useMqttData.ts` (432 lines) handle connection, data processing, device updates, and MQTT logic
-**Why it's wrong:** Hard to maintain, test, and understand
-**Do this instead:** Split into smaller, focused modules (e.g., MQTT connection, device state, payload normalization)
-
-### 4. Hardcoded Configuration in Code
-
-**What happens:** Credentials and URLs hardcoded
-**Why it's wrong:** Security risk, environment-specific values in source
-**Do this instead:** Use environment variables
+### Functional React Hooks
 
 ```typescript
-// Current (hardcoded in ESP32/Config.h)
-#define WIFI_SSID "VENANCIO"
-#define WIFI_PASS "liza1980"
-#define MQTT_SERVER "mqtt.nikaotech.com"
+export const useMqttData = (
+  tenantId: string | null,
+  currentUserRole: string | undefined,
+  initialDevices: Device[] = [],
+  onAlert?: (payload: any) => void
+) => {
+  // state, effects, callbacks
+  return { devices, isConnected, publish, updateDeviceLocal };
+};
 ```
 
----
+**Location:** `dashboard/src/hooks/useMqttData.ts`
 
-## Where to Add New Code
+### Express Router Pattern (RouterBroker)
 
-### Dashboard (TypeScript/React)
+```typescript
+export class InstanceRouter extends RouterBroker {
+  public readonly router: Router = Router();
 
-**New hooks:**
-- Location: `dashboard/src/hooks/`
-- Pattern: `use<FeatureName>.ts`
+  constructor(readonly configService: ConfigService, ...guards: RequestHandler[]) {
+    super();
+    this.router
+      .post('/create', ...guards, async (req, res) => {
+        const response = await this.dataValidate({...});
+        return res.status(HttpStatus.CREATED).json(response);
+      });
+  }
+}
+```
 
-**New services:**
-- Location: `dashboard/src/services/`
+**Location:** `evolution-api-main/src/api/routes/instance.router.ts`
 
-**New components:**
-- Location: `dashboard/src/components/` (if exists)
+## Error Handling
 
-**Configuration:**
-- Environment: `dashboard/.env` (not in git)
-- Config files: `dashboard/vite.config.ts`, `dashboard/eslint.config.js`
+### Custom Exceptions
 
-### Python Scripts
+Exception classes throw plain objects with status, error, and message fields:
 
-**New scripts:**
-- Location: Project root or `scripts/` directory
+```typescript
+// 400.exception.ts
+export class BadRequestException {
+  constructor(...objectError: any[]) {
+    throw {
+      status: HttpStatus.BAD_REQUEST,
+      error: 'Bad Request',
+      message: objectError.length > 0 ? objectError : undefined,
+    };
+  }
+}
+```
 
-### ESP32
+**Available exceptions:** `400.exception.ts`, `401.exception.ts`, `403.exception.ts`, `404.exception.ts`, `500.exception.ts`
+**Location:** `evolution-api-main/src/exceptions/`
 
-**New modules:**
-- Location: `esp32/` directory
-- Pattern: `ModuleName.h` + `ModuleName.cpp`
+### Global Error Middleware
+
+**Location:** `evolution-api-main/src/main.ts` (lines 67-126)
+
+- Catches all errors and sends JSON with `{ status, error, response: { message } }`
+- Sends webhook on errors if configured
+- 404 catch-all for unmatched routes
+
+### Try/Catch Pattern
+
+```javascript
+try {
+  const data = req.body;
+  // process
+} catch (error) {
+  console.error('Erro na API:', error);
+  res.status(400).send('Invalid request');
+}
+```
+
+**Location:** `dashboard/server.js` (lines 99-156)
+
+## Logging
+
+**Framework:** Pino (evolution-api-main)
+- Imported via `import { Logger } from '@config/logger.config'`
+
+**Console:** Used in dashboard/Node scripts
+- `console.log()` for info
+- `console.error()` for errors
+- Emojis in log prefixes: `🗑️`, `✅`, `❌`, `🚀`, `📡`
+
+```typescript
+const logger = new Logger('SERVER');
+logger.info('Provider:Files - ON');
+logger.error(errorData);
+```
+
+## Comments
+
+**Inline comments:** Used sparingly for non-obvious logic:
+
+```typescript
+// Ignore messages de display (MENSAGEM_DISPLAY)
+// não são telemetria e podem criar cards fantasmas após reset.
+if (payload.TIPO === 'MENSAGEM_DISPLAY') {
+  return;
+}
+```
+
+**TODO markers found:**
+- `evolution-api-main/src/api/routes/chat.router.ts` — `// TODO: corrigir updateMessage para medias tambem`
+- `evolution-api-main/src/api/routes/sendMessage.router.ts` — `// TODO: Revisar funcionamento do envio de Status`
+
+## Module Design
+
+### Barrel Exports (index pattern)
+
+```typescript
+// src/exceptions/index.ts
+export * from './400.exception';
+export * from './401.exception';
+// ...
+```
+
+**Location:** `evolution-api-main/src/exceptions/index.ts`, `evolution-api-main/src/api/routes/index.router.ts`
+
+### Abstract Base Classes
+
+- `RouterBroker` — base for all routers
+- `AbstractCache`, `AbstractRepository` — base patterns
+
+**Location:** `evolution-api-main/src/api/abstract/`
+
+### Path Aliases (tsconfig.json)
+
+```json
+{
+  "paths": {
+    "@api/*": ["src/api/*"],
+    "@config/*": ["src/config/*"],
+    "@utils/*": ["src/utils/*"],
+    "@validate/*": ["src/validate/*"]
+  }
+}
+```
 
 ---
 

@@ -4,161 +4,134 @@
 
 ## APIs & External Services
 
-**WhatsApp Integration:**
-- **WhatsApp Web via Baileys** - WhatsApp Bot API implementation
-  - SDK/Client: `baileys` (GitHub: WhiskeySockets/Baileys)
-  - Version: Latest from GitHub
-  - Used in: `evolution-api-main/src/main.ts`
-  - Features: Send/receive messages, manage groups, WhatsApp Business API
+**AI/LLM:**
+- OpenAI API - GPT-4, GPT-5-mini for AI chatbot integration
+  - SDK: `openai` npm package
+  - Used in: `esp32.json` workflow with `gpt-5-mini` model
+  - Credential: `openAiApi` named "OpenAi account"
+- Ollama (local) - Self-hosted LLM (`qwen2.5:3b` model)
+  - Used in: `esp32.json` workflow
+  - Credential: `ollamaApi` named "Ollama account"
 
-**WhatsApp Business API:**
-- Facebook Graph API for WhatsApp Business
-  - Endpoint: `WA_BUSINESS_URL=https://graph.facebook.com`
-  - Version: `v20.0`
-  - Endpoint: `evolution-api-main/src/api/services/channel.service.ts`
+**Communication:**
+- Evolution API - WhatsApp multi-device gateway
+  - SDK: Custom integration via REST API
+  - Used in: `mqtt receive.json` workflow for WhatsApp messaging
+  - Credential: `evolutionApi` named "Evolution account"
+  - Instance: `sensor_temperatura`
+  - Base URL: Internal Docker network, port 8080
 
-**AI & Automation:**
-- **OpenAI** - AI-powered automation
-  - Package: `openai` v4.77.3
-  - Config: `OPENAI_ENABLED` env var
-- **Typebot** - Conversational form automation
-  - Package: Built into evolution-api
-  - Config: `TYPEBOT_ENABLED`, `TYPEBOT_API_VERSION`
-- **Dify** - AI workflow platform
-  - Config: `DIFY_ENABLED`
-- **n8n** - Workflow automation
-  - Config: `N8N_ENABLED`
+**IoT/MQTT:**
+- MQTT Broker (Mosquitto) - Sensor data ingestion
+  - Topic: `esp32c3/data` for telemetry
+  - Topic: `esp32c3/status/action` for dashboard actions
+  - Used in: Multiple n8n workflows
+  - Running in Docker container
 
-**Chatwoot Integration:**
-- Customer support chat platform
-  - SDK: `@figuro/chatwoot-sdk` v1.1.16
-  - Config: `CHATWOOT_ENABLED`
-  - Database: `CHATWOOT_IMPORT_DATABASE_CONNECTION_URI`
-
-**EvoAI:**
-- Internal Evolution AI service
-  - Config: `EVOAI_ENABLED`
+**Cloud/Misc:**
+- Google Sheets API - User management spreadsheet
+  - Used in: `mqtt receive.json` for admin/user storage
+  - Spreadsheet ID: `1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4`
+  - Credential: `googleSheetsOAuth2Api` named "Google Sheets account"
 
 ## Data Storage
 
-**Databases:**
-- **PostgreSQL** (Primary)
-  - Connection: `DATABASE_CONNECTION_URI`
-  - ORM: `@prisma/client` v6.1.0
-  - Schema file: `prisma/postgresql-schema.prisma`
-- **MySQL** (Alternative)
-  - Schema file: `prisma/mysql-schema.prisma`
-- **PgBouncer** (Connection pooling)
-  - Schema file: `prisma/psql_bouncer-schema.prisma`
-- Config: `DATABASE_PROVIDER` (postgresql/mysql/psql_bouncer)
+**PostgreSQL (Supabase):**
+- Type: Cloud-hosted PostgreSQL (Supabase)
+- Project ID: `ueyizghzblngswgukfmr`
+- Tables: `users`, `tenants`, `devices_status`, `telemetry`, `events`
+- Features: Realtime subscriptions enabled
+- Connection: Via `@supabase/supabase-js` client
 
-**File Storage:**
-- **Amazon S3** - Object storage
-  - Package: `@aws-sdk/client-s3` (via minio)
-  - Config: `S3_ENABLED`, `S3_BUCKET`, `S3_ENDPOINT`
-  - Used for media storage in evolution-api
-- **MinIO** - S3-compatible local storage
-  - Package: `minio` v8.0.3
-  - Config: `S3_ENDPOINT`, `S3_PORT`
+**PostgreSQL (Evolution API):**
+- Type: Docker-hosted PostgreSQL 15
+- Database: `evolution_db`
+- User: `nikaotec`
+- Container: `postgres` on port 5432
+- Managed by: Prisma ORM
 
-**Caching:**
-- **Redis** - Primary cache
-  - Package: `redis` v4.7.0
-  - Config: `CACHE_REDIS_ENABLED`, `CACHE_REDIS_URI`
-  - TTL: `CACHE_REDIS_TTL` (default: 604800 seconds)
-  - Prefix: `CACHE_REDIS_PREFIX_KEY`
-- **Local Cache** (Fallback)
-  - Config: `CACHE_LOCAL_ENABLED`
+**Firestore (Firebase):**
+- Type: Firebase Cloud Firestore (NoSQL)
+- Database: `(default)` in `us-central`
+- Project: `tech-smartrf` / `smartrf-iot-dashboard`
+- Collections: Real-time sensor data
+- Used in: Web dashboard for live telemetry
+
+**Local File Storage:**
+- Dashboard: `dashboard/src/data/telemetry.json` for mock/dev telemetry
+- Evolution API: `/evolution/instances` Docker volume for WhatsApp session data
 
 ## Authentication & Identity
 
-**Dashboard Auth:**
-- **Firebase Authentication** - Primary identity provider
-  - Package: `firebase` v12.10.0
-  - Config: Hardcoded in `dashboard/src/services/firebaseAuth.ts`
-  - Project: `smartrf-f9962`
-  - Features: Email/password registration, user provisioning
+**Firebase Authentication:**
+- Provider: Firebase Auth
+- Methods: Email/Password + Anonymous
+- Config: `dashboard/firebase.json`
+- Used in: Web dashboard user sessions
 
-**Evolution API Auth:**
-- **API Key Authentication** - Instance-level auth
-  - Config: `AUTHENTICATION_API_KEY`
-  - Usage: Passed via request header
-- **JWT Tokens**
-  - Package: `jsonwebtoken` v9.0.2
-  - Used for session management
+**Supabase Auth:**
+- Note: RLS policies set to permissive for development
+- Future: Should configure proper RLS policies
 
-## Messaging & Real-time
-
-**WebSocket:**
-- **Socket.IO** - Real-time bidirectional communication
-  - Package: `socket.io` v4.8.1 (server), `socket.io-client` v4.8.1 (client)
-  - Used in: `evolution-api-main/src/main.ts`
-
-**Event Streaming:**
-- **RabbitMQ** - Message queue
-  - Package: `amqplib` v0.10.5
-  - Config: `RABBITMQ_ENABLED`, `RABBITMQ_URI`
-  - Exchange: `RABBITMQ_EXCHANGE_NAME`
-- **NATS** - Modern message system
-  - Package: `nats` v2.29.1
-- **AWS SQS** - Amazon Simple Queue Service
-  - Package: `@aws-sdk/client-sqs` v3.723.0
-  - Config: `SQS_ENABLED`, `SQS_REGION`
-
-**Realtime Push:**
-- **Pusher** - WebSocket pub/sub
-  - Package: `pusher` v5.2.0
-  - Config: `PUSHER_ENABLED`, `PUSHER_GLOBAL_*`
-
-**MQTT (Dashboard):**
-- **MQTT** - IoT telemetry protocol
-  - Package: `mqtt` v5.15.0
-  - Used in: Dashboard for sensor data subscription
+**Evolution API JWT:**
+- Token-based authentication for WhatsApp API
+- Managed by: Evolution API middleware
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- **Sentry** - Application monitoring
-  - Package: `@sentry/node` v8.47.0
-  - Config: `SENTRY_DSN` (env var)
-  - Used in: `evolution-api-main/src/utils/instrumentSentry.ts`
+- Sentry (`@sentry/node`) - Error monitoring
+- Version: 8.47.0
+- Used in: Evolution API
 
-**Logging:**
-- **Pino** - Structured JSON logging
-  - Package: `pino` v8.11.0
-  - Config: `LOG_LEVEL`, `LOG_COLOR`, `LOG_BAILEYS`
-  - Log levels: `ERROR`, `WARN`, `DEBUG`, `INFO`, `LOG`, `VERBOSE`, `DARK`, `WEBHOOKS`, `WEBSOCKET`
+**Logs:**
+- Pino (structured logging) - Evolution API
+- n8n built-in logging (`N8N_LOG_LEVEL=debug`)
+- Location: Application logs + n8n database
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Server: `root@109.123.240.215:/var/www/nikaotech` (production server)
+- Cloud server: `109.123.240.215` (deployment target)
+- DNS: `n8n.nikaotech.com` (n8n instance)
+- Web dashboard: `/var/www/nikaotech`
+- Process manager: PM2
 
-**CI/CD:**
-- Deployment via custom npm scripts
-- Build: `npm run build && tar -czvf dashboard.tar.gz dist server.js package.json`
-- Transfer: `scp` to production server
-- Process manager: `pm2` for both dashboard and evolution-api
+**CI Pipeline:**
+- GitHub Actions workflows in `evolution-api-main/.github/workflows/`
+- Docker image publishing to registry
+- Code quality checks
+
+**Containers:**
+- Docker Compose orchestration (`docker-compose.yaml`)
+- Services: Evolution API, Redis, PostgreSQL, Mosquitto, n8n
+- Network: `evolution-net` bridge driver
+
+## Environment Configuration
+
+**Required env vars:**
+- Supabase: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- Firebase: `VITE_FIREBASE_*` credentials
+- MQTT: Broker connection settings
+- n8n: `WEBHOOK_URL`, `N8N_HOST`, `N8N_PROTOCOL`
+- Evolution API: `DATABASE_PROVIDER`, Redis/Postgres connection
+
+**Secrets location:**
+- `.env` files (gitignored)
+- n8n credentials storage (encrypted)
+- Service account JSON files for Google APIs
 
 ## Webhooks & Callbacks
 
-**Outgoing Webhooks:**
-- Global webhook system in evolution-api
-  - Config: `WEBHOOK_GLOBAL_ENABLED`, `WEBHOOK_GLOBAL_URL`
-  - Per-event configuration available
-  - Retry logic: Exponential backoff with `WEBHOOK_RETRY_*` configs
-  - Timeout: `WEBHOOK_REQUEST_TIMEOUT_MS` (default: 60000ms)
+**n8n Webhooks:**
+- MQTT trigger for real-time sensor data
+- Scheduled workflows (hourly snapshots)
+- Webhook endpoints for external triggers
 
-**Webhook Events (select examples):**
-- `WEBHOOK_EVENTS_QRCODE_UPDATED`
-- `WEBHOOK_EVENTS_MESSAGES_SET`
-- `WEBHOOK_EVENTS_MESSAGES_UPSERT`
-- `WEBHOOK_EVENTS_CONNECTION_UPDATE`
-- `WEBHOOK_EVENTS_CONTACTS_UPSERT`
-- `WEBHOOK_EVENTS_CHATS_UPSERT`
-- `WEBHOOK_EVENTS_GROUPS_UPSERT`
-- `WEBHOOK_EVENTS_LABELS_EDIT`
-- `WEBHOOK_EVENTS_TYPEBOT_START`
+**Outgoing:**
+- WhatsApp messages via Evolution API
+- Google Sheets API updates
+- Supabase database writes
 
 ---
 
