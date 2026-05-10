@@ -251,11 +251,7 @@ const AppContent = () => {
       {currentScreen === 'dashboard' && (
         <Dashboard
           onDeviceClick={(deviceId) => {
-            if (currentUser?.role === 'admin') {
-              navigateToDeviceDetails(deviceId);
-            } else {
-              handleNavigation('device-list');
-            }
+            navigateToDeviceDetails(deviceId);
           }}
           onNavigate={handleNavigation}
         />

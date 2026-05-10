@@ -93,11 +93,6 @@
       background: #f7f7f7;
     }
 
-    .group {
-      text-align: center;
-      font-weight: bold;
-    }
-
     .obs {
       width: 16%;
     }
@@ -159,71 +154,54 @@
   <table>
     <thead>
       <tr>
-        <th rowspan="2">Dia</th>
-        <th class="group" colspan="5">Manhã</th>
-        <th class="group" colspan="5">Tarde</th>
-        <th class="obs" rowspan="2">Observação</th>
-      </tr>
-      <tr class="subhead">
+        <th>Dia</th>
         <th>Hora</th>
         <th>Máx</th>
         <th>Mín</th>
         <th>Atual</th>
-        <th>Rubrica</th>
-        <th>Hora</th>
-        <th>Máx</th>
-        <th>Mín</th>
-        <th>Atual</th>
-        <th>Rubrica</th>
+        <th>Tensão</th>
+        <th>Bateria</th>
       </tr>
     </thead>
     <tbody>
       {{
         (() => {
           const toHour = (h) => {
-            if (!h) return null;
+            if (!h) return Infinity;
             const m = String(h).match(/(\d{1,2})(?::(\d{2}))?/);
-            if (!m) return null;
+            if (!m) return Infinity;
             return Number(m[1]);
           };
 
-          return ($json.relatorio || [])
-            .map(linha => {
-              const dia = (linha.DATA || '').split('/')[0] || '';
-              const hora = linha.HORA ?? '';
-              const atual = linha["TEMP."] ?? linha.TEMP ?? '';
-              const max = linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? linha.TEMPMAX ?? linha['TEMP MAX'] ?? linha['TEMP_MAX'] ?? '';
-              const min = linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '';
-              const obs = linha.OBS ?? linha.OBSERVACAO ?? '';
-              const hour = toHour(hora);
+          const dados = ($json.relatorio || [])
+            .map(linha => ({
+              dia: (linha.DATA || '').split('/')[0] || '',
+              hora: linha.HORA ?? '',
+              atual: linha["TEMP."] ?? linha.TEMP ?? '',
+              max: linha.MAX ?? linha.MAXIMA ?? linha.tempMax ?? linha.TEMP_MAX ?? linha.TEMPMAX ?? linha['TEMP MAX'] ?? linha['TEMP_MAX'] ?? '',
+              min: linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '',
+              tensao: linha.TENSAO ?? linha.VOLTAGEM ?? linha.VOLTAGE ?? '',
+              bateria: linha.BATERIA ?? linha.BATTERY ?? linha.PERCENTUAL ?? '',
+              obs: linha.OBS ?? linha.OBSERVACAO ?? '',
+              rubrica: linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '',
+              hourNum: toHour(linha.HORA)
+            }))
+            .sort((a, b) => {
+              if (a.dia !== b.dia) return Number(a.dia) - Number(b.dia);
+              return a.hourNum - b.hourNum;
+            });
 
-              const manha = { hora: '', max: '', min: '', atual: '', rubrica: '' };
-              const tarde = { hora: '', max: '', min: '', atual: '', rubrica: '' };
-              const slot = hour !== null && hour >= 12 ? tarde : manha;
-              slot.hora = hora;
-              slot.max = max;
-              slot.min = min;
-              slot.atual = atual;
-              slot.rubrica = linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '';
-
-              return `
-                <tr>
-                  <td style="text-align:center;">${dia}</td>
-                  <td>${manha.hora}</td>
-                  <td>${manha.max}</td>
-                  <td>${manha.min}</td>
-                  <td>${manha.atual}</td>
-                  <td>${manha.rubrica}</td>
-                  <td>${tarde.hora}</td>
-                  <td>${tarde.max}</td>
-                  <td>${tarde.min}</td>
-                  <td>${tarde.atual}</td>
-                  <td>${tarde.rubrica}</td>
-                  <td>${obs}</td>
-                </tr>
-              `;
-            })
-            .join('');
+          return dados.map(linha => `
+            <tr>
+              <td style="text-align:center;">${linha.dia}</td>
+              <td>${linha.hora}</td>
+              <td>${linha.max}</td>
+              <td>${linha.min}</td>
+              <td>${linha.atual}</td>
+              <td>${linha.tensao}</td>
+              <td>${linha.bateria}</td>
+            </tr>
+          `).join('');
         })()
       }}
     </tbody>

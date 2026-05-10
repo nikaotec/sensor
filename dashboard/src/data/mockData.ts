@@ -14,7 +14,7 @@ export interface User {
     id: string;
     name: string;
     email: string;
-    role: 'admin' | 'user' | 'viewer';
+    role: 'admin' | 'user' | 'viewer' | 'gestor' | 'manager';
     avatarUrl?: string;
     tenantId: string;
 }
@@ -40,6 +40,11 @@ export interface Device {
         signal?: number;
         doorOpen?: boolean;
         relay?: boolean;
+        rele?: boolean;
+        rele0?: boolean;
+        rele1?: boolean;
+        rele2?: boolean;
+        rele3?: boolean;
         // Estados de monitoramento de alarmes
         chkVolt?: boolean;
         chkBat?: boolean;
@@ -61,6 +66,9 @@ export interface Device {
         R0_TEMP_ON?: number;
         R0_TEMP_OFF?: number;
         R0_FUNC?: number;
+        // Sensores adicionais
+        secondsOpen?: number;
+        tempExt?: number;
     };
     config?: {
         minTempInfo?: number;

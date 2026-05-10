@@ -18,6 +18,7 @@ StorageManager storage;
 DisplayManager display;
 AppNetworkManager network;
 ButtonManager buttons;
+// RelayService relays foi removido, usamos storage.data.relays diretamente.
 
 OneWire oneWire(DS18B20_PIN);
 DallasTemperature sensors(&oneWire);
@@ -117,6 +118,8 @@ void setup() {
 
   // Managers
   storage.begin();
+  // relays.begin() removido. Hardware inicializado no loop de setup.
+
   display.begin();
   network.begin(processarMensagemMqtt);
   buttons.begin();
@@ -261,29 +264,33 @@ void loop() {
     }
 
     if (!modoManual) {
-      // 0. Lógica dos 4 Relés (Apenas com temperatura válida)
+      // --- LÓGICA DE CONTROLE DOS RELÉS (HISTERESE E MANUAL) ---
       if (temperaturaAtual > -50 && temperaturaAtual < 80) {
         for (int i = 0; i < RELAY_COUNT; i++) {
           RelayConfig &relay = storage.data.relays[i];
-          bool estadoAtual = releEstado[i];
+          bool anterior = releEstado[i];
 
           if (relay.func == RELAY_FUNC_AUTO) {
-            // Controle automático por temperatura
-            if (temperaturaAtual >= relay.tempOn && !estadoAtual) {
+            // Histerese: Liga se >= max, Desliga se <= min
+            if (temperaturaAtual >= relay.tempOn) {
               releEstado[i] = true;
-              digitalWrite(RELAY_PINS[i], HIGH);
-            } else if (temperaturaAtual <= relay.tempOff && estadoAtual) {
+            } else if (temperaturaAtual <= relay.tempOff) {
               releEstado[i] = false;
-              digitalWrite(RELAY_PINS[i], LOW);
             }
           } else if (relay.func == RELAY_FUNC_MANUAL) {
-            // Controle manual
-            if (relay.manualState != estadoAtual) {
-              releEstado[i] = relay.manualState;
-              digitalWrite(RELAY_PINS[i], relay.manualState ? HIGH : LOW);
-            }
+            releEstado[i] = relay.manualState;
+          } else {
+            releEstado[i] = false; // DESLIGADO
           }
-          // RELAY_FUNC_OFF = não faz nada
+
+          // Aplica ao hardware se o estado mudou
+          digitalWrite(RELAY_PINS[i], releEstado[i] ? HIGH : LOW);
+
+          if (releEstado[i] != anterior) {
+            Serial.print(F("[RELE] R"));
+            Serial.print(i);
+            Serial.println(releEstado[i] ? F(" LIGADO") : F(" DESLIGADO"));
+          }
         }
       }
 
@@ -768,10 +775,9 @@ void processarMensagemMqtt(String topic, String payload) {
     // Determina qual rele (0 por padrão, ou especificado)
     int idx = doc.containsKey("rele_index") ? doc["rele_index"].as<int>() : 0;
     if (idx >= 0 && idx < RELAY_COUNT) {
-      releEstado[idx] = true;
       storage.data.relays[idx].manualState = true;
       storage.data.relays[idx].func = RELAY_FUNC_MANUAL;
-      digitalWrite(RELAY_PINS[idx], HIGH);
+      storage.save();
       String msg = "Rele " + String(idx + 1) + " LIGADO";
       notificarUsuario(msg, 5000);
       String resp = "RELE_" + String(idx) + "_ON";
@@ -780,10 +786,9 @@ void processarMensagemMqtt(String topic, String payload) {
   } else if (intencao == "desligar_rele") {
     int idx = doc.containsKey("rele_index") ? doc["rele_index"].as<int>() : 0;
     if (idx >= 0 && idx < RELAY_COUNT) {
-      releEstado[idx] = false;
       storage.data.relays[idx].manualState = false;
       storage.data.relays[idx].func = RELAY_FUNC_MANUAL;
-      digitalWrite(RELAY_PINS[idx], LOW);
+      storage.save();
       String msg = "Rele " + String(idx + 1) + " DESLIGADO";
       notificarUsuario(msg, 5000);
       String resp = "RELE_" + String(idx) + "_OFF";
@@ -797,28 +802,50 @@ void processarMensagemMqtt(String topic, String payload) {
     int idx = doc["rele_index"].as<int>();
     if (idx >= 0 && idx < RELAY_COUNT) {
       RelayConfig &r = storage.data.relays[idx];
-      if (doc.containsKey("nome")) {
-        String nome = doc["nome"].as<String>();
-        strncpy(r.name, nome.c_str(), 16);
-        r.name[16] = '\0';
-      }
-      if (doc.containsKey("funcao")) {
-        r.func = doc["funcao"].as<int>();
-      }
+      bool alterou = false;
+
       if (doc.containsKey("temp_on")) {
-        r.tempOn = doc["temp_on"].as<float>();
+        r.tempOn = doc["temp_on"];
+        alterou = true;
       }
       if (doc.containsKey("temp_off")) {
-        r.tempOff = doc["temp_off"].as<float>();
+        r.tempOff = doc["temp_off"];
+        alterou = true;
+      }
+      if (doc.containsKey("funcao")) {
+        r.func = doc["funcao"];
+        alterou = true;
       }
       if (doc.containsKey("manual_state")) {
-        r.manualState = doc["manual_state"].as<bool>();
+        r.manualState = doc["manual_state"];
+        alterou = true;
       }
-      storage.save();
+      if (doc.containsKey("nome")) {
+        strncpy(r.name, doc["nome"], 16);
+        r.name[16] = '\0';
+        alterou = true;
+      }
+
+      if (alterou) {
+        storage.save();
+        Serial.print(F("[MQTT] Configuração do relé "));
+        Serial.print(idx);
+        Serial.println(F(" atualizada e salva na EEPROM."));
+        if (doc.containsKey("temp_on"))
+          Serial.println("  - Temp ON: " + String(r.tempOn));
+        if (doc.containsKey("temp_off"))
+          Serial.println("  - Temp OFF: " + String(r.tempOff));
+        if (doc.containsKey("funcao"))
+          Serial.println("  - Funcao: " + String(r.func));
+
+        emitirBipe(100, 2); // Dois bipes curtos para confirmar configuração
+      }
+
       String msg = "Rele " + String(idx + 1) + " config.";
       notificarUsuario(msg, 5000);
       String resp = "RELE_" + String(idx) + "_CONFIG_OK";
       enviarDadosMqtt(resp, false);
+      enviarDadosWeb();
     }
   } else if (intencao == "habilitar_tensao") {
     storage.data.chkVolt = true;
@@ -944,6 +971,13 @@ void enviarDadosWeb() {
   }
 
   // Dados de histerese do relé 0
+  Serial.print(F("[ENVIAR_WEB] Histerese Rele 0 - tempOn: "));
+  Serial.print(storage.data.relays[0].tempOn, 1);
+  Serial.print(F(" | tempOff: "));
+  Serial.print(storage.data.relays[0].tempOff, 1);
+  Serial.print(F(" | func: "));
+  Serial.println(storage.data.relays[0].func);
+
   doc["R0_TEMP_ON"] = serialized(String(storage.data.relays[0].tempOn, 1));
   doc["R0_TEMP_OFF"] = serialized(String(storage.data.relays[0].tempOff, 1));
   doc["R0_FUNC"] = storage.data.relays[0].func;
@@ -1046,7 +1080,8 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
 
   // Dados de histerese do relé 0 (enviado em status e periódicos)
   if (evento == "STATUS_SOLICITADO" || evento == "periodico" ||
-      evento == "periodico_suporte" || evento == "REALTIME") {
+      evento == "periodico_suporte" || evento == "REALTIME" ||
+      (evento.startsWith("RELE_") && evento.endsWith("_CONFIG_OK"))) {
     doc["R0_TEMP_ON"] = serialized(String(storage.data.relays[0].tempOn, 1));
     doc["R0_TEMP_OFF"] = serialized(String(storage.data.relays[0].tempOff, 1));
     doc["R0_FUNC"] = storage.data.relays[0].func;

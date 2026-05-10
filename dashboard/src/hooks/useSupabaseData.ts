@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabase/config';
 import type { Device } from '../data/mockData';
 import { useTenant } from '../contexts/TenantContext';
+import { mapRowToDevice } from '../services/SupabaseMapper';
 
 export interface DeviceEvent {
     id: string;
@@ -26,38 +27,7 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
     const [history, setHistory] = useState<{ time: string, value: number, timestamp?: string }[]>([]);
     const [events, setEvents] = useState<DeviceEvent[]>([]);
 
-    const isManager = userRole === 'manager' || userRole === 'gestor';
-
-    // Helper: mapear row do Supabase para Device
-    const mapRowToDevice = (row: any): Device => {
-        const dailyStats = row.daily_stats || {};
-        return {
-            id: row.id,
-            name: row.name || row.device_name || row.id,
-            tenantId: row.tenant_id,
-            type: 'sensor_temp',
-            status: row.status || 'offline',
-            location: row.location || row.location_id || '',
-            lastSeen: row.last_seen || row.updated_at || '',
-            telemetry: {
-                temp: row.temperature !== null ? row.temperature : undefined,
-                humidity: row.humidity !== null ? row.humidity : undefined,
-                batteryVoltage: row.battery !== null ? row.battery : undefined,
-                inputVoltage: row.voltage !== null ? row.voltage : undefined,
-                signal: row.signal !== null ? row.signal : undefined,
-                doorOpen: row.door_open !== null ? row.door_open : undefined,
-                tempMax: row.temp_max !== null ? row.temp_max
-                    : (dailyStats.maxTemp !== undefined ? dailyStats.maxTemp : undefined),
-                tempMin: row.temp_min !== null ? row.temp_min
-                    : (dailyStats.minTemp !== undefined ? dailyStats.minTemp : undefined),
-                tempExt: row.temp_ext !== null ? row.temp_ext : undefined,
-                chkVolt: row.chk_volt !== null ? row.chk_volt : true,
-                chkBat: row.chk_bat !== null ? row.chk_bat : true,
-                chkTemp: row.chk_temp !== null ? row.chk_temp : true,
-                chkDoor: row.chk_door !== null ? row.chk_door : true,
-            }
-        } as Device;
-    };
+    const isManager = userRole === 'manager' || userRole === 'gestor' || userRole === 'admin';
 
     // Fetch devices
     useEffect(() => {
@@ -65,16 +35,12 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
             let query = supabase.from('devices_status').select('*');
 
             if (deviceId) {
-                // Se temos um deviceId específico, buscar apenas dados desse dispositivo
-                // Independente da empresa, pois o usuário já teve acesso ao evento/alerta dele.
                 query = query.eq('id', deviceId);
             } else if (tenantId && tenantId !== 'all') {
-                // Especificamente selecionado: usar este ID
                 query = query.eq('tenant_id', tenantId);
             } else if (isManager && tenantId === 'all') {
-                // Gestor vê todos os dispositivos (incluindo não atribuídos)
+                // Gestor vê todos
             } else if (!isManager && availableTenants.length > 0) {
-                // Usuário normal vê "Todos": filtrar pelas empresas vinculadas
                 const userTenantIds = availableTenants.map(t => t.id);
                 query = query.in('tenant_id', userTenantIds);
             }
@@ -87,11 +53,10 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
 
             const mappedDevices = (data || []).map(mapRowToDevice);
 
-            // Filtrar dispositivos não atribuídos para usuários não-gestores
             const filteredDevices = mappedDevices.filter(d => {
-                if (isManager) return true; // Gestor vê tudo
+                if (isManager) return true;
                 const isUnassigned = UNASSIGNED_TENANT_IDS.includes(d.tenantId as any) || !d.tenantId;
-                return !isUnassigned; // Não-gestor não vê dispositivos não atribuídos
+                return !isUnassigned;
             });
 
             setDevices(filteredDevices);
@@ -99,23 +64,19 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
 
         fetchDevices();
 
-        // Realtime subscription para devices_status
         const channel = supabase
             .channel('devices_status_changes')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'devices_status' },
-                () => {
-                    // Re-fetch ao receber mudança (simples e confiável)
-                    fetchDevices();
-                }
+                () => fetchDevices()
             )
             .subscribe();
 
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [tenantId, isManager, availableTenants, userRole]);
+    }, [tenantId, isManager, availableTenants, userRole, deviceId]);
 
     // Fetch telemetry history (últimas 24h)
     useEffect(() => {
@@ -124,7 +85,6 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
             const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
             const yesterdayStr = yesterday.toISOString().split('T')[0];
 
-            // A tabela telemetry NÃO tem tenant_id, então buscamos apenas por deviceId
             let query = supabase
                 .from('telemetry')
                 .select('data_registro, hora_registro, temperature, timestamp, mensage_tipo')
@@ -148,31 +108,27 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
                 return;
             }
 
-            const hist = (data || []).map((row: any) => {
-                // Formatar hora para exibição (HH:mm)
-                // Se o campo hora_registro já vier formatado ou for tipo TIME, podemos usar direto
-                // Mas para consistência com o resto do app que usa 'America/Sao_Paulo'
+            const hist: { time: string; value: number; timestamp?: string }[] = [];
+            for (const row of (data || [])) {
                 const [h, m] = row.hora_registro.split(':');
-                return {
-                    time: `${h}:${m}`,
-                    value: row.temperature ?? 0,
-                    timestamp: row.timestamp // Mantido para referência se necessário
-                };
-            });
+                if (m !== '00') continue;
+                hist.push({
+                    time: `${h}:00`,
+                    value: Number(row.temperature) ?? 0,
+                    timestamp: row.timestamp ?? undefined
+                });
+            }
             setHistory(hist);
         };
 
         fetchHistory();
 
-        // Realtime para telemetry
         const channel = supabase
             .channel('telemetry_changes')
             .on(
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'telemetry' },
-                () => {
-                    fetchHistory();
-                }
+                () => fetchHistory()
             )
             .subscribe();
 
@@ -193,16 +149,13 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
             if (deviceId) {
                 query = query.eq('device_id', deviceId);
             } else if (tenantId && tenantId !== 'all') {
-                // Especificamente selecionado: usar este ID
                 query = query.eq('tenant_id', tenantId);
             } else if (isManager && tenantId === 'all') {
-                // Gestor vê tudo — sem filtro
+                // Gestor vê tudo
             } else if (!isManager && availableTenants.length > 0) {
-                // Usuário normal vê "Todos": filtrar pelas empresas vinculadas
                 const userTenantIds = availableTenants.map(t => t.id);
                 query = query.in('tenant_id', userTenantIds);
             } else {
-                // Sem empresas vinculadas, não mostra nada
                 setEvents([]);
                 return;
             }
@@ -233,15 +186,12 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
         if (userRole) {
             fetchEvents();
 
-            // Realtime para events
             const channel = supabase
                 .channel('events_changes')
                 .on(
                     'postgres_changes',
                     { event: '*', schema: 'public', table: 'events' },
-                    () => {
-                        fetchEvents();
-                    }
+                    () => fetchEvents()
                 )
                 .subscribe();
 
@@ -249,10 +199,9 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
                 supabase.removeChannel(channel);
             };
         }
-    }, [tenantId, deviceId, userRole, availableTenants]);
+    }, [tenantId, deviceId, userRole, availableTenants, isManager]);
 
     const refreshEvents = async () => {
-        // Simple trigger for manually refreshing events
         const dateLimit = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         let query = supabase
             .from('events')
@@ -263,12 +212,10 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
         if (deviceId) {
             query = query.eq('device_id', deviceId);
         } else if (tenantId && tenantId !== 'all') {
-            // Especificamente selecionado: usar este ID
             query = query.eq('tenant_id', tenantId);
         } else if (isManager && tenantId === 'all') {
             // Gestor vê tudo
         } else if (!isManager && availableTenants.length > 0) {
-            // "Todos": mostrar apenas o que tem acesso
             const userTenantIds = availableTenants.map(t => t.id);
             query = query.in('tenant_id', userTenantIds);
         }
@@ -298,7 +245,7 @@ export const useUsers = (userRole?: string) => {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (userRole !== 'manager' && userRole !== 'gestor') {
+        if (userRole !== 'manager' && userRole !== 'gestor' && userRole !== 'admin') {
             setIsLoading(false);
             return;
         }
@@ -321,15 +268,12 @@ export const useUsers = (userRole?: string) => {
 
         fetchUsers();
 
-        // Realtime para users
         const channel = supabase
             .channel('users_changes')
             .on(
                 'postgres_changes',
                 { event: '*', schema: 'public', table: 'users' },
-                () => {
-                    fetchUsers();
-                }
+                () => fetchUsers()
             )
             .subscribe();
 
@@ -340,6 +284,7 @@ export const useUsers = (userRole?: string) => {
 
     return { users, isLoading };
 };
+
 export const useReports = (tenantId: string) => {
     const [reportConfigs, setReportConfigs] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);

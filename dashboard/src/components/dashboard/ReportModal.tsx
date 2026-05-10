@@ -159,10 +159,8 @@ const PeriodPanel: React.FC<{
     </div>
 );
 
-/** Quadro Verde: painéis dinâmicos — só abre para Personalizado e Detalhado */
+/** Quadro Verde: painéis dinâmicos — só abre para Detalhado */
 const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<React.SetStateAction<ReportForm>> }> = ({ form, setForm }) => {
-    const showExpandedPanel = form.report_type === 'custom' || form.report_type === 'detailed';
-
     return (
         <div className="bg-[#050F08] p-5 rounded-2xl border-2 border-emerald-600 space-y-4">
             <label className="flex items-center gap-2 text-[10px] font-black text-emerald-300 uppercase tracking-[0.2em] mb-2">
@@ -191,74 +189,31 @@ const ReportTypePanel: React.FC<{ form: ReportForm; setForm: React.Dispatch<Reac
                 {REPORT_TYPES.find(t => t.id === form.report_type)?.description}
             </p>
 
-            {/* Painel expandido — só para Personalizado e Detalhado */}
-            {showExpandedPanel && (
+            {/* Painel expandido — só para Detalhado */}
+            {form.report_type === 'detailed' && (
                 <div className="pt-2 border-t border-[#2A2E24] space-y-3">
-                    {form.report_type === 'custom' && (
-                        <>
-                            <div className="flex items-center justify-between">
-                                <label className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
-                                    Selecionar Horários
-                                </label>
-                                <button
-                                    onClick={() => setForm(prev => ({ ...prev, selected_hours: [], use_all_hours: true }))}
-                                    className="text-[8px] font-black text-emerald-300/80 hover:text-emerald-300 uppercase tracking-widest transition-colors"
-                                >
-                                    Limpar
-                                </button>
-                            </div>
-                            <div className="grid grid-cols-4 gap-1.5 border border-emerald-700/50 p-3 rounded-2xl bg-[#0F110D] max-h-36 overflow-y-auto custom-scrollbar">
-                                {HOURS.map(hour => (
-                                    <button
-                                        key={hour}
-                                        onClick={() => {
-                                            const current = form.selected_hours || [];
-                                            const next = current.includes(hour)
-                                                ? current.filter(h => h !== hour)
-                                                : [...current, hour];
-                                            setForm(prev => ({ ...prev, selected_hours: next, use_all_hours: next.length === 0 }));
-                                        }}
-                                        className={`py-1.5 rounded-lg text-[9px] font-bold transition-all border ${form.selected_hours?.includes(hour)
-                                            ? 'bg-emerald-600/40 text-emerald-200 border-emerald-500'
-                                            : 'bg-[#1A1D17] text-slate-400 border-[#2A2E24] hover:border-emerald-600/60'
-                                            }`}
-                                    >
-                                        {hour}
-                                    </button>
-                                ))}
-                            </div>
-                            {form.selected_hours?.length === 0 && (
-                                <p className="text-[9px] text-slate-600 italic px-1">Nenhum horário selecionado — todos os registros serão incluídos.</p>
-                            )}
-                        </>
-                    )}
-
-                    {form.report_type === 'detailed' && (
-                        <>
-                            <div className="bg-amber-600/15 border border-amber-500/40 p-3 rounded-xl">
-                                <p className="text-[9px] font-bold text-amber-300 leading-relaxed">
-                                    Selecione o dia (no quadro vermelho) e o horário de início abaixo. O relatório cobrirá 1 hora de registros minuto a minuto.
-                                </p>
-                            </div>
-                            <div>
-                                <label className="text-[9px] font-bold text-slate-300 uppercase mb-1.5 block flex items-center gap-1.5">
-                                    <Clock size={10} />
-                                    Horário de Início (janela de 1h)
-                                </label>
-                                <select
-                                    value={form.detailed_hour_start}
-                                    onChange={(e) => setForm(prev => ({ ...prev, detailed_hour_start: e.target.value }))}
-                                    className="w-full bg-[#0F110D] border border-emerald-700/50 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-emerald-400 transition-all"
-                                >
-                                    {HOURS.map(h => (
-                                        <option key={h} value={h}>
-                                            {h} — {(parseInt(h) + 1).toString().padStart(2, '0')}:00
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </>
-                    )}
+                    <div className="bg-amber-600/15 border border-amber-500/40 p-3 rounded-xl">
+                        <p className="text-[9px] font-bold text-amber-300 leading-relaxed">
+                            Selecione o dia (no quadro vermelho) e o horário de início abaixo. O relatório cobrirá 1 hora de registros minuto a minuto.
+                        </p>
+                    </div>
+                    <div>
+                        <label className="text-[9px] font-bold text-slate-300 uppercase mb-1.5 block flex items-center gap-1.5">
+                            <Clock size={10} />
+                            Horário de Início (janela de 1h)
+                        </label>
+                        <select
+                            value={form.detailed_hour_start}
+                            onChange={(e) => setForm(prev => ({ ...prev, detailed_hour_start: e.target.value }))}
+                            className="w-full bg-[#0F110D] border border-emerald-700/50 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-emerald-400 transition-all"
+                        >
+                            {HOURS.map(h => (
+                                <option key={h} value={h}>
+                                    {h} — {(parseInt(h) + 1).toString().padStart(2, '0')}:00
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             )}
         </div>

@@ -25,24 +25,51 @@ void StorageManager::load() {
   EEPROM.get(ADDR_COMPANY_NAME, data.companyName);
   EEPROM.get(ADDR_DEVICE_LOCATION, data.deviceLocation);
 
-  // Carregar relés
+  // Carregar relés (cada relé usa 32 bytes para evitar sobreposição)
+  Serial.println("STORAGE: Carregando relés...");
   for (int i = 0; i < RELAY_COUNT; i++) {
-    int addr = ADDR_RELAY_0 + (i * 24);
-    EEPROM.get(addr, data.relays[i]);
-
-    // MIGRATION: Force update existing devices from old limits (30.5/28.5) to
-    // new motor limits (7.5/2.5)
-    if (i == 0 && data.relays[i].func == RELAY_FUNC_AUTO &&
-        abs(data.relays[i].tempOn - 30.5) < 0.1 &&
-        abs(data.relays[i].tempOff - 28.5) < 0.1) {
-      data.relays[i].tempOn = 7.5;
-      data.relays[i].tempOff = 2.5;
+    int addr = ADDR_RELAY_0 + (i * 32);
+    
+    // Ler valor atual da EEPROM
+    RelayConfig tempRelay;
+    EEPROM.get(addr, tempRelay);
+    
+    // Verificar se é válido (nome não pode ser FF ou vazio)
+    bool nomeValido = tempRelay.name[0] != 0 && (uint8_t)tempRelay.name[0] != 0xFF;
+    
+    Serial.print("STORAGE R");
+    Serial.print(i);
+    Serial.print(" addr:");
+    Serial.print(addr);
+    Serial.print(" nome[0]:");
+    Serial.print((int)tempRelay.name[0]);
+    Serial.print(" valido:");
+    Serial.println(nomeValido ? "SIM" : "NAO");
+    
+    if (nomeValido) {
+      // Carregar valores válidos
+      data.relays[i] = tempRelay;
+      Serial.print("  -> Usando: ON=");
+      Serial.print(data.relays[i].tempOn, 1);
+      Serial.print(" OFF=");
+      Serial.print(data.relays[i].tempOff, 1);
+      Serial.print(" F=");
+      Serial.println(data.relays[i].func);
+    } else {
+      // Inicializar com defaults e salvar
+      data.relays[i].func = RELAY_FUNC_OFF;
+      data.relays[i].tempOn = 0;
+      data.relays[i].tempOff = 0;
+      data.relays[i].manualState = false;
+      strncpy(data.relays[i].name, i == 0 ? "Rele 1" : "Rele X", 16);
+      data.relays[i].name[16] = '\0';
+      
       EEPROM.put(addr, data.relays[i]);
-      EEPROM.commit();
-      Serial.println(
-          "[STORAGE] Migrated Relay 0 limits from 30.5/28.5 to 7.5/2.5");
+      Serial.print("  -> Inicializado para: ON=0 OFF=0 F=0");
     }
   }
+  EEPROM.commit();
+  Serial.println("STORAGE: Carregamento completo!");
 
   // Validação e Valores Padrão
   if (isnan(data.voltCalFactor) || data.voltCalFactor < 10.0 ||
@@ -119,16 +146,16 @@ void StorageManager::load() {
     data.deviceLocation[31] = '\0';
   }
 
-  // Padrões para relés
+  // Padrões para relés (somente para nomes inválidos)
   for (int i = 0; i < RELAY_COUNT; i++) {
     if (data.relays[i].name[0] == 0 ||
         (uint8_t)data.relays[i].name[0] == 0xFF) {
-      // Rele 0: automático padrão (Motor: 7.5°C ON / 2.5°C OFF)
+      // Rele 0: desligado por padrão (será configurado via dashboard)
       if (i == 0) {
         strncpy(data.relays[i].name, "Rele 1", 16);
-        data.relays[i].func = RELAY_FUNC_AUTO;
-        data.relays[i].tempOn = 7.5;
-        data.relays[i].tempOff = 2.5;
+        data.relays[i].func = RELAY_FUNC_OFF;
+        data.relays[i].tempOn = 0;
+        data.relays[i].tempOff = 0;
       } else {
         // Outros relés: desativados por padrão
         strncpy(data.relays[i].name, "Rele X", 16);
@@ -137,14 +164,16 @@ void StorageManager::load() {
         data.relays[i].tempOff = 0;
       }
       data.relays[i].manualState = false;
-      int addr = ADDR_RELAY_0 + (i * 24);
+      // Salvar defaults apenas para relés inválidos
+      int addr = ADDR_RELAY_0 + (i * 32);
       EEPROM.put(addr, data.relays[i]);
-      EEPROM.commit();
     }
   }
+  EEPROM.commit();  // Commit único após todos os relés
 }
 
 void StorageManager::save() {
+  Serial.println("STORAGE: save() iniciado");
   EEPROM.put(ADDR_ALM_MAX, data.alarmMax);
   EEPROM.put(ADDR_ALM_MIN, data.alarmMin);
   EEPROM.put(ADDR_VOLT_MAX, data.voltMax);
@@ -162,13 +191,24 @@ void StorageManager::save() {
   EEPROM.put(ADDR_COMPANY_NAME, data.companyName);
   EEPROM.put(ADDR_DEVICE_LOCATION, data.deviceLocation);
 
-  // Salvar relés
+  // Salvar relés (cada relé usa 32 bytes para evitar sobreposição)
   for (int i = 0; i < RELAY_COUNT; i++) {
-    int addr = ADDR_RELAY_0 + (i * 24);
+    int addr = ADDR_RELAY_0 + (i * 32);  // 32 bytes por relé
+    Serial.print("STORAGE: Salvando R");
+    Serial.print(i);
+    Serial.print(" no addr ");
+    Serial.print(addr);
+    Serial.print(" ON=");
+    Serial.print(data.relays[i].tempOn, 1);
+    Serial.print(" OFF=");
+    Serial.print(data.relays[i].tempOff, 1);
+    Serial.print(" F=");
+    Serial.println(data.relays[i].func);
     EEPROM.put(addr, data.relays[i]);
   }
 
   EEPROM.commit();
+  Serial.println("STORAGE: save() completo");
 }
 
 void StorageManager::updateRecords(float currentTemp) {

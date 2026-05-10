@@ -27,15 +27,27 @@
         },
         {
             "parameters": {
-                "conditions": {
-                    "string": [
+"conditions": {
+                    "logic": "or",
+                    "conditions": [
                         {
-                            "value1": "={{$json.TIPO}}",
-                            "value2": "relatorio_diario"
+                            "string": [
+                                {
+                                    "value1": "={{$json.TIPO}}",
+                                    "value2": "relatorio_diario"
+                                }
+                            ]
+                        },
+                        {
+                            "string": [
+                                {
+                                    "value1": "={{$json.TIPO}}",
+                                    "value2": "periodico"
+                                }
+                            ]
                         }
                     ]
-                }
-            },
+                },
             "name": "Filter Periodic",
             "type": "n8n-nodes-base.if",
             "typeVersion": 1,

@@ -52,7 +52,7 @@
 #define BTN_ENTER 7
 
 // ---------- ENDEREÇOS EEPROM ----------
-#define EEPROM_SIZE 256
+#define EEPROM_SIZE 288
 #define ADDR_MAX_REC 0
 #define ADDR_MIN_REC 4
 #define ADDR_ALM_MAX 8
@@ -71,20 +71,17 @@
 #define ADDR_DEVICE_NAME 48
 #define ADDR_COMPANY_NAME 80
 #define ADDR_DEVICE_LOCATION 112
-// Endereços dos relés (cada relé usa ~24 bytes: 17 nome + 1 func + 4 tempOn + 4
-// tempOff + 1 manualState)
+// Endereços dos relés (cada relé usa 32 bytes: 17 nome + 1 func + 4 tempOn + 4 tempOff + 1 manualState + 5 padding)
+// IMPORTANTE: Struct RelayConfig tem 27 bytes, alinhamos para 32 bytes por segurança
 #define ADDR_RELAY_0 144
-#define ADDR_RELAY_1 168
-#define ADDR_RELAY_2 192
-#define ADDR_RELAY_3 216
+#define ADDR_RELAY_1 176  // 144 + 32 (era 168 - causing overlap!)
+#define ADDR_RELAY_2 208  // 176 + 32 (era 192 - causing overlap!)
+#define ADDR_RELAY_3 240  // 208 + 32 (era 216 - causing overlap!)
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0
 #define BATTERY_CALIBRATION_DEFAULT 5.28
 
-#define TEMP_LIGA 4.0
-#define TEMP_DESLIGA 3.0
-#define TEMPO_ALARME_MS (30 * 60 * 1000)
 #define BAT_MIN_DEFAULT 11.5
 #define DOOR_TIME_DEFAULT 30
 #define VOLT_OUTAGE_THR 20.0
