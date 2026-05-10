@@ -1,117 +1,210 @@
-# ARCHITECTURE - System Design & Patterns
+<!-- refreshed: 2026-05-10 -->
+# Architecture
 
-**Last Mapped:** 2026-05-09  
-**Project:** IoT Sensor Monitoring System
+**Analysis Date:** 2026-05-10
 
-## Overview
+## System Overview
 
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend (React)                          │
+│            `dashboard/src/` - Vite + React 19              │
+├──────────────────┬──────────────────┬───────────────────────┤
+│  Dashboard View  │ Device Details   │   Manager Panel       │
+│ `components/`    │ `components/`    │   `components/`       │
+└────────┬─────────┴────────┬─────────┴──────────┬────────────┘
+         │                  │                     │
+         ▼                  ▼                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Services Layer                            │
+│        `src/services/` - TelemetryService, SupabaseMapper    │
+│        `src/hooks/` - useMqttData, useSupabaseData           │
+│        `src/contexts/` - AuthContext, TenantContext          │
+└─────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    External APIs                             │
+│  Supabase (Realtime DB) │ Firebase Auth │ MQTT WebSocket    │
+└─────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  n8n Workflows                               │
+│  `mqtt receive.json` │ `n8n_hourly_telemetry.json`          │
+│  `n8n_events_logger.json`                                  │
+└─────────────────────────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  ESP32 Firmware                              │
+│  `esp32/esp32.ino` - Sensor data collection                  │
+└─────────────────────────────────────────────────────────────┘
 ```
-ESP32 Sensors → MQTT Broker → n8n → Supabase/Firestore
-                                    ↓
-                              React Dashboard ← Firebase Auth
-                                    ↑
-                              Supabase Realtime
-```
 
-## Architecture Pattern
+## Component Responsibilities
 
-**Layered Architecture with Event-Driven Components**
+| Component | Responsibility | File |
+|-----------|----------------|------|
+| Frontend App | React SPA with auth, device monitoring | `dashboard/src/App.tsx` |
+| Telemetry Service | Fetch/store sensor data from Supabase | `dashboard/src/services/TelemetryService.ts` |
+| MQTT Hook | Real-time WebSocket data subscription | `dashboard/src/hooks/useMqttData.ts` |
+| Auth Context | Firebase authentication state | `dashboard/src/contexts/AuthContext.tsx` |
+| Tenant Context | Multi-tenant data isolation | `dashboard/src/contexts/TenantContext.tsx` |
+| n8n MQTT Receive | Process incoming MQTT messages | `mqtt receive.json` |
+| n8n Hourly Telemetry | Store periodic sensor snapshots | `n8n_hourly_telemetry.json` |
+| ESP32 Firmware | Sensor readings and MQTT publishing | `esp32/esp32.ino` |
 
-| Layer | Components |
-|-------|------------|
-| **Data Layer** | Supabase (PostgreSQL + Realtime) |
-| **Service Layer** | n8n workflows, Express server |
-| **Presentation Layer** | React SPA with Context API |
+## Pattern Overview
+
+**Overall:** Event-driven IoT monitoring with multi-tenant web dashboard
+
+**Key Characteristics:**
+- Real-time data flow via MQTT WebSocket to n8n to Supabase to frontend
+- Multi-tenant isolation via tenant_id on all database tables
+- Server-side Express proxy for WebSocket and Firebase admin operations
+- Firebase Auth for user login, Supabase for data storage
+
+## Layers
+
+**Frontend Layer:**
+- Purpose: React SPA for user interaction
+- Location: `dashboard/src/`
+- Contains: Components, hooks, contexts, services
+- Depends on: Supabase client, Firebase client, MQTT
+- Used by: Browser users
+
+**Backend Services Layer:**
+- Purpose: API proxy, WebSocket relay, admin actions
+- Location: `dashboard/server.js`
+- Contains: Express app with proxy middlewares
+- Depends on: Express, http-proxy-middleware
+- Used by: Frontend, MQTT WebSocket
+
+**Data Processing Layer:**
+- Purpose: Process MQTT messages, store telemetry, trigger alerts
+- Location: Root JSON files (`mqtt receive.json`, `n8n_hourly_telemetry.json`)
+- Contains: n8n workflow definitions
+- Depends on: MQTT broker, Supabase, Evolution API
+- Used by: MQTT broker, scheduled triggers
+
+**Hardware Layer:**
+- Purpose: Sensor data collection and transmission
+- Location: `esp32/esp32.ino`
+- Contains: ESP32 Arduino sketch
+- Depends on: WiFi, MQTT client, sensors
+- Used by: Physical ESP32 devices
 
 ## Data Flow
 
-### 1. Sensor Data Ingestion
-```
-ESP32 → MQTT (esp32c3/data) → n8n MQTT Trigger → Parse JSON → Supabase
-```
+### Primary Request Path (Device Telemetry)
 
-### 2. Dashboard Real-time Updates
-```
-Supabase Realtime → React Hooks → Component Re-render
-```
+1. **ESP32 publishes** sensor data to MQTT broker (`esp32/esp32.ino:350`)
+2. **n8n MQTT Receive** listens to MQTT topic, processes message (`mqtt receive.json:50`)
+3. **Supabase INSERT** stores telemetry to `telemetry` table
+4. **Dashboard** subscribes via MQTT WebSocket or polls Supabase Realtime
+5. **React** updates UI via TelemetryService
 
-### 3. Alert System
-```
-MQTT Alert Message → useMqttData hook → Audio + Notification Context → Alert UI
-```
+### Secondary Flow (Alert Notification)
 
-## Key Patterns
+1. **ESP32** detects threshold breach, sends alert via MQTT
+2. **n8n MQTT Receive** processes alert payload
+3. **Supabase events table** logs alert with severity
+4. **useMqttData hook** receives alert, triggers NotificationContext
+5. **App.tsx** displays floating alert with sound
 
-### React Context Pattern
-```typescript
-// dashboard/src/contexts/
-├── AuthContext.tsx    // User authentication state
-├── TenantContext.tsx   // Multi-tenant isolation
-└── NotificationContext.tsx  // Alert system
-```
+### Auth Flow
 
-### Custom Hook Pattern
-```typescript
-// dashboard/src/hooks/
-├── useMqttData.ts      // MQTT subscription + alert handling
-├── useSupabaseData.ts  // Supabase queries + realtime
-└── useTelemetryData.ts // Telemetry aggregation
-```
+1. **User** authenticates via Firebase (Login component)
+2. **AuthContext** stores current user with role
+3. **TenantContext** loads available tenants from Supabase
+4. **Dashboard** filters data by currentTenant.id
 
-### Service Layer Pattern
-```typescript
-// dashboard/src/services/
-├── TelemetryService.ts  // Telemetry CRUD operations
-└── SupabaseMapper.ts    // Data transformation
-```
+**State Management:**
+- React Context for auth (AuthContext), tenant (TenantContext), notifications (NotificationContext)
+- useState for screen navigation and device selection
+- Supabase Realtime subscriptions for live data updates
+
+## Key Abstractions
+
+**TelemetryService:**
+- Purpose: Abstract Supabase queries for sensor data
+- Examples: `getDevices()`, `getTelemetry(deviceId, range)`, `updateDeviceConfig()`
+- Pattern: Singleton service with Supabase client
+
+**useMqttData Hook:**
+- Purpose: Subscribe to MQTT WebSocket for real-time updates
+- Examples: `useMqttData(tenantId, role, filters, onAlert)`
+- Pattern: Custom React hook with WebSocket connection
+
+**TenantContext:**
+- Purpose: Multi-tenant data isolation
+- Pattern: React Context provider wrapping app
 
 ## Entry Points
 
-| Entry | Location |
-|-------|----------|
-| Dashboard | `dashboard/index.html` |
-| Express Server | `dashboard/server.js` |
-| n8n Webhooks | `n8n_*.json` |
-| ESP32 Firmware | `esp32/` |
+**Frontend Entry:**
+- Location: `dashboard/src/main.tsx`
+- Triggers: Browser loads index.html
+- Responsibilities: Render React app with providers
 
-## Multi-Tenancy Model
+**Dashboard Server Entry:**
+- Location: `dashboard/server.js`
+- Triggers: Node.js starts server (port 80 or PORT env)
+- Responsibilities: Serve static files, proxy MQTT/WebSocket, proxy n8n API
 
-```
-User (Firebase UID)
-  └── tenant_ids: [uuid1, uuid2, ...]
-       └── Tenant (company)
-            └── devices_status (filtered by tenant_id)
-```
+**n8n Workflows:**
+- Location: `mqtt receive.json`, `n8n_hourly_telemetry.json`
+- Triggers: MQTT message received, hourly cron schedule
+- Responsibilities: Process sensor data, store in Supabase
 
-### Tenant Isolation
-- RLS policies filter data by `tenant_id`
-- Context provider manages active tenant
-- UI shows tenant switcher in bottom-right
+**ESP32 Firmware:**
+- Location: `esp32/esp32.ino`
+- Triggers: ESP32 boots, connects to WiFi
+- Responsibilities: Read sensors, publish MQTT, handle commands
 
-## Security Model
+## Architectural Constraints
 
-| Component | Security |
-|-----------|----------|
-| Firebase Auth | Email/Password + JWT |
-| Supabase | Anon key + RLS policies |
-| n8n | Credential management |
-| ESP32 | None (local network) |
+- **Threading:** Single-threaded Node.js (Express), async/await for concurrency
+- **Global state:** No module-level singletons in frontend (all via React Context)
+- **Circular imports:** None detected - services isolated from components
+- **Realtime latency:** MQTT WebSocket proxy adds ~100ms, Supabase Realtime ~50ms
 
-## State Management
+## Anti-Patterns
 
-```
-App.tsx
-├── AuthContext (user, loading, login/logout)
-├── TenantContext (currentTenant, setTenantId, availableTenants)
-└── NotificationContext (activeAlerts, addAlert, clearAlert)
-```
+### Mixed Concerns in App.tsx
 
-## Realtime Subscriptions
+**What happens:** Alert sound playback, Supabase logging, device name change handling all in App.tsx
+**Why it's wrong:** App.tsx becomes a 280-line "god component" handling UI, audio, database, and MQTT
+**Do this instead:** Extract to custom hooks (useAlerts, useDeviceNameChanges) in `src/hooks/`
 
-```typescript
-// Supabase realtime channels
-supabase
-  .channel('db-changes')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'devices_status' }, handleChange)
-  .subscribe()
-```
+### Hardcoded Tenant Lookup
+
+**What happens:** `availableTenants.find(t => t.name.toLowerCase() === alert.EMPRESA?.toLowerCase())`
+**Why it's wrong:** String matching is fragile; should use device.tenant_id from MQTT payload
+**Do this instead:** Include tenant_id in MQTT message from ESP32 or resolve via device lookup
+
+### Server-Side Firebase Admin in Express
+
+**What happens:** `exec('firebase auth:delete --uid ...')` spawns CLI process
+**Why it's wrong:** Process spawning is slow and error-prone; Firebase Admin SDK is available
+**Do this instead:** Use firebase-admin package with service account
+
+## Error Handling
+
+**Strategy:** Try-catch blocks with console.error, user-visible toast notifications
+
+**Patterns:**
+- Supabase errors: Logged to console, shown as alert if critical
+- MQTT disconnects: Auto-reconnect via mqtt.js library
+- Auth errors: Redirect to login screen
+
+## Cross-Cutting Concerns
+
+**Logging:** Console.log/error throughout; Supabase events table for persistence
+**Validation:** Firebase Auth validates email/password; Supabase handles DB constraints
+**Authentication:** Firebase Auth for frontend users; Firebase CLI for admin delete (via server.js)
+
+---
+
+*Architecture analysis: 2026-05-10*

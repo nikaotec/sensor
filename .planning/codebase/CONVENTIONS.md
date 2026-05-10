@@ -1,201 +1,216 @@
-# CONVENTIONS - Code Style & Patterns
+# Coding Conventions
 
-**Last Mapped:** 2026-05-09  
-**Project:** IoT Sensor Monitoring System
+**Analysis Date:** 2026-05-10
 
-## TypeScript Conventions
+## Language
 
-### Type Definitions
-```typescript
-// Preferred: explicit types for props and state
-type Screen = 'login' | 'signup' | 'dashboard' | 'device-details'
+**Primary:** TypeScript 5.9.3 with React 19.2
 
-// Interface for complex objects
-interface DeviceData {
-  id: string
-  name: string
-  status: 'online' | 'offline'
-  temperature?: number
+**Target:** Browser (ES2020), React SPA with Vite build
+
+## Formatting
+
+**Tool:** Prettier
+
+**Configuration** (`dashboard/.prettierrc.js`, `evolution-api-main/.prettierrc.js`):
+```javascript
+{
+  semi: true,
+  trailingComma: 'all',
+  singleQuote: true,
+  printWidth: 120,
+  arrowParens: 'always',
+  tabWidth: 2,
+  useTabs: false,
+  bracketSameLine: false,
+  bracketSpacing: true
 }
 ```
 
-### React Component Patterns
-```typescript
-// Props with destructuring
-interface Props {
-  onDeviceClick: (deviceId: string) => void
-  onNavigate: (screen: Screen) => void
-}
+**Key rules:**
+- Semicolons required
+- Single quotes for strings
+- 120 character line width
+- Trailing commas on all arguments
+- Always wrap arrow function arguments in parentheses
 
-const DeviceList = ({ onDeviceClick, onNavigate }: Props) => { ... }
+## Linting
+
+**Tool:** ESLint 9 flat config
+
+**Configuration** (`dashboard/eslint.config.js`):
+```javascript
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+  },
+])
 ```
 
-## React Patterns
-
-### Context Provider Pattern
-```typescript
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null)
-
-  const login = async (email: string, password: string) => { ... }
-
-  return (
-    <AuthContext.Provider value={{ user, login }}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
-```
-
-### Custom Hook Pattern
-```typescript
-export const useMqttData = (
-  tenantId: string,
-  userRole: string,
-  enabledAlerts: string[],
-  onAlert: (payload: AlertPayload) => void,
-  onDeviceNameChange?: (deviceId: string, newName: string) => void
-) => {
-  // Implementation
-  useEffect(() => { /* MQTT subscription */ }, [tenantId])
-}
-```
-
-### State Management Pattern
-```typescript
-// Screen navigation
-const [currentScreen, setCurrentScreen] = useState<Screen>('login')
-const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
-
-// Async handlers with error handling
-const handleLogin = async () => {
-  try {
-    const result = await authService.login(email, password)
-    setCurrentScreen('dashboard')
-  } catch (error) {
-    console.error('Login failed:', error)
-  }
-}
-```
-
-## Error Handling
-
-```typescript
-// Try-catch with console logging
-try {
-  const { error } = await supabase.from('events').insert(data)
-  if (error) console.error('Insert failed:', error)
-} catch (e) {
-  console.error('Unexpected error:', e)
-}
-
-// Error boundary component
-class ErrorBoundary extends React.Component {
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error('ErrorBoundary caught:', error, info)
-  }
-}
-```
-
-## Styling (Tailwind)
-
-### Color System
-```typescript
-// Dark theme primary colors
-bg-background-dark    // Slate-900 equivalent
-border-primary        // Custom primary border
-text-primary          // Primary text
-```
-
-### Responsive Design
-```tsx
-// Mobile-first with breakpoints
-<div className="w-full md:w-1/2 lg:w-1/3">
-  <Card className="p-4 sm:p-6 lg:p-8" />
-</div>
-```
+**Plugins:** `@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`
 
 ## Naming Conventions
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Components | PascalCase | `DeviceCard.tsx` |
-| Hooks | camelCase + use prefix | `useMqttData.ts` |
-| Services | PascalCase | `TelemetryService.ts` |
-| Utils | camelCase | `statusUtils.ts` |
-| Types | PascalCase | `DeviceData` |
-| Contexts | PascalCase | `AuthContext.tsx` |
-| Props | camelCase | `onDeviceClick` |
-| State setters | set + Name | `setCurrentScreen` |
+### Files
 
-## File Organization
+- **Components:** PascalCase (`DeviceList.tsx`, `ErrorBoundary.tsx`)
+- **Hooks:** camelCase with `use` prefix (`useSupabaseData.ts`, `useMqttData.ts`)
+- **Services:** PascalCase with descriptive names (`TelemetryService.ts`, `SupabaseMapper.ts`)
+- **Utilities:** camelCase (`statusUtils.ts`, `format.js`)
+- **Tests:** `*.test.ts` co-located or in `__tests__/` subdirectory
+- **Config:** camelCase or kebab-case (`tsconfig.json`, `vite.config.ts`)
 
-```
-src/
-├── components/     # UI components
-├── contexts/       # React contexts
-├── hooks/          # Custom hooks
-├── services/       # Business logic
-├── utils/          # Pure utility functions
-├── data/           # Static data
-├── templates/      # Component templates
-└── tests/          # Test files
-```
+### Components & Classes
 
-## MQTT Message Format
+- React functional components: PascalCase + `React.FC` type wrapper (`const DeviceList: React.FC<Props> = ...`)
+- Class components: PascalCase with `default` export (`class ErrorBoundary extends Component`)
+- Service classes: PascalCase with static methods (`TelemetryService.normalizePayload()`)
+
+### Variables & Functions
+
+- **Variables:** camelCase (`searchTerm`, `supabaseDevices`)
+- **Functions:** camelCase (`fetchDevices`, `mapRowToDevice`)
+- **Private helpers:** camelCase with optional underscore prefix (`_e`, `_parseNumber`)
+- **Booleans:** prefix with `is`, `has`, `should`, `can` (`isManager`, `isLoading`, `hasError`)
+
+### Types & Interfaces
+
+- **Interfaces:** PascalCase with descriptive names (`SupabaseDeviceRow`, `DeviceEvent`)
+- **Type aliases:** PascalCase (`DeviceTelemetry`)
+- **Enum-like unions:** kebab-case string literals in type (`'online' | 'offline' | 'warning' | 'error'`)
+- **Props interfaces:** PascalCase named `Props` or `ComponentNameProps`
 
 ```typescript
-// Expected payload structure
-interface MqttPayload {
-  TIPO: 'relatorio_diario' | 'periodico' | 'ALERTA_*'
-  ID_DISPOSITIVO: string  // MAC address
-  TEMP_C: number
-  TEMP_MAX?: number
-  TEMP_MIN?: number
-  UMIDADE?: number
-  BATERIA?: number
-  VOLTAGEM?: number
-  EMPRESA?: string
+interface SupabaseDeviceRow {
+    id: string;
+    name?: string;
+    tenant_id: string;
+    status?: 'online' | 'offline' | 'warning' | 'error';
 }
-```
 
-## Supabase Patterns
-
-```typescript
-// Fetch with error handling
-const { data, error } = await supabase
-  .from('devices_status')
-  .select('*')
-  .eq('tenant_id', tenantId)
-
-if (error) console.error(error)
-
-// Realtime subscription
-supabase
-  .channel('db-changes')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'devices_status' }, callback)
-  .subscribe()
+export interface DeviceEvent {
+    id: string;
+    deviceId: string;
+    type: string;
+}
 ```
 
 ## Import Organization
 
+**Order:**
+1. React/core imports (`import React, { useState } from 'react'`)
+2. Third-party libraries (`import { Search, AlertTriangle } from 'lucide-react'`)
+3. Internal services/hooks (`import { useSupabaseData } from '../hooks/useSupabaseData'`)
+4. Contexts (`import { useTenant } from '../contexts/TenantContext'`)
+5. Type imports (`import type { Device } from '../data/mockData'`)
+6. Relative path imports
+
+**Path aliases:** Not configured — relative paths used throughout (`../`, `../../`)
+
+## Error Handling
+
+**Frontend React:**
+- ErrorBoundary class component for component tree errors (`dashboard/src/components/ErrorBoundary.tsx`)
+- Try-catch blocks for async operations in hooks
+- Console logging with descriptive messages: `console.error("Supabase Error (devices):", error)`
+- Conditional rendering for null states: `if (!currentTenant) return <Loading />`
+
+**Pattern:**
 ```typescript
-// 1. React core
-import { useState, useEffect, useRef } from 'react'
-
-// 2. External libraries
-import { X, AlertOctagon } from 'lucide-react'
-
-// 3. Internal components
-import Login from './components/Login'
-import Dashboard from './components/Dashboard'
-
-// 4. Contexts
-import { AuthProvider, useAuth } from './contexts/AuthContext'
-
-// 5. Hooks
-import { useMqttData } from './hooks/useMqttData'
-
-// 6. Services
-import { supabase } from './supabase/config'
+try {
+    const { data, error } = await supabase.from('devices_status').select('*');
+    if (error) {
+        console.error("Supabase Error (devices):", error);
+        return;
+    }
+} catch (e) {
+    console.error("Error in fetch:", e);
+}
 ```
+
+## Logging
+
+**Framework:** `console` (no external logging library)
+
+**Patterns:**
+- `console.error()` for errors
+- `console.log()` for development diagnostics
+- Descriptive prefixes: `console.log('✅ Telemetria recebida...')`
+
+## Comments
+
+**JSDoc:**
+- Used on public methods (`TelemetryService.ts`):
+```typescript
+/**
+ * Normaliza o payload recebido via MQTT para o formato padrão do sistema.
+ * Suporta múltiplas versões de firmware (campos em maiúsculas e minúsculas).
+ */
+static normalizePayload(payload: any): Partial<DeviceTelemetry> & { id?: string } {
+```
+
+**Inline comments:** Portuguese, descriptive, explain "why" not "what":
+```typescript
+// Garantir que chaves não enviadas não existem no objeto (nem como undefined)
+// Garantir que chaves não enviadas não existem no objeto (nem como undefined)
+expect(result).not.toHaveProperty('batteryVoltage');
+```
+
+## Function Design
+
+**Size:** Small, focused functions; complex logic isolated to services
+
+**Parameters:**
+- Typed parameters with TypeScript interfaces
+- Optional parameters marked with `?`
+- Generic `any` used sparingly for flexible payload handling
+
+**Return values:**
+- Typed return types on service methods
+- `Partial<T>` for flexible payloads
+- Union types for variant returns
+
+## Module Design
+
+**Exports:**
+- Named exports for utilities and hooks (`export const useSupabaseData = ...`)
+- Default exports for React components (`export default DeviceList`)
+- Re-exports not used
+
+**Barrel files:** Not used — direct imports throughout
+
+**Service pattern:**
+```typescript
+export class TelemetryService {
+    static normalizePayload(payload: any): Partial<DeviceTelemetry> { ... }
+    private static parseNumber(val: any): number | undefined { ... }
+}
+```
+
+**Hook pattern:**
+```typescript
+export const useSupabaseData = (tenantId: string, deviceId?: string) => {
+    const [devices, setDevices] = useState<Device[]>([]);
+    useEffect(() => { ... }, [tenantId]);
+    return { devices };
+};
+```
+
+## React Patterns
+
+**State management:** React hooks (`useState`, `useEffect`, `useMemo`)
+
+**Context usage:** Separate context files (`AuthContext.tsx`, `TenantContext.tsx`, `NotificationContext.tsx`)
+
+**Component composition:** Props drilling for callbacks + context for global state
+
+---
+
+*Convention analysis: 2026-05-10*

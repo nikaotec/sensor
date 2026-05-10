@@ -1,141 +1,194 @@
-# TESTING - Test Structure & Practices
+# Testing Patterns
 
-**Last Mapped:** 2026-05-09  
-**Project:** IoT Sensor Monitoring System
+**Analysis Date:** 2026-05-10
 
 ## Test Framework
 
-| Framework | Version | Purpose |
-|-----------|---------|---------|
-| Vitest | 4.1.5 | Unit testing |
-| Testing Library | 16.3.2 | React component testing |
-| JSDOM | 29.1.1 | DOM simulation |
+**Runner:** Vitest 4.1.5
+
+**Configuration** (`dashboard/vite.config.ts`):
+```typescript
+test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/tests/setup.ts',
+}
+```
+
+**Supporting Libraries:**
+- `@testing-library/jest-dom` 6.9.1 — DOM assertions
+- `@testing-library/react` 16.3.2 — React component testing
+- `@testing-library/user-event` 14.6.1 — User interaction simulation
+- `jsdom` 29.1.1 — DOM environment
+
+**Run Commands:**
+```bash
+npm test              # Run all tests (vitest run)
+npm run dev           # Vite dev server with watch mode
+npm run build         # TypeScript check + Vite build (no test in build)
+```
+
+## Test File Organization
+
+**Location:** Co-located with source files
+
+**Patterns:**
+1. `__tests__/` subdirectory within service directories:
+   - `dashboard/src/services/__tests__/TelemetryService.test.ts`
+   - `dashboard/src/services/__tests__/TelemetryService.test.ts`
+
+2. `src/tests/` directory for shared test utilities:
+   - `dashboard/src/tests/setup.ts`
+   - `dashboard/src/tests/SupabaseMapper.test.ts`
+
+**Naming:** `*.test.ts` extension (not `*.spec.ts`)
 
 ## Test Structure
 
-```
-dashboard/src/
-├── __tests__/                  # Service tests
-│   └── TelemetryService.test.ts
-├── tests/                      # Component tests
-│   ├── SupabaseMapper.test.ts
-│   └── setup.ts
-```
-
-## Running Tests
-
-```bash
-# All tests
-npm test
-
-# Watch mode
-npm test -- --watch
-
-# Single run (CI)
-npm test -- run
-```
-
-## Test Patterns
-
-### Service Tests (Vitest)
+**Standard suite:**
 ```typescript
-// dashboard/src/__tests__/TelemetryService.test.ts
-import { describe, it, expect, beforeEach } from 'vitest'
-import { TelemetryService } from '../services/TelemetryService'
+import { describe, it, expect } from 'vitest';
+import { TelemetryService } from '../TelemetryService';
 
 describe('TelemetryService', () => {
-  it('should fetch telemetry data', async () => {
-    const data = await TelemetryService.getLatest('device-123')
-    expect(data).toBeDefined()
-  })
-})
+    it('should normalize telemetry from legacy firmware (uppercase keys)', () => {
+        const payload = { ... };
+        const result = TelemetryService.normalizePayload(payload);
+        expect(result.id).toBe('ESP32_MAC');
+    });
+});
 ```
 
-### Component Tests
+**Assertions used:**
+- `expect(value).toBe(expected)` — equality
+- `expect(value).not.toHaveProperty(key)` — property absence
+- `expect(result).toBeUndefined()` — undefined check
+- `expect(result).toBe(true)` — boolean check
+
+**Setup file** (`dashboard/src/tests/setup.ts`):
 ```typescript
-// dashboard/src/tests/SupabaseMapper.test.ts
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { SupabaseMapper } from '../services/SupabaseMapper'
-
-describe('SupabaseMapper', () => {
-  it('should map telemetry data correctly', () => {
-    const input = { device_id: '123', temperature: 25.5 }
-    const result = SupabaseMapper.mapTelemetry(input)
-    expect(result.temperature).toBe(25.5)
-  })
-})
+import '@testing-library/jest-dom';
 ```
 
-### Test Setup
+## Mocking
+
+**Framework:** No explicit mocking library configured
+
+**Approach:** Direct instantiation in tests (no mocks visible in codebase tests)
+
+**Mock data:** `dashboard/src/data/mockData.ts` provides typed fixtures:
 ```typescript
-// dashboard/src/tests/setup.ts
-import '@testing-library/jest-dom'
-import { beforeAll, afterAll } from 'vitest'
+const row: SupabaseDeviceRow = {
+    id: 'dev_123',
+    name: 'Sensor Geladeira',
+    tenant_id: 'tenant_abc',
+    status: 'online',
+    // ...
+};
 ```
 
-## Manual Testing Scripts
+**Mock patterns observed:**
+- Direct object creation for test inputs
+- No mocking of `supabase` client (tests target mappers/services)
+- No React component snapshot testing
 
-The project includes several JavaScript test scripts:
+## Fixtures and Factories
 
-| Script | Purpose |
-|--------|---------|
-| `test_mqtt_ws.js` | Test MQTT WebSocket connection |
-| `test_supabase.js` | Test Supabase connection |
-| `test_firebase.js` | Test Firebase connection |
-| `test_dates.js` | Date formatting tests |
-| `test_number.js` | Number formatting tests |
-| `test_user_flow.js` | End-to-end user flow |
-| `query_*.js` | Database query tests |
+**Test data location:** `dashboard/src/data/mockData.ts` (shared with development)
 
-## Run Manual Tests
-
-```bash
-# From dashboard directory
-cd dashboard
-
-# Test Supabase
-node test_supabase.js
-
-# Test MQTT
-node test_mqtt_ws.js
-
-# Test Firebase
-node test_firebase.js
-
-# Query specific data
-node query_telemetry_hours.js
+**Types for fixtures:**
+```typescript
+export interface SupabaseDeviceRow {
+    id: string;
+    name?: string;
+    tenant_id: string;
+    status?: 'online' | 'offline' | 'warning' | 'error';
+    [key: string]: any;
+}
 ```
 
-## CI/CD Test Commands
-
-```bash
-# Build for production
-npm run build
-
-# Lint check
-npm run lint
-
-# Type check (via tsc)
-tsc -b
+**Fixture usage in tests:**
+```typescript
+const row: SupabaseDeviceRow = { ... };
+const result = mapRowToDevice(row);
+expect(result.telemetry.temp).toBe(5.5);
 ```
 
 ## Coverage
 
-No explicit coverage requirements found. Tests are primarily for:
-- Service logic validation
-- Data transformation accuracy
-- Component rendering
+**Requirements:** No coverage enforcement
 
-## Current Test Status
+**Threshold:** Not configured
 
-- **Services**: 2 test files (`TelemetryService.test.ts`, `SupabaseMapper.test.ts`)
-- **Components**: Minimal component testing
-- **Integration**: Manual scripts only
+**View coverage:** Not set up (`vitest run` without `--coverage` flag)
 
-## Recommendations
+## Test Types
 
-1. Add component tests for critical UI (Dashboard, DeviceCard)
-2. Add integration tests for Supabase/MQTT flows
-3. Set up coverage reporting
-4. Add E2E tests with Playwright for critical flows
+**Unit Tests:**
+- Service/mapper tests targeting pure functions
+- Input/output validation for data transformations
+- Focus on `TelemetryService.normalizePayload()` and `mapRowToDevice()`
+
+**Integration Tests:**
+- No explicit integration tests detected
+- Supabase queries tested via hooks but not mocked
+
+**E2E Tests:**
+- Not configured
+
+## Common Patterns
+
+### Async Testing
+
+Not heavily used — current tests are synchronous mappers.
+
+### Error Testing
+
+```typescript
+it('should NOT include keys with undefined values for partial payloads', () => {
+    const partialPayload = { id: 'ESP32_PARTIAL', temp: 25.5 };
+    const result = TelemetryService.normalizePayload(partialPayload);
+    expect(result).not.toHaveProperty('batteryVoltage');
+});
+```
+
+### Boundary Conditions
+
+Tests cover:
+- Legacy firmware payloads (uppercase keys)
+- Modern firmware payloads (lowercase keys)
+- Partial payloads (only some fields)
+- Null/undefined handling
+- Relay object format (`RELES.R0`)
+- Supabase database row format (snake_case)
+
+## Test Naming
+
+**Pattern:** Descriptive Portuguese and English mixed
+
+**Examples:**
+```typescript
+it('should normalize telemetry from legacy firmware (uppercase keys)')
+it('deve mapear uma linha completa do Supabase para um objeto Device corretamente')
+it('should NOT include keys with undefined values for partial payloads')
+```
+
+## Known Test Gaps
+
+**Not tested:**
+- React hook behavior (`useSupabaseData`, `useMqttData`)
+- Supabase client interactions
+- MQTT subscription handling
+- React component rendering
+- User interactions
+- Error boundary behavior
+
+**Recommendations:**
+1. Add React Testing Library tests for components
+2. Mock Supabase client for hook testing
+3. Add integration tests for data flow
+4. Consider snapshot testing for report output
+
+---
+
+*Testing analysis: 2026-05-10*

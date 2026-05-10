@@ -1,92 +1,120 @@
-# INTEGRATIONS - External Services & APIs
+# External Integrations
 
-**Last Mapped:** 2026-05-09  
-**Project:** IoT Sensor Monitoring System
+**Analysis Date:** 2026-05-10
 
-## Supabase (Primary Database)
+## APIs & External Services
 
-```typescript
-// Location: dashboard/src/supabase/config.ts
-import { createClient } from '@supabase/supabase-js'
+**IoT Communication:**
+- MQTT Broker - Bidirectional communication with ESP32 devices
+  - Host: `109.123.240.215` (production), `173.249.10.19` (backup)
+  - Port: 1883
+  - Topics: `esp32c3/data`, `esp32c3/status/action`, `esp32c3/web/action`, `esp32c3/dashboard`
+  - Client: `mqtt` npm package (dashboard), PubSubClient (ESP32)
 
-const supabase = createClient(
-  'https://ueyizghzblngswgukfmr.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' // anon key
-)
-```
+**WhatsApp Integration:**
+- Evolution API - WhatsApp Business API via Baileys
+  - Instance: `sensor_temperatura`
+  - Used for: Sending alerts and notifications via WhatsApp
+  - Integration: n8n workflow `mqtt receive.json`
 
-### Tables
-| Table | Purpose |
-|-------|---------|
-| `users` | Firebase UID, name, email, role, tenant_ids |
-| `tenants` | Companies/tenants (id, name, status, plan, colors) |
-| `devices_status` | Current device state (MAC, temp, humidity, battery) |
-| `telemetry` | Historical sensor data |
-| `events` | Alerts and audit logs |
+**Google Sheets:**
+- Google Sheets API - User registration and device management
+  - Spreadsheet: `1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4`
+  - Integration: n8n workflow nodes
 
-### Features Used
-- **Realtime Subscriptions** (devices_status, telemetry, events, tenants)
-- **RLS Policies** (Row Level Security)
-- **PostgreSQL Functions** (gen_random_uuid, gen_random_bytes)
+## Data Storage
 
-## Firebase Authentication
+**Database:**
+- Supabase (PostgreSQL)
+  - Tables: `users`, `tenants`, `devices_status`, `telemetry`, `events`
+  - Connection: Via `@supabase/supabase-js` client
+  - Features: Real-time subscriptions enabled
+  - Schema: `supabase_schema.sql`
 
-```typescript
-// Location: dashboard/src/firebase/config.ts
-import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
+**Alternate:**
+- Firebase Firestore (legacy)
+  - Used in early development
+  - Config: `dashboard/firebase.json`
+  - Guide: `Guia_Integracao_Firebase_N8N.md`
 
-const firebaseConfig = {
-  apiKey: "...",
-  authDomain: "...",
-  projectId: "smartrf-iot-dashboard"
-}
-```
+**File Storage:**
+- Local EEPROM (ESP32) - Device configuration
+- Google Sheets - User/device registry
 
-### Providers
-- **Email/Password** authentication
+**Caching:**
+- None detected
 
-## MQTT Broker
+## Authentication & Identity
 
-| Config | Value |
-|--------|-------|
-| Protocol | MQTT |
-| Topic Pattern | `esp32c3/data`, `sensor/data` |
-| Message Format | JSON |
+**Auth Provider:**
+- Firebase Authentication (legacy)
+  - Email/Password authentication
+  - Anonymous login enabled
+  - Config: `dashboard/firebase.json`
 
-### n8n Workflows (MQTT Processing)
-- `n8n_hourly_telemetry.json` - Periodic data logging
-- `n8n_dashboard_actions.json` - Device command handling
-- `n8n_events_logger.json` - Alert event logging
+**Current Approach:**
+- Supabase database with role-based access
+- Roles: `admin`, `user`
+- Tenant-based multi-organization support
 
-## External APIs
+## Monitoring & Observability
 
-| Service | Usage |
-|---------|-------|
-| Google Firestore | Legacy storage (being migrated to Supabase) |
-| Evolution API | WhatsApp integration (evolution-api-main/) |
+**Error Tracking:**
+- Sentry (Evolution API)
+  - Package: `@sentry/node` 8.47.0
 
-## ESP32 Communication
+**Logs:**
+- Console logging (dashboard)
+- Pino logger (Evolution API)
+- n8n built-in logging
 
-```cpp
-// Topic subscription
-MSG_TOPIC_DATA = "esp32c3/data"
+## CI/CD & Deployment
 
-// Payload example
-{
-  "TIPO": "relatorio_diario",
-  "ID_DISPOSITIVO": "XX:XX:XX:XX:XX:XX",
-  "TEMP_C": 25.0,
-  "TEMP_MAX": 28.5,
-  "TEMP_MIN": 22.1,
-  "UMIDADE": 65,
-  "BATERIA": 3.8,
-  "VOLTAGEM": 4.2,
-  "EMPRESA": "NikaoTech"
-}
-```
+**Hosting:**
+- VPS (production server)
+  - Host: `109.123.240.215`
+  - Path: `/var/www/nikaotech`
+  - User: root
 
-## WhatsApp Integration
+**CI Pipeline:**
+- Manual deployment via npm script
+- Command: `npm run deploy` (from dashboard)
 
-- **Evolution API** (`evolution-api-main/`) - WhatsApp bot instance management
-- **n8n Integration** - Workflow triggers via WhatsApp
+## Environment Configuration
+
+**Required env vars:**
+- `VITE_SUPABASE_URL` - Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Supabase anon key
+- Firebase configuration (API key, project ID, etc.)
+- MQTT credentials (if required)
+- Evolution API credentials
+
+**Secrets location:**
+- `.env` files (not committed to git)
+- `.gitignore` pattern: `*.env`, `credentials.*`
+
+## Webhooks & Callbacks
+
+**Incoming:**
+- n8n Webhook: `iot-command` - Receive commands from dashboard
+- MQTT topics: Receive telemetry from ESP32 devices
+- Evolution API Webhook: WhatsApp message events
+
+**Outgoing:**
+- Supabase Realtime subscriptions
+- MQTT publish to ESP32 devices
+- WhatsApp messages via Evolution API
+
+## Database Schema
+
+**Tables:**
+- `users` - User profiles (Firebase UID as primary key)
+- `tenants` - Organization/company records
+- `devices_status` - Current device state (MAC address as ID)
+- `telemetry` - Historical sensor readings
+- `events` - Event logs and alerts
+- `report_configs` - Report generation settings
+
+---
+
+*Integration audit: 2026-05-10*
