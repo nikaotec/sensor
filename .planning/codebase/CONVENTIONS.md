@@ -1,188 +1,201 @@
-# Conventions
+# CONVENTIONS - Code Style & Patterns
 
-**Mapped:** 2026-05-08
+**Last Mapped:** 2026-05-09  
+**Project:** IoT Sensor Monitoring System
 
-## Code Style
+## TypeScript Conventions
 
-### ESP32 (Arduino C++)
-
-**Formatting:**
-- 2-space indentation
-- Braces on same line
-- Max line length: 120 chars
-
-**Naming:**
-- Classes: `PascalCase`
-- Methods: `camelCase`
-- Constants: `SCREAMING_SNAKE_CASE`
-- Variables: `camelCase`, type prefixes optional
-
-**Patterns:**
-```cpp
-// Class definition
-class AlertManager {
-public:
-    AlertStatus getStatus() const;
-    void checkAlert(float value);
-private:
-    AlertStatus _status = ALERT_NONE;
-    unsigned long _lastAlertTime = 0;
-};
-
-// State machine pattern
-enum AlertStatus {
-    ALERT_NONE,
-    ALERT_STARTED,
-    ALERT_REPEATED,
-    ALERT_NORMALIZED
-};
-```
-
-**Error Handling:**
-- Return codes for functions
-- Serial debug output for errors
-- Reset on unrecoverable errors
-
-### React Dashboard (TypeScript)
-
-**Formatting:**
-- ESLint + Prettier defaults
-- 2-space indentation
-- Single quotes for strings
-
-**Component Patterns:**
-```tsx
-interface DeviceProps {
-  deviceId: string;
-  onSelect: (id: string) => void;
-}
-
-export function DeviceCard({ deviceId, onSelect }: DeviceProps) {
-  return (
-    <div className="device-card" onClick={() => onSelect(deviceId)}>
-      <DeviceHeader id={deviceId} />
-      <DeviceTelemetryCard id={deviceId} />
-    </div>
-  );
-}
-```
-
-**Hook Patterns:**
+### Type Definitions
 ```typescript
-export function useMqttData() {
-  const [data, setData] = useState<MqttMessage[]>([]);
-  
-  useEffect(() => {
-    const client = mqtt.connect(BROKER_URL);
-    client.subscribe('esp32c3/#');
-    client.on('message', (topic, payload) => {
-      setData(prev => [...prev, JSON.parse(payload.toString())]);
-    });
-    return () => client.end();
-  }, []);
-  
-  return data;
+// Preferred: explicit types for props and state
+type Screen = 'login' | 'signup' | 'dashboard' | 'device-details'
+
+// Interface for complex objects
+interface DeviceData {
+  id: string
+  name: string
+  status: 'online' | 'offline'
+  temperature?: number
 }
 ```
 
-**Type Patterns:**
+### React Component Patterns
 ```typescript
-interface TelemetryData {
-  TEMP_C: number;
-  UMIDADE: number;
-  BATERIA: number;
-  VOLTAGEM: number;
+// Props with destructuring
+interface Props {
+  onDeviceClick: (deviceId: string) => void
+  onNavigate: (screen: Screen) => void
 }
 
-interface DeviceStatus {
-  id: string;
-  name: string;
-  temperature: number;
-  status: 'online' | 'offline' | 'warning';
-}
+const DeviceList = ({ onDeviceClick, onNavigate }: Props) => { ... }
 ```
 
-### n8n Workflows (JSON)
+## React Patterns
 
-**Node Naming:** `snake_case descriptive`
-**Variable Access:** `$json.fieldName`, `$env.VAR_NAME`
-**Expression Syntax:** `{{ $json.value }}`
+### Context Provider Pattern
+```typescript
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null)
 
-**Common Patterns:**
-```javascript
-// Code node
-const data = $json;
-return data.items.map(item => ({
-  json: {
-    ...item,
-    processed: true
-  }
-}));
+  const login = async (email: string, password: string) => { ... }
 
-// Expression
-{{ $json.temperature > $json.temp_max ? 'HIGH' : 'NORMAL' }}
-```
-
-## Patterns
-
-### ESP32 MQTT Callback
-```cpp
-void mqttCallback(char* topic, byte* payload, unsigned int length) {
-  StaticJsonDocument<512> doc;
-  deserializeJson(doc, payload, length);
-  // Process message
-}
-```
-
-### Alert Debounce
-```cpp
-bool checkDebounce(unsigned long now, unsigned long lastTime, int interval) {
-  return (now - lastTime) >= interval;
-}
-```
-
-### React Context
-```tsx
-const TenantContext = createContext<TenantContextType | null>(null);
-
-export function TenantProvider({ children }) {
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  
   return (
-    <TenantContext.Provider value={{ tenants, setTenants }}>
+    <AuthContext.Provider value={{ user, login }}>
       {children}
-    </TenantContext.Provider>
-  );
+    </AuthContext.Provider>
+  )
 }
 ```
 
-## State Management
+### Custom Hook Pattern
+```typescript
+export const useMqttData = (
+  tenantId: string,
+  userRole: string,
+  enabledAlerts: string[],
+  onAlert: (payload: AlertPayload) => void,
+  onDeviceNameChange?: (deviceId: string, newName: string) => void
+) => {
+  // Implementation
+  useEffect(() => { /* MQTT subscription */ }, [tenantId])
+}
+```
 
-| Layer | Pattern |
-|-------|---------|
-| ESP32 | Global variables + class instances |
-| React | Context API (Auth, Tenant, Notification) |
-| n8n | Node-level state (no persistence) |
-| Supabase | RLS + row ownership |
+### State Management Pattern
+```typescript
+// Screen navigation
+const [currentScreen, setCurrentScreen] = useState<Screen>('login')
+const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
+
+// Async handlers with error handling
+const handleLogin = async () => {
+  try {
+    const result = await authService.login(email, password)
+    setCurrentScreen('dashboard')
+  } catch (error) {
+    console.error('Login failed:', error)
+  }
+}
+```
+
+## Error Handling
+
+```typescript
+// Try-catch with console logging
+try {
+  const { error } = await supabase.from('events').insert(data)
+  if (error) console.error('Insert failed:', error)
+} catch (e) {
+  console.error('Unexpected error:', e)
+}
+
+// Error boundary component
+class ErrorBoundary extends React.Component {
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('ErrorBoundary caught:', error, info)
+  }
+}
+```
+
+## Styling (Tailwind)
+
+### Color System
+```typescript
+// Dark theme primary colors
+bg-background-dark    // Slate-900 equivalent
+border-primary        // Custom primary border
+text-primary          // Primary text
+```
+
+### Responsive Design
+```tsx
+// Mobile-first with breakpoints
+<div className="w-full md:w-1/2 lg:w-1/3">
+  <Card className="p-4 sm:p-6 lg:p-8" />
+</div>
+```
+
+## Naming Conventions
+
+| Type | Convention | Example |
+|------|------------|---------|
+| Components | PascalCase | `DeviceCard.tsx` |
+| Hooks | camelCase + use prefix | `useMqttData.ts` |
+| Services | PascalCase | `TelemetryService.ts` |
+| Utils | camelCase | `statusUtils.ts` |
+| Types | PascalCase | `DeviceData` |
+| Contexts | PascalCase | `AuthContext.tsx` |
+| Props | camelCase | `onDeviceClick` |
+| State setters | set + Name | `setCurrentScreen` |
 
 ## File Organization
 
-| Type | Pattern |
-|------|---------|
-| Components | `components/Name.tsx` |
-| Hooks | `hooks/useName.ts` |
-| Context | `contexts/NameContext.tsx` |
-| Utils | `utils/name.ts` |
-| Types | `data/types.ts` or inline |
+```
+src/
+├── components/     # UI components
+├── contexts/       # React contexts
+├── hooks/          # Custom hooks
+├── services/       # Business logic
+├── utils/          # Pure utility functions
+├── data/           # Static data
+├── templates/      # Component templates
+└── tests/          # Test files
+```
 
-## Comments
+## MQTT Message Format
 
-- ESP32: Minimal, only for complex logic
-- React: JSDoc for exports, inline for non-obvious
-- n8n: Node descriptions only
+```typescript
+// Expected payload structure
+interface MqttPayload {
+  TIPO: 'relatorio_diario' | 'periodico' | 'ALERTA_*'
+  ID_DISPOSITIVO: string  // MAC address
+  TEMP_C: number
+  TEMP_MAX?: number
+  TEMP_MIN?: number
+  UMIDADE?: number
+  BATERIA?: number
+  VOLTAGEM?: number
+  EMPRESA?: string
+}
+```
 
-## Testing Conventions
+## Supabase Patterns
 
-- **Unit tests:** `*.test.ts` for hooks/services
-- **Setup:** `tests/setup.ts` for test utilities
-- **Mock data:** `data/mockData.ts`
+```typescript
+// Fetch with error handling
+const { data, error } = await supabase
+  .from('devices_status')
+  .select('*')
+  .eq('tenant_id', tenantId)
+
+if (error) console.error(error)
+
+// Realtime subscription
+supabase
+  .channel('db-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'devices_status' }, callback)
+  .subscribe()
+```
+
+## Import Organization
+
+```typescript
+// 1. React core
+import { useState, useEffect, useRef } from 'react'
+
+// 2. External libraries
+import { X, AlertOctagon } from 'lucide-react'
+
+// 3. Internal components
+import Login from './components/Login'
+import Dashboard from './components/Dashboard'
+
+// 4. Contexts
+import { AuthProvider, useAuth } from './contexts/AuthContext'
+
+// 5. Hooks
+import { useMqttData } from './hooks/useMqttData'
+
+// 6. Services
+import { supabase } from './supabase/config'
+```

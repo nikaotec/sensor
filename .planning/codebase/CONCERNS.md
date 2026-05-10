@@ -1,100 +1,124 @@
-# Concerns
+# CONCERNS - Technical Debt & Issues
 
-**Mapped:** 2026-05-08
+**Last Mapped:** 2026-05-09  
+**Project:** IoT Sensor Monitoring System
+
+## Critical Issues
+
+### 1. Security Concerns
+
+| Issue | Severity | Location |
+|-------|----------|----------|
+| RLS disabled for dev | HIGH | `supabase_schema.sql:103-114` |
+| Anon key exposed in frontend | MEDIUM | `dashboard/src/supabase/config.ts` |
+| No HTTPS on ESP32 | MEDIUM | `esp32/` |
+| Hardcoded credentials | HIGH | Multiple files |
+
+### 2. Data Consistency
+
+| Issue | Impact | Status |
+|-------|--------|--------|
+| Dual storage (Firestore + Supabase) | Confusion, sync issues | Partial migration |
+| Null tenants in devices_status | Query failures | `fix-null-tenants.js` exists |
+| Timezone handling | Display errors | Uses America/Sao_Paulo |
 
 ## Technical Debt
 
-### ESP32 Firmware
-| Issue | Impact | Remediation |
-|-------|--------|-------------|
-| Large `esp32.ino` (1185 lines) | Hard to maintain | Split into manager classes |
-| Hardcoded WiFi credentials | Security risk | Move to Config.h constants |
-| Battery sensor deprecated | Confusion | Remove `BatterySensor.h` |
-| No watchdog timer | Stability risk | Add ESP.reset() on hangs |
+### Legacy Code
 
-### Dashboard
-| Issue | Impact | Remediation |
-|-------|--------|-------------|
-| Firebase legacy code | Confusion | Deprecate Firestore, use Auth only |
-| Duplicate MQTT hooks | Inconsistency | Consolidate `useMqttData.ts` |
-| No error boundaries | Crash risk | Add React error boundaries |
+| Item | Description | Action |
+|------|-------------|--------|
+| `frontend/` directory | Obsolete, unused | Remove |
+| `temp/*.html` files | Old dashboard versions | Clean up |
+| `dashboard_stitch.html` | Abandoned design | Archive or remove |
 
 ### n8n Workflows
-| Issue | Impact | Remediation |
-|-------|--------|-------------|
-| Duplicate Supabase nodes | Maintenance | Create reusable sub-workflow |
-| Hardcoded instance names | Portability | Use credentials |
-| No error handling in AI Agent | Silent failures | Add fallback responses |
 
-## Known Issues
+| Workflow | Issues |
+|----------|--------|
+| `mqtt receive.json` | Large (116KB), complex |
+| Multiple `n8n_*.json` | Redundant functionality |
+| No version control | Hard to track changes |
 
-### Current Problems
-1. **ESP32 display paging** - Requires static paging logic (task.md id:0)
-2. **Min temp display** - 0.0 treated as valid (fixed in StorageManager)
-3. **Voltage calibration** - Factor calculation complex
+### Database Schema
 
-### Historical Fixes (task.md)
-- ✓ Standardized timezone to America/Sao_Paulo
-- ✓ Added Device Name to Dashboard Alerts
-- ✓ Implemented Static Paging Logic
-- ✓ Fixed Min Temp Display Layout
-- ✓ Improved Command Feedback
-- ✓ Implemented Calibration by Reference
-- ✓ Implemented Voltage Alarm Logic
-- ✓ Fixed n8n Firebase OAuth2 (Service Account)
-- ✓ Fixed Hourly Telemetry Logging
+| Issue | Impact |
+|-------|--------|
+| No foreign keys | Data integrity risk |
+| Missing constraints | Invalid data possible |
+| Text vs UUID for IDs | Inconsistent typing |
+| No soft deletes | Data retention issues |
 
-## Security Concerns
+## Known Bugs
 
-| Area | Concern | Mitigation |
-|------|---------|------------|
-| ESP32 | Hardcoded WiFi/MQTT credentials | Config.h constants (acceptable for device) |
-| Dashboard | Exposed Supabase keys | Use RLS + anon key only |
-| WhatsApp | Bot runs on shared Evolution API | Per-instance authentication |
-| VPS | SSH root access | Key-based auth required |
-| Git | No `.env` protection | `.gitignore` exists |
+### 1. Alert System
+- **Audio playback requires user interaction** first (browser requirement)
+- **Alert value extraction** can fail if payload structure varies
 
-## Performance Issues
+### 2. Multi-Tenancy
+- **Tenant filtering** relies on `availableTenants.find()` which can fail
+- **"all" tenant** mode may show data across tenants
 
-| Area | Issue | Impact |
-|------|-------|--------|
-| MQTT | No QoS 2 | Possible message loss on network issues |
-| Supabase | No query pagination | Large result sets load slowly |
-| Dashboard | Recharts re-render | 100+ devices may lag |
-| ESP32 | Voltage sampling blocks | 100ms blocking task |
+### 3. Real-time Updates
+- **Reconnection logic** not implemented
+- **Stale data** possible if subscription drops
 
-## Fragile Areas
+## Performance Concerns
 
-### High Risk
-1. **ESP32 WiFi reconnection** - Reconnection logic untested
-2. **n8n AI Agent prompt** - Tightly coupled to specific model
-3. **Supabase RLS policies** - Complex, easy to misconfigure
+| Area | Issue |
+|------|-------|
+| Telemetry queries | No pagination on large datasets |
+| Chart rendering | `DeviceHistoryChart` may lag with 1000+ points |
+| MQTT parsing | JSON.parse in n8n can fail silently |
+| Bundle size | No code splitting (single bundle) |
 
-### Medium Risk
-1. **Evolution API WhatsApp** - External dependency
-2. **Realtime subscriptions** - Connection drops
-3. **EEPROM addressing** - No magic numbers validation
+## Missing Features
 
-## Architecture Concerns
+| Feature | Priority |
+|---------|----------|
+| Offline support | HIGH |
+| Mobile responsive (critical screens) | HIGH |
+| Report scheduling | MEDIUM |
+| Device firmware OTA | LOW |
+| Audit logging | MEDIUM |
 
-| Concern | Description |
-|---------|-------------|
-| No offline support | Dashboard requires internet |
-| No message queuing | MQTT drops if n8n down |
-| Single point of failure | VPS hosts everything |
-| No monitoring | No uptime checks, no alerts |
+## Code Quality
 
-## Deprecation Notes
+| Issue | Evidence |
+|-------|----------|
+| No TypeScript strict mode | `tsconfig.json` not shown |
+| Minimal test coverage | 2 test files only |
+| No CI/CD pipeline | Manual deploy |
+| Large files (>200 lines) | `App.tsx:286` |
 
-| Item | Status | Replacement |
-|------|--------|-------------|
-| Firestore logging | Deprecated | Supabase only |
-| BatterySensor.h | Unused | Remove on refactor |
-| Firebase SDK for DB | Deprecated | Supabase JS only |
+## Configuration Issues
 
-## Pending Refactors
+| File | Problem |
+|------|---------|
+| `eslint.config.js` | May conflict with Prettier |
+| `tailwind.config.cjs` | CommonJS vs ESM confusion |
+| `.gitignore` | Missing some temp files |
 
-1. **ESP32 module extraction** - Move logic from esp32.ino to managers
-2. **n8n reusable workflows** - Create sub-workflows for Supabase operations
-3. **Dashboard component split** - Separate ReportModal logic
-4. **Database indexing review** - Verify index usage in Supabase
+## Deployment Notes
+
+### Current Deploy Process
+```bash
+# Manual
+npm run build
+tar -czvf dashboard.tar.gz dist server.js package.json
+scp dashboard.tar.gz root@109.123.240.215:/var/www/nikaotech
+ssh root@109.123.240.215 "tar -xzvf dashboard.tar.gz && pm2 restart dashboard"
+```
+
+### Issues
+- **No rollback mechanism**
+- **No staging environment**
+- **Manual process prone to error**
+
+## Recommendations Priority
+
+1. **HIGH**: Enable RLS policies properly, remove anon key exposure
+2. **HIGH**: Complete Firestore → Supabase migration
+3. **MEDIUM**: Add pagination to telemetry queries
+4. **MEDIUM**: Improve test coverage
+5. **LOW**: Set up proper CI/CD pipeline

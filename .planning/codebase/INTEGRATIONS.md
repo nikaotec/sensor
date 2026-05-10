@@ -1,86 +1,92 @@
-# Integrations
+# INTEGRATIONS - External Services & APIs
 
-**Mapped:** 2026-05-08
+**Last Mapped:** 2026-05-09  
+**Project:** IoT Sensor Monitoring System
 
-## External Services
+## Supabase (Primary Database)
 
-### Supabase (Database)
-- **URL:** `https://ueyizghzblngswukfmr.supabase.co`
-- **Pooler:** `ueyizghzblngswukfmr.supabase.co:6543`
-- **Tables:** `users`, `tenants`, `devices_status`, `telemetry`, `events`
-- **Features:** Realtime subscriptions, Row Level Security
+```typescript
+// Location: dashboard/src/supabase/config.ts
+import { createClient } from '@supabase/supabase-js'
 
-### Firebase (Authentication)
-- **Project:** `smartrf-f9962`
-- **Services:** Firebase Auth (email/password, Google)
-- **Legacy:** Firestore for old data
+const supabase = createClient(
+  'https://ueyizghzblngswgukfmr.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' // anon key
+)
+```
 
-### MQTT Broker
-- **Server:** `mqtt.nikaotech.com` / `wss://nikaotech.com/mqtt`
-- **Port:** 1883 (MQTT), 9001 (WebSocket)
-- **Protocols:** MQTT over TCP + WSS
+### Tables
+| Table | Purpose |
+|-------|---------|
+| `users` | Firebase UID, name, email, role, tenant_ids |
+| `tenants` | Companies/tenants (id, name, status, plan, colors) |
+| `devices_status` | Current device state (MAC, temp, humidity, battery) |
+| `telemetry` | Historical sensor data |
+| `events` | Alerts and audit logs |
 
-### Evolution API (WhatsApp)
-- **Instance:** `sensor_temperatura`
-- **Endpoints:**
-  - `POST /message/sendText/{instance}`
-  - `POST /message/sendFile/{instance}`
-- **Features:** Send/receive WhatsApp messages
+### Features Used
+- **Realtime Subscriptions** (devices_status, telemetry, events, tenants)
+- **RLS Policies** (Row Level Security)
+- **PostgreSQL Functions** (gen_random_uuid, gen_random_bytes)
 
-### Google Sheets
-- **Document:** `1HTEAOfzwIQqUdf3bywOHMFVmktT3N51mtiLzpbP3Lm4`
-- **Sheet:** `users_casinhas`
-- **Purpose:** User validation for WhatsApp bot
-- **Columns:** `NUMERO`, `RULE`
+## Firebase Authentication
 
-### OpenRouter (AI)
-- **Model:** `qwen/qwen3-235b-a22b-2507`
-- **Purpose:** Intent classification for WhatsApp bot
+```typescript
+// Location: dashboard/src/firebase/config.ts
+import { initializeApp } from 'firebase/app'
+import { getAuth } from 'firebase/auth'
 
-## API Integrations
+const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "smartrf-iot-dashboard"
+}
+```
 
-### MQTT Topics
-| Topic | Direction | Purpose |
-|-------|-----------|---------|
-| `esp32c3/data` | ESP32 → n8n | Telemetry + alerts |
-| `esp32c3/dashboard` | ESP32 → Dashboard | Real-time updates |
-| `esp32c3/status/action` | n8n → ESP32 | Commands (WhatsApp) |
-| `sensor/telemetry/data` | n8n → Dashboard | Processed telemetry |
+### Providers
+- **Email/Password** authentication
 
-### Supabase Tables (Realtime)
-- `devices_status` - Current device state
-- `telemetry` - Historical sensor data
-- `events` - Alert logs
-- `tenants` - Multi-tenant support
-- `users` - User management
+## MQTT Broker
 
-### Webhooks
-| Endpoint | Source | Purpose |
-|----------|--------|---------|
-| `POST /esp32` | Evolution API | WhatsApp message relay |
-| `POST /webhook/pdf` | Dashboard | PDF report generation |
+| Config | Value |
+|--------|-------|
+| Protocol | MQTT |
+| Topic Pattern | `esp32c3/data`, `sensor/data` |
+| Message Format | JSON |
 
-## Hardware Integration
+### n8n Workflows (MQTT Processing)
+- `n8n_hourly_telemetry.json` - Periodic data logging
+- `n8n_dashboard_actions.json` - Device command handling
+- `n8n_events_logger.json` - Alert event logging
 
-### ESP32-C3 Sensors
-| Sensor | Protocol | GPIO |
-|--------|----------|------|
-| DS18B20 | 1-Wire | GPIO 13 |
-| AHT10 | I2C (0x38) | GPIO 20/21 |
-| ZMPT101B | ADC | GPIO 35 |
-| Battery | ADC | GPIO 34 |
-| Door | Digital | GPIO 32 |
-| Relays (x4) | Digital | GPIO 23, 19, 18, 5 |
-| OLED SH1106 | I2C | GPIO 20/21 |
+## External APIs
 
-### Display
-- **Type:** OLED 128x64
-- **Driver:** SH1106
-- **Interface:** I2C
+| Service | Usage |
+|---------|-------|
+| Google Firestore | Legacy storage (being migrated to Supabase) |
+| Evolution API | WhatsApp integration (evolution-api-main/) |
 
-## Security
+## ESP32 Communication
 
-- **n8n:** Service Account for Firebase (OAuth2 fixed)
-- **Supabase:** Row Level Security policies
-- **Firebase Auth:** JWT tokens
-- **VPS:** SSH key-based access
+```cpp
+// Topic subscription
+MSG_TOPIC_DATA = "esp32c3/data"
+
+// Payload example
+{
+  "TIPO": "relatorio_diario",
+  "ID_DISPOSITIVO": "XX:XX:XX:XX:XX:XX",
+  "TEMP_C": 25.0,
+  "TEMP_MAX": 28.5,
+  "TEMP_MIN": 22.1,
+  "UMIDADE": 65,
+  "BATERIA": 3.8,
+  "VOLTAGEM": 4.2,
+  "EMPRESA": "NikaoTech"
+}
+```
+
+## WhatsApp Integration
+
+- **Evolution API** (`evolution-api-main/`) - WhatsApp bot instance management
+- **n8n Integration** - Workflow triggers via WhatsApp

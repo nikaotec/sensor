@@ -1,112 +1,141 @@
-# Testing
+# TESTING - Test Structure & Practices
 
-**Mapped:** 2026-05-08
+**Last Mapped:** 2026-05-09  
+**Project:** IoT Sensor Monitoring System
 
-## Testing Stack
+## Test Framework
 
-### Dashboard (React)
-| Tool | Version | Purpose |
-|------|---------|---------|
-| **Vitest** | 4.1.5 | Test runner |
-| **React Testing Library** | 16.3.2 | Component testing |
-| **Jest DOM** | 6.9.1 | DOM assertions |
-| **User Event** | 14.6.1 | User interaction simulation |
-| **jsdom** | 29.1.1 | DOM environment |
-
-### ESP32
-- **No automated tests** (hardware-dependent)
-- Manual testing via Serial Monitor
-- OTA updates for field testing
+| Framework | Version | Purpose |
+|-----------|---------|---------|
+| Vitest | 4.1.5 | Unit testing |
+| Testing Library | 16.3.2 | React component testing |
+| JSDOM | 29.1.1 | DOM simulation |
 
 ## Test Structure
 
 ```
 dashboard/src/
-├── tests/
-│   ├── setup.ts           # Test configuration
-│   └── SupabaseMapper.test.ts
-├── services/
-│   └── __tests__/
-│       └── TelemetryService.test.ts
-└── components/           # Manual testing
+├── __tests__/                  # Service tests
+│   └── TelemetryService.test.ts
+├── tests/                      # Component tests
+│   ├── SupabaseMapper.test.ts
+│   └── setup.ts
+```
+
+## Running Tests
+
+```bash
+# All tests
+npm test
+
+# Watch mode
+npm test -- --watch
+
+# Single run (CI)
+npm test -- run
 ```
 
 ## Test Patterns
 
-### Hook Testing
+### Service Tests (Vitest)
 ```typescript
-// tests/SupabaseMapper.test.ts
-import { renderHook, waitFor } from '@testing-library/react';
-import { useSupabaseData } from '../hooks/useSupabaseData';
-
-describe('useSupabaseData', () => {
-  it('fetches telemetry data', async () => {
-    const { result } = renderHook(() => useSupabaseData('device1'));
-    
-    await waitFor(() => {
-      expect(result.current.data).toBeDefined();
-    });
-  });
-});
-```
-
-### Service Testing
-```typescript
-// services/__tests__/TelemetryService.test.ts
-import { describe, it, expect } from 'vitest';
-import { TelemetryService } from '../TelemetryService';
+// dashboard/src/__tests__/TelemetryService.test.ts
+import { describe, it, expect, beforeEach } from 'vitest'
+import { TelemetryService } from '../services/TelemetryService'
 
 describe('TelemetryService', () => {
-  it('aggregates hourly averages', () => {
-    const data = [
-      { timestamp: '2024-01-01T00:00:00Z', temperature: 25 },
-      { timestamp: '2024-01-01T01:00:00Z', temperature: 26 },
-    ];
-    const result = TelemetryService.aggregateHourly(data);
-    expect(result[0].avg).toBe(25.5);
-  });
-});
+  it('should fetch telemetry data', async () => {
+    const data = await TelemetryService.getLatest('device-123')
+    expect(data).toBeDefined()
+  })
+})
 ```
 
-## Test Commands
+### Component Tests
+```typescript
+// dashboard/src/tests/SupabaseMapper.test.ts
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { SupabaseMapper } from '../services/SupabaseMapper'
+
+describe('SupabaseMapper', () => {
+  it('should map telemetry data correctly', () => {
+    const input = { device_id: '123', temperature: 25.5 }
+    const result = SupabaseMapper.mapTelemetry(input)
+    expect(result.temperature).toBe(25.5)
+  })
+})
+```
+
+### Test Setup
+```typescript
+// dashboard/src/tests/setup.ts
+import '@testing-library/jest-dom'
+import { beforeAll, afterAll } from 'vitest'
+```
+
+## Manual Testing Scripts
+
+The project includes several JavaScript test scripts:
+
+| Script | Purpose |
+|--------|---------|
+| `test_mqtt_ws.js` | Test MQTT WebSocket connection |
+| `test_supabase.js` | Test Supabase connection |
+| `test_firebase.js` | Test Firebase connection |
+| `test_dates.js` | Date formatting tests |
+| `test_number.js` | Number formatting tests |
+| `test_user_flow.js` | End-to-end user flow |
+| `query_*.js` | Database query tests |
+
+## Run Manual Tests
 
 ```bash
-# Run all tests
-npm test
+# From dashboard directory
+cd dashboard
 
-# Run with coverage
-npm test -- --coverage
+# Test Supabase
+node test_supabase.js
 
-# Run specific file
-npm test -- TelemetryService.test.ts
+# Test MQTT
+node test_mqtt_ws.js
 
-# Watch mode
-npm test -- --watch
+# Test Firebase
+node test_firebase.js
+
+# Query specific data
+node query_telemetry_hours.js
 ```
 
-## Manual Testing
+## CI/CD Test Commands
 
-### ESP32 Testing
-1. Serial Monitor at 115200 baud
-2. Test commands via MQTT (MQTT.fx)
-3. Physical sensor manipulation
-4. Alert trigger verification
+```bash
+# Build for production
+npm run build
 
-### Dashboard Testing
-1. `npm run dev` for local development
-2. Supabase emulator for local DB
-3. Mock MQTT messages for real-time tests
+# Lint check
+npm run lint
+
+# Type check (via tsc)
+tsc -b
+```
 
 ## Coverage
 
-- **Dashboard:** Services and hooks tested
-- **Components:** Manual verification
-- **ESP32:** No automated coverage
+No explicit coverage requirements found. Tests are primarily for:
+- Service logic validation
+- Data transformation accuracy
+- Component rendering
 
-## Test Data
+## Current Test Status
 
-| Type | Location |
-|------|----------|
-| Mock devices | `dashboard/src/data/mockData.ts` |
-| Mock telemetry | `dashboard/src/data/telemetry.json` |
-| SQL fixtures | Not present |
+- **Services**: 2 test files (`TelemetryService.test.ts`, `SupabaseMapper.test.ts`)
+- **Components**: Minimal component testing
+- **Integration**: Manual scripts only
+
+## Recommendations
+
+1. Add component tests for critical UI (Dashboard, DeviceCard)
+2. Add integration tests for Supabase/MQTT flows
+3. Set up coverage reporting
+4. Add E2E tests with Playwright for critical flows

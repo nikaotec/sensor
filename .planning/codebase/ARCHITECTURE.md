@@ -1,154 +1,117 @@
-# Architecture
+# ARCHITECTURE - System Design & Patterns
 
-**Mapped:** 2026-05-08
+**Last Mapped:** 2026-05-09  
+**Project:** IoT Sensor Monitoring System
 
-## System Overview
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                          SmartRF Architecture                       │
-└──────────────────────────────────────────────────────────────────────┘
-
-  ESP32-C3 ──MQTT──► Mosquitto ──► n8n Workflows ──► Supabase
-       │                                    │
-       │                                    ▼
-       │                              Evolution API
-       │                                    │
-       │                              WhatsApp Bot
-       │                                    │
-       │                                    ▼
-       ▼                              Dashboard (React)
-       │                                    │
-       └──Dashboard (Realtime)◄────────────┘
-```
-
-## Component Architecture
-
-### 1. ESP32-C3 Firmware (Edge)
-
-**Pattern:** Event-driven with FreeRTOS tasks
+## Overview
 
 ```
-esp32/esp32.ino (main loop)
-├── AppNetworkManager - WiFi + MQTT
-├── AlertManager - Alert debounce state machine
-├── VoltageSensor - FreeRTOS task (Core 0)
-├── DisplayManager - OLED display + paging
-├── StorageManager - EEPROM persistence
-├── ButtonManager - PCF8574 I2C expander
-└── AmbientSensor - AHT10 I2C
+ESP32 Sensors → MQTT Broker → n8n → Supabase/Firestore
+                                    ↓
+                              React Dashboard ← Firebase Auth
+                                    ↑
+                              Supabase Realtime
 ```
 
-**Key Patterns:**
-- Debounce state machine for alerts
-- MQTT pub/sub with callback
-- EEPROM address-based storage
-- FreeRTOS task for voltage sampling
+## Architecture Pattern
 
-### 2. Dashboard (Frontend)
+**Layered Architecture with Event-Driven Components**
 
-**Pattern:** React Context + Custom Hooks
-
-```
-dashboard/src/
-├── contexts/
-│   ├── AuthContext.tsx - Firebase Auth
-│   ├── TenantContext.tsx - Multi-tenant
-│   └── NotificationContext.tsx - Toast system
-├── hooks/
-│   ├── useMqttData.ts - MQTT WebSocket
-│   ├── useSupabaseData.ts - DB queries
-│   ├── useTelemetryData.ts - Aggregation
-│   └── useReportGenerator.ts - PDF generation
-└── components/
-    ├── Dashboard.tsx - Main view
-    ├── DeviceList.tsx - Device grid
-    ├── DeviceDetails.tsx - Device detail
-    └── device/ - Sub-components
-```
-
-### 3. n8n Workflows (Automation)
-
-**Pattern:** Event-driven pipelines
-
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| `n8n_mqtt_to_supabase` | MQTT | Real-time telemetry |
-| `n8n_events_logger` | MQTT | Alert logging |
-| `n8n_dashboard_actions` | MQTT | Dashboard updates |
-| `n8n_hourly_telemetry` | MQTT | Periodic filtering |
-| `gerador-relatorios-pdf` | Webhook | PDF generation |
-| `mqtt receive` | Webhook | WhatsApp bot |
-
-### 4. Database (Supabase)
-
-**Pattern:** Multi-tenant with RLS
-
-```
-users (Firebase UID) ──► tenants (UUID)
-     │                        │
-     ▼                        ▼
-devices_status ◄───────── tenant_id
-     │
-     ▼
-telemetry (time-series)
-     │
-     ▼
-events (alerts)
-```
+| Layer | Components |
+|-------|------------|
+| **Data Layer** | Supabase (PostgreSQL + Realtime) |
+| **Service Layer** | n8n workflows, Express server |
+| **Presentation Layer** | React SPA with Context API |
 
 ## Data Flow
 
-### Telemetry Flow
+### 1. Sensor Data Ingestion
 ```
-1. ESP32 reads sensors
-2. Publishes MQTT (esp32c3/data)
-3. Mosquitto delivers to n8n
-4. n8n parses + validates
-5. Upserts devices_status
-6. Inserts telemetry record
-7. Supabase Realtime broadcasts
-8. Dashboard receives via WebSocket
-9. UI updates in real-time
+ESP32 → MQTT (esp32c3/data) → n8n MQTT Trigger → Parse JSON → Supabase
 ```
 
-### Alert Flow
+### 2. Dashboard Real-time Updates
 ```
-1. ESP32 detects threshold breach
-2. AlertManager applies debounce (5s)
-3. Publishes MQTT with ALERTA_* type
-4. n8n logs to events table
-5. Dashboard shows toast + audio
-6. User acknowledges via WhatsApp or Dashboard
+Supabase Realtime → React Hooks → Component Re-render
 ```
 
-### Command Flow
+### 3. Alert System
 ```
-1. User sends WhatsApp message
-2. Evolution API forwards to n8n webhook
-3. AI Agent classifies intent
-4. n8n publishes MQTT command
-5. ESP32 receives + executes
-6. ESP32 sends feedback via MQTT
-7. n8n sends response via WhatsApp
+MQTT Alert Message → useMqttData hook → Audio + Notification Context → Alert UI
 ```
 
-## Key Design Decisions
+## Key Patterns
 
-| Decision | Rationale |
-|----------|------------|
-| MQTT for real-time | Low latency, native ESP32 support |
-| Supabase Realtime | Built-in WebSocket, no custom server |
-| Firebase Auth | User management, social login |
-| n8n for automation | Visual workflow, easy to modify |
-| Evolution API | WhatsApp Business API |
-| EEPROM for ESP32 config | Persistent across reboots |
+### React Context Pattern
+```typescript
+// dashboard/src/contexts/
+├── AuthContext.tsx    // User authentication state
+├── TenantContext.tsx   // Multi-tenant isolation
+└── NotificationContext.tsx  // Alert system
+```
+
+### Custom Hook Pattern
+```typescript
+// dashboard/src/hooks/
+├── useMqttData.ts      // MQTT subscription + alert handling
+├── useSupabaseData.ts  // Supabase queries + realtime
+└── useTelemetryData.ts // Telemetry aggregation
+```
+
+### Service Layer Pattern
+```typescript
+// dashboard/src/services/
+├── TelemetryService.ts  // Telemetry CRUD operations
+└── SupabaseMapper.ts    // Data transformation
+```
 
 ## Entry Points
 
-| Component | Entry Point |
-|-----------|-------------|
-| ESP32 | `esp32/esp32.ino` - setup() + loop() |
-| Dashboard | `dashboard/src/main.tsx` - React root |
-| WhatsApp Bot | `mqtt receive.json` - n8n webhook |
-| PDF Generation | `gerador-relatorios-pdf.json` - n8n webhook |
+| Entry | Location |
+|-------|----------|
+| Dashboard | `dashboard/index.html` |
+| Express Server | `dashboard/server.js` |
+| n8n Webhooks | `n8n_*.json` |
+| ESP32 Firmware | `esp32/` |
+
+## Multi-Tenancy Model
+
+```
+User (Firebase UID)
+  └── tenant_ids: [uuid1, uuid2, ...]
+       └── Tenant (company)
+            └── devices_status (filtered by tenant_id)
+```
+
+### Tenant Isolation
+- RLS policies filter data by `tenant_id`
+- Context provider manages active tenant
+- UI shows tenant switcher in bottom-right
+
+## Security Model
+
+| Component | Security |
+|-----------|----------|
+| Firebase Auth | Email/Password + JWT |
+| Supabase | Anon key + RLS policies |
+| n8n | Credential management |
+| ESP32 | None (local network) |
+
+## State Management
+
+```
+App.tsx
+├── AuthContext (user, loading, login/logout)
+├── TenantContext (currentTenant, setTenantId, availableTenants)
+└── NotificationContext (activeAlerts, addAlert, clearAlert)
+```
+
+## Realtime Subscriptions
+
+```typescript
+// Supabase realtime channels
+supabase
+  .channel('db-changes')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'devices_status' }, handleChange)
+  .subscribe()
+```
