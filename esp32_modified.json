@@ -1,0 +1,886 @@
+{
+  "name": "esp32",
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -592,
+        464
+      ],
+      "id": "3d9e5af5-88cb-4d6d-bc38-227fcc5cb122",
+      "name": "OpenAI Chat Model"
+    },
+    {
+      "parameters": {
+        "model": "qwen2.5:3b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        496
+      ],
+      "id": "623c9d06-2e15-4b47-a386-e1a2f8647009",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "IA0RJYJYbiIQ0a0A",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "9c35a730-c762-4324-8069-8f966aa0b59d",
+              "leftValue": "={{ $json.phone || '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        224,
+        192
+      ],
+      "id": "0ebab9b2-8c0a-488f-8287-f92f28590577",
+      "name": "sem numero"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "users_devices",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "device_id",
+              "condition": "eq",
+              "keyValue": "={{ $('MQTT Trigger').item.json['0'].ID_DISPOSITIVO }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        352,
+        608
+      ],
+      "id": "c54f0dc4-8e66-4840-bab7-8dfb07f3f72f",
+      "name": "Get many rows",
+      "credentials": {
+        "supabaseApi": {
+          "id": "A9eKqYoqXVu6lfZL",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        528
+      ],
+      "id": "02fff81a-8a11-48af-994c-870343fea29c",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "kauIVrwWH653mABd",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._destino_sheet }}",
+                    "rightValue": "CLIENTE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "rule-cliente"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cliente"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._destino_sheet }}",
+                    "rightValue": "SUPORTE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "rule-suporte"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "suporte"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._destino_sheet }}",
+                    "rightValue": "LOG",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "rule-log"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "log"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -336,
+        704
+      ],
+      "id": "a2ee6b19-764a-4b17-80c9-2b758d28546a",
+      "name": "Destino Sheet"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst raw = $input.item.json;\nconst d = (raw['0'] && typeof raw['0'] === 'object') ? raw['0'] : raw;\nconst tipo = (d.TIPO || '').toString().trim();\n\n// ── Categorias de eventos ─────────────────────────────────────────────────────\n// Alertas que vão para AMBAS as sheets (SUPORTE + CLIENTE)\nconst alertasAmbos = [\n  'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA',\n  'ALERTA_TENSAO_ALTA', 'ALERTA_TENSAO_BAIXA'\n];\n// Alertas que vão APENAS para SUPORTE\nconst alertasSoSuporte = [\n  'ALERTA_FALTA_ENERGIA', 'ENERGIA_RESTABELECIDA',\n  'ALERTA_BATERIA_BAIXA', 'BATERIA_NORMALIZADA',\n  'ALERTA_PORTA_ABERTA', 'PORTA_FECHADA'\n];\n\nconst tipoValido = tipo === 'relatorio_diario'\n  || tipo === 'periodico_suporte'\n  || alertasAmbos.includes(tipo)\n  || alertasSoSuporte.includes(tipo);\n\nif (!tipoValido) return [];\n\n// ── Campos normalizados ───────────────────────────────────────────────────────\nconst temp     = d.TEMP_ATUAL || d.temperatura || d.TEMP || '';\nconst voltagem = d.VOLTAGEM   || d.voltagem    || '';\nconst bateria  = d.BATERIA    || d.bateria     || '';\nconst hora     = d.HORA       || d.hora        || '';\nconst data_    = d.DATA       || d.data        || '';\nconst disp     = d.DISPOSITIVO|| d.dispositivo || '';\nconst maxV     = d.MAX        || d.max         || '';\nconst minV     = d.MIN        || d.min         || '';\nconst alarmMax = d.ALARM_MAX  || '?';\nconst alarmMin = d.ALARM_MIN  || '?';\nconst voltMax  = d.VOLT_MAX_LIMIT || '?';\nconst voltMin  = d.VOLT_MIN_LIMIT || '?';\nconst batMin   = d.BAT_MIN_LIMIT  || '?';\n\n// ── Observação descritiva do evento ──────────────────────────────────────────\nconst obsMap = {\n  'relatorio_diario':      'Relatório automático',\n  'periodico_suporte':     'Monitoramento horário',\n  'ALERTA_TEMP_ALTA':      `⚠️ Temperatura ALTA ${temp}°C (limite: ${alarmMax}°C)`,\n  'ALERTA_TEMP_BAIXA':     `⚠️ Temperatura BAIXA ${temp}°C (limite: ${alarmMin}°C)`,\n  'TEMP_NORMALIZADA':      `✅ Temperatura normalizada ${temp}°C`,\n  'ALERTA_TENSAO_ALTA':    `⚡ Tensão ALTA ${voltagem}V (limite: ${voltMax}V)`,\n  'ALERTA_TENSAO_BAIXA':   `⚡ Tensão BAIXA ${voltagem}V (limite: ${voltMin}V)`,\n  'ALERTA_FALTA_ENERGIA':  '🔌 Falta de energia detectada',\n  'ENERGIA_RESTABELECIDA': '✅ Energia restabelecida',\n  'ALERTA_BATERIA_BAIXA':  `🪫 Bateria baixa ${bateria}V (limite: ${batMin}V)`,\n  'BATERIA_NORMALIZADA':   `✅ Bateria normalizada ${bateria}V`,\n  'ALERTA_PORTA_ABERTA':   '🚪 Porta aberta detectada',\n  'PORTA_FECHADA':         '✅ Porta fechada',\n};\nconst obs = obsMap[tipo] || tipo;\n\n// ── Linha para sheet SUPORTE (dados completos de todos os sensores) ───────────\nconst linhaSuporte = {\n  _destino_sheet: 'SUPORTE',\n  HORA: hora, DATA: data_, DISPOSITIVO: disp, TIPO: tipo,\n  TEMP: temp, TEMP_AMBIENTE: d.TEMP_EXTERNA || '',\n  MAX: maxV, MIN: minV,\n  VOLTAGEM: voltagem, BATERIA: bateria,\n  OBS: obs\n};\n\n// ── Linha para sheet CLIENTE (dados de temperatura e limites) ─────────────────\nconst linhaCliente = {\n  _destino_sheet: 'CLIENTE',\n  HORA: hora, DATA: data_, DISPOSITIVO: disp,\n  TEMP: temp, MAX: maxV, MIN: minV, OBS: obs\n};\n\n// ── Roteamento ────────────────────────────────────────────────────────────────\n\n// periodico_suporte → apenas SUPORTE (todos os dados horários)\nif (tipo === 'periodico_suporte') {\n  return [{ json: linhaSuporte }];\n}\n\n// relatorio_diario (8h e 16h) → apenas CLIENTE\nif (tipo === 'relatorio_diario') {\n  return [{ json: linhaCliente }];\n}\n\n// Alertas de temp/tensão → SUPORTE + CLIENTE\nif (alertasAmbos.includes(tipo)) {\n  return [\n    { json: linhaSuporte },\n    { json: linhaCliente }\n  ];\n}\n\n// Demais alertas (energia, bateria, porta) → apenas SUPORTE\nreturn [{ json: linhaSuporte }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        704
+      ],
+      "id": "be998f34-bfd5-4834-a5ec-feb638c55183",
+      "name": "Filtro Gravacao"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst d = $json;\nconst remoteJid = d.REMOTE_JID || '';\nconst tipo = (d.TIPO || '').toString();\n\n// Build WhatsApp-formatted message from mapped Edit Fields data\nlet msg = '';\n\nif (tipo === 'STATUS_SOLICITADO') {\n  const temp    = d.temperatura || d.TEMP || d.TEMP_C || '?';\n  const max     = d.MAX || d.TEMP_MAX || '?';\n  const min     = d.MIN || d.TEMP_MIN || '?';\n  const volt    = d.VOLTAGEM || '';\n  const bat     = d.BATERIA || '';\n  const hora    = d.hora || '';\n  const dataStr = d.data || '';\n  const device  = d.device || 'Sensor';\n  const rssi    = d.RSSI || '';\n  const modo    = d.MODO || '';\n  const rele    = d.RELE;\n  const alMax   = d.ALARM_MAX || '';\n  const alMin   = d.ALARM_MIN || '';\n\n  msg  = `🌡️ *Status do Dispositivo*\\n`;\n  msg += `📱 *${device}*\\n`;\n  msg += `📅 ${dataStr}  🕰️ ${hora}\\n\\n`;\n  msg += `🌡️ Temperatura: *${temp}°C*\\n`;\n  msg += `📊 Hoje — Min: ${min}°C / Max: ${max}°C\\n\\n`;\n\n  if (volt && parseFloat(volt) > 0.1) msg += `⚡ Tensão: *${volt}V*\\n`;\n  if (bat)  msg += `🔋 Bateria: *${bat}V*\\n`;\n  if (rele !== '' && rele !== undefined) msg += `💡 Relé: *${rele ? 'LIGADO' : 'DESLIGADO'}*\\n`;\n  if (modo) msg += `⚙️ Modo: *${modo}*\\n`;\n  if (rssi) msg += `📶 Sinal WiFi: *${rssi} dBm*\\n`;\n\n} else if (tipo === 'DADOS_AMBIENTE') {\n  msg = d.msg || `🌍 *Dados Ambientais*\\n📅 ${d.data || ''} às ${d.hora || ''}`;\n}\n\nif (!msg) return [];\n\n// If we have a specific REMOTE_JID, send directly to that person\nif (remoteJid) {\n  return [{ json: { _destino: 'DIRETO', remoteJid, msg } }];\n}\n\n// No REMOTE_JID (firmware not yet updated): broadcast to all registered users\n// Pass to the next node which handles the numeros array\nconst numeros = d.numeros || d.numeross || [];\nreturn numeros.map(n => ({\n  json: { _destino: 'BROADCAST_UNIT', remoteJid: n.phone, msg }\n}));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        64
+      ],
+      "id": "55431963-457a-4593-8293-f77ef88f1b2d",
+      "name": "Formatar Resposta Direta"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor_temperatura",
+        "remoteJid": "={{ $json.remoteJid }}",
+        "messageText": "={{ $json.msg }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        384,
+        32
+      ],
+      "id": "13a84e55-8e54-4214-9b39-6904f1d390c9",
+      "name": "Enviar para Solicitante",
+      "credentials": {
+        "evolutionApi": {
+          "id": "NHEDVfcTkUKGhdah",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "smartrf",
+        "remoteJid": "={{ $json.remoteJid }} || +5581995981890",
+        "messageText": "={{ $json.msg }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        -144
+      ],
+      "id": "5fbc8655-3102-434c-9765-b93e931d8ce6",
+      "name": "Enviar Resposta Comando",
+      "credentials": {
+        "evolutionApi": {
+          "id": "NHEDVfcTkUKGhdah",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._tipo_resposta }}",
+                    "rightValue": "COMANDO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "tipo-cmd"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "comando"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._tipo_resposta }}",
+                    "rightValue": "SOLICITACAO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "tipo-sol"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "solicitacao"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._tipo_resposta }}",
+                    "rightValue": "TELEMETRIA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "tipo-tel"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "telemetria"
+            },
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -544,
+        192
+      ],
+      "id": "6b56f5de-4fe1-482c-bcba-fe4c37009a6d",
+      "name": "Tipo de Resposta"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst item = $input.first().json;\nconst tipo = (item.TIPO || '').toString();\nconst remoteJid = item.REMOTE_JID || item.REMOTE_jid || '';\n\n// ── Helpers ──────────────────────────────────────────────────\nconst fmt = (v, unit='') => (v !== undefined && v !== null && v !== '') ? `${v}${unit}` : '?';\n\n// ── TIPOS DE TELEMETRIA PERMITIDOS ────────────────────────────\nconst tiposTelemetriaPermitidos = [\n  'ALERTA_TEMP_ALTA',\n  'ALERTA_TEMP_BAIXA',\n  'TEMP_NORMALIZADA',\n  'ALERTA_TENSAO_ALTA',\n  'TENSAO_NORMALIZADA',\n  'ALERTA_TENSAO_BAIXA',\n  'ALERTA_BATERIA_BAIXA',\n  'BATERIA_NORMALIZADA',\n  'ALERTA_FALTA_ENERGIA',\n  'ENERGIA_RESTABELECIDA',\n  'ALERTA_PORTA_ABERTA',\n  'PORTA_FECHADA'\n];\n\n// ── CATEGORY 1: COMANDO – preformatted static messages ───────\nconst mensagensComando = {\n  'MANUTENCAO_ATIVADA':     '🔧 *Modo Manutenção ativado!*\\n\\nTodos alertas e relatórios foram suspensos.\\nO dispositivo está em manutenção.',\n  'MANUTENCAO_DESATIVADA':  '✅ *Modo Operacional restaurado!*\\n\\nO sistema voltou ao monitoramento automático.',\n  'EM_MANUTENCAO':          '⚠️ *Dispositivo em manutenção.*\\n\\nComandos bloqueados. Envie \\\"operacional\\\" para sair do modo manutenção.',\n  'ALARME_SILENCIADO':      '🔕 *Alarme silenciado.*\\n\\nOs alertas persistentes foram suspensos até normalização.',\n  'ERRO_NAO_AUTORIZADO':    '🚫 *Acesso negado.*\\n\\nVocê não tem permissão para executar este comando.',\n  'feedback_comando':        '✅ *Comando executado com sucesso.*',\n  'feedback_calibracao_sucesso':         '📏 *Calibração de tensão realizada com sucesso!*',\n  'feedback_calibracao_bateria':         '🔋 *Calibração de bateria realizada com sucesso!*',\n  'ALERTA_ERRO_CALIBRACAO_FATOR':        '❌ *Erro na calibração:* fator inválido.',\n  'ALERTA_ERRO_CALIBRACAO_TENSAO_BAIXA': '❌ *Erro na calibração:* tensão lida muito baixa.',\n};\n\n// ── feedback_configuracao ── exibe APENAS o que foi alterado ──\nif (tipo === 'feedback_configuracao') {\n  const alarmMax = fmt(item.ALARM_MAX, '°C');\n  const alarmMin = fmt(item.ALARM_MIN, '°C');\n  const voltMax  = fmt(item.VOLT_MAX_LIMIT, 'V');\n  const voltMin  = fmt(item.VOLT_MIN_LIMIT, 'V');\n  const batMin   = fmt(item.BAT_MIN_LIMIT, 'V');\n  const doorTime = fmt(item.DOOR_TIME, 's');\n\n  const campos = (item.CAMPOS_ALTERADOS || '').split(',').filter(c => c);\n  const mostrarTudo   = campos.length === 0;\n  const alterouTemp   = mostrarTudo || campos.some(c => c === 'ALARM');\n  const alterouTensao = mostrarTudo || campos.some(c => c === 'VOLT');\n  const alterouBat    = mostrarTudo || campos.some(c => c === 'BAT');\n  const alterouPorta  = mostrarTudo || campos.some(c => c === 'DOOR');\n\n  let msg = '⚙️ *Configuração atualizada!*\\n\\n';\n  if (alterouTemp)   msg += `🌡️ Temperatura: Mín ${alarmMin} / Máx ${alarmMax}\\n`;\n  if (alterouTensao && (voltMax !== '?V' || voltMin !== '?V')) msg += `⚡ Tensão: ${voltMin} – ${voltMax}\\n`;\n  if (alterouBat    && batMin !== '?V')   msg += `🔋 Bateria mín: ${batMin}\\n`;\n  if (alterouPorta  && doorTime !== '?s') msg += `🚪 Porta máx: ${doorTime}\\n`;\n\n  return [{ json: { _tipo_resposta: 'COMANDO', remoteJid, msg } }];\n}\n\nconst msgComando = mensagensComando[tipo];\n\n// Static COMANDO: requires REMOTE_JID\nif (msgComando && remoteJid) {\n  return [{ json: {\n    _tipo_resposta: 'COMANDO',\n    remoteJid,\n    msg: msgComando\n  }}];\n}\n\n// ── CATEGORY 2: SOLICITACAO – response to user data request ──\nconst tiposSolicitacao = ['STATUS_SOLICITADO', 'DADOS_AMBIENTE'];\nif (tiposSolicitacao.includes(tipo)) {\n  return [{ json: { _tipo_resposta: 'SOLICITACAO', ...item }}];\n}\n\n// ── CATEGORY 3: TELEMETRIA – apenas alertas permitidos ────────\nif (tiposTelemetriaPermitidos.includes(tipo)) {\n  return [{ json: { _tipo_resposta: 'TELEMETRIA', ...item }}];\n}\n\n// ── Qualquer outro tipo: descartar (não propaga) ──────────────\nreturn [];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -848,
+        208
+      ],
+      "id": "383e188c-a60b-48f2-a9e6-e1cbcbde641e",
+      "name": "Roteador de Resposta"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.floor(Math.random() * 271) + 30 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1152,
+        320
+      ],
+      "id": "81b551ab-1c07-4095-9180-2714cf37a578",
+      "name": "Wait Anti-Spam",
+      "webhookId": "b17a93cb-2e5d-4a88-bfe1-cc48fd7c1035"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "sensor",
+        "remoteJid": "={{ $json.phone.replace(/[^\\d]/g, '')}}",
+        "messageText": "={{ (() => { try { let out = $('AI Agent').first().json.output; if (!out) return $('Edit Fields').first().json.msg; out = out.replace(/```json/g, '').replace(/```/g, '').trim(); let parsed = JSON.parse(out); let r = $json.role || ($json.users && $json.users.role) || $json.perfil || ($json.users && $json.users.perfil) || 'user'; let role = String(r).toLowerCase(); let text = (role === 'gestor' || role === 'admin' || role === 'administrador') ? parsed.gestor : parsed.outro; if (typeof text === 'object') { text = Object.entries(text).map(([k,v]) => `${k}: ${v}`).join('\\n'); } return String(text); } catch(e) { let raw = $('AI Agent').first().json.output || $('Edit Fields').first().json.msg; return typeof raw === 'string' ? raw : JSON.stringify(raw); } })() }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        864,
+        240
+      ],
+      "id": "58230259-602c-41ed-90a1-9262d160d49c",
+      "name": "Enviar para Todos",
+      "credentials": {
+        "evolutionApi": {
+          "id": "JOVeCkm5OfC2REJw",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        880,
+        608
+      ],
+      "id": "7998a88a-8425-4c12-930b-2393695ac892",
+      "name": "Split Users Broadcast"
+    },
+    {
+      "parameters": {
+        "model": "openai/o3-mini",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        464
+      ],
+      "id": "7294c4da-f5d0-4335-bbe8-68bd5f6df3c5",
+      "name": "OpenRouter Chat Model"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.msg }}",
+        "options": {
+          "systemMessage": "=Você é um assistente profissional de monitoramento inteligente da SmartRF. Sua função é transformar dados técnicos do ESP32 em notificações claras, objetivas e profissionais para os usuários via WhatsApp.\n\nRetorne APENAS um objeto JSON válido com as chaves \"gestor\" e \"outro\". Os valores devem ser strings de texto com \\n para quebras de linha. Não inclua marcações de código, preamble ou qualquer texto fora do JSON.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nNOMES AMIGÁVEIS DOS EVENTOS\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nALERTA_TEMP_ALTA        → 🌡️🔴 Alerta: Temperatura Elevada\nALERTA_TEMP_BAIXA       → 🌡️🔵 Alerta: Temperatura Baixa\nTEMP_NORMALIZADA        → 🌡️✅ Temperatura Normalizada\nALERTA_TENSAO_ALTA      → ⚡🔴 Alerta: Sobretensão Detectada\nALERTA_TENSAO_BAIXA     → ⚡🔵 Alerta: Subtensão Detectada\nTENSAO_NORMALIZADA      → ⚡✅ Tensão Normalizada\nALERTA_BATERIA_BAIXA    → 🔋🪫 Alerta: Bateria Fraca\nBATERIA_NORMALIZADA     → 🔋✅ Bateria Normalizada\nALERTA_FALTA_ENERGIA    → 🔌🔴 Alerta: Falta de Energia\nENERGIA_RESTABELECIDA   → 🔌✅ Energia Restabelecida\nALERTA_PORTA_ABERTA     → 🚪🔴 Alerta: Porta Aberta\nPORTA_FECHADA           → 🚪✅ Porta Fechada\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nFORMATO \"gestor\" — Mensagem completa para gestores/admins\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n[NOME AMIGÁVEL DO EVENTO]\n━━━━━━━━━━━━━━━━━━━━━\n📱 Dispositivo: [DISPOSITIVO]\n🏢 Empresa: [EMPRESA]\n📅 Data/Hora: [DATA] às [HORA]\n━━━━━━━━━━━━━━━━━━━━━\n🌡️ Temperatura atual: [TEMP]°C\n[Se MAX e MIN não forem N/A → 📊 Faixa registrada: Mín [MIN]°C / Máx [MAX]°C]\n[Se VOLTAGEM disponível e > 0 → ⚡ Tensão: [VOLTAGEM]V]\n[Se BATERIA disponível → 🔋 Bateria: [BATERIA]V]\n[Se PORTA disponível → 🚪 Porta: [PORTA]]\n━━━━━━━━━━━━━━━━━━━━━\n📋 Situação: [1 frase técnica descrevendo o evento e sua implicação]\n[Se IS_REPEAT = true → ⚠️ Este alerta está ativo há mais de um ciclo de verificação.]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nFORMATO \"outro\" — Mensagem simplificada para usuários comuns\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n[NOME AMIGÁVEL DO EVENTO]\n━━━━━━━━━━━━━━━━━━━━━\n📱 [DISPOSITIVO] | [DATA] às [HORA]\n🌡️ Temperatura: [TEMP]°C\n[Se IS_REPEAT = true → ⚠️ Alerta persistente — situação ainda não normalizada.]\n━━━━━━━━━━━━━━━━━━━━━\n[1 frase simples e direta explicando o que está acontecendo ao usuário final]\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nREGRAS OBRIGATÓRIAS\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n- NUNCA use saudações como \"Olá\", \"Bom dia\", \"Prezado\"\n- NUNCA escreva campos com valor N/A, null, undefined ou vazio — simplesmente omita\n- Se o campo VOLTAGEM for 0 ou ausente, omita completamente\n- Se IS_REPEAT = true, inclua o aviso de alerta persistente em ambas as mensagens\n- Se o TIPO for \"periodico_suporte\" ou \"relatorio_diario\", retorne: {\"gestor\": \"IGNORAR\", \"outro\": \"IGNORAR\"}\n- O JSON de saída deve ser estritamente válido — sem vírgulas extras, sem campos undefined"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -208,
+        256
+      ],
+      "id": "be9562ee-9202-4d06-9823-8990bb6af40b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dc0ca98f-1d6d-4dbd-ad83-eedb7b235e5b",
+              "name": "device",
+              "value": "={{ $json['0'].DISPOSITIVO || 'N/A' }}",
+              "type": "string"
+            },
+            {
+              "id": "bafc55d8-c929-46d1-a195-c5fafdb3f7b3",
+              "name": "temperatura",
+              "value": "={{ $json['0'].TEMP }}",
+              "type": "number"
+            },
+            {
+              "id": "5e8d933f-f7f4-4005-a69d-ae9ded7730db",
+              "name": "hora",
+              "value": "={{ $json['0'].HORA }}",
+              "type": "string"
+            },
+            {
+              "id": "a1d8b7c4-0df9-4171-bb3c-521260ab5308",
+              "name": "data",
+              "value": "={{ $json['0'].DATA }}",
+              "type": "string"
+            },
+            {
+              "id": "6a269ce2-bf99-4198-bd20-2bb8251b4c6c",
+              "name": "msg",
+              "value": "=DISPOSITIVO: {{ $json['0'].DISPOSITIVO }}\nEMPRESA: {{ $json['0'].EMPRESA || 'N/A' }}\nTIPO: {{ $json['0'].TIPO }}\nIS_REPEAT: {{ $json['0'].IS_REPEAT }}\nTEMP: {{ $json['0'].TEMP }}\nMAX: {{ $json['0'].MAX || 'N/A' }}\nMIN: {{ $json['0'].MIN || 'N/A' }}\nVOLTAGEM: {{ $json['0'].VOLTAGEM || 'N/A' }}\nBATERIA: {{ $json['0'].BATERIA || 'N/A' }}\nPORTA: {{ $json['0'].PORTA || 'N/A' }}\nRELES: {{ JSON.stringify($json['0'].RELES) || 'N/A' }}\nDATA: {{ $json['0'].DATA }}\nHORA: {{ $json['0'].HORA }}",
+              "type": "string"
+            },
+            {
+              "id": "5ea428bd-5b17-41b6-9585-3e9edfaec822",
+              "name": "numeros",
+              "value": "[{ \"phone\": \"5581995981890\" }, { \"phone\": \"5581996678501\" }]",
+              "type": "array"
+            },
+            {
+              "id": "ef-tipo-field",
+              "name": "TIPO",
+              "value": "={{ $json['0'].TIPO || $json.TIPO || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-remote-jid",
+              "name": "REMOTE_JID",
+              "value": "={{ $json['0'].REMOTE_JID || $json['0'].REMOTE_jid || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-max",
+              "name": "MAX",
+              "value": "={{ $json['0'].MAX ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-min",
+              "name": "MIN",
+              "value": "={{ $json['0'].MIN ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-voltagem",
+              "name": "VOLTAGEM",
+              "value": "={{ $json['0'].VOLTAGEM || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-bateria",
+              "name": "BATERIA",
+              "value": "={{ $json['0'].BATERIA || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-rssi",
+              "name": "RSSI",
+              "value": "={{ $json['0'].RSSI || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-modo",
+              "name": "MODO",
+              "value": "={{ $json['0'].MODO || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-rele",
+              "name": "RELE",
+              "value": "={{ $json['0'].RELE ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-alarm-max",
+              "name": "ALARM_MAX",
+              "value": "={{ $json['0'].ALARM_MAX || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-alarm-min",
+              "name": "ALARM_MIN",
+              "value": "={{ $json['0'].ALARM_MIN || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-volt_max_limit",
+              "name": "VOLT_MAX_LIMIT",
+              "value": "={{ $json['0'].VOLT_MAX_LIMIT || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-volt_min_limit",
+              "name": "VOLT_MIN_LIMIT",
+              "value": "={{ $json['0'].VOLT_MIN_LIMIT || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-bat_min_limit",
+              "name": "BAT_MIN_LIMIT",
+              "value": "={{ $json['0'].BAT_MIN_LIMIT  || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-door_time",
+              "name": "DOOR_TIME",
+              "value": "={{ $json['0'].DOOR_TIME       || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-campos-alterados",
+              "name": "CAMPOS_ALTERADOS",
+              "value": "={{ $json['0'].CAMPOS_ALTERADOS || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-temp-externa",
+              "name": "TEMP_EXTERNA",
+              "value": "={{ $json['0'].TEMP_EXTERNA || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ef-umidade",
+              "name": "UMIDADE",
+              "value": "={{ $json['0'].UMIDADE || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "1b6abcc2-c21f-4713-aea4-93d81607b809",
+              "name": "ID_DISPOSITIVO",
+              "value": "={{ $json['0'].ID_DISPOSITIVO }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1024,
+        208
+      ],
+      "id": "4ea24655-e917-4219-a267-61c8db1d26a5",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "topics": "esp32c3/data",
+        "options": {
+          "jsonParseBody": true,
+          "onlyMessage": true
+        }
+      },
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        208
+      ],
+      "id": "5ebc1cfc-872b-4e4d-8708-c31c099f1bd5",
+      "name": "MQTT Trigger",
+      "credentials": {
+        "mqtt": {
+          "id": "36pFyToAdHdyHdEW",
+          "name": "MQTT account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "55f46922-3837-4b95-a226-72439c086d79",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "IGNORAR",
+              "operator": {
+                "type": "string",
+                "operation": "notContains",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        32,
+        608
+      ],
+      "id": "4db0e4d1-cb61-45a4-9e7b-cfc335f05365",
+      "name": "Filtro de Alerta WhatsApp"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Filtro Gravacao": {
+      "main": [
+        [
+          {
+            "node": "Destino Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Resposta Direta": {
+      "main": [
+        [
+          {
+            "node": "Enviar para Solicitante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tipo de Resposta": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Formatar Resposta Direta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Roteador de Resposta": {
+      "main": [
+        [
+          {
+            "node": "Tipo de Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sem numero": {
+      "main": [
+        [
+          {
+            "node": "Enviar para Todos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split Users Broadcast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar para Todos": {
+      "main": [
+        [
+          {
+            "node": "Wait Anti-Spam",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "Split Users Broadcast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait Anti-Spam": {
+      "main": [
+        [
+          {
+            "node": "Split Users Broadcast",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Users Broadcast": {
+      "main": [
+        [],
+        [
+          {
+            "node": "sem numero",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Filtro de Alerta WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro de Alerta WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Filtro Gravacao",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Roteador de Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MQTT Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c9301c3b-25ef-4c8f-802a-238492fed941",
+  "meta": {
+    "instanceId": "5443fd5bdc9d3431927382ec8e5c304fa67a6b82f67ab279705a022736db3f0d"
+  },
+  "id": "DL7Ew4uU6DSdpaMJ",
+  "tags": []
+}
