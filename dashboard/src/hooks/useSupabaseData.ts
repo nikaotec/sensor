@@ -109,14 +109,23 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
             }
 
             const hist: { time: string; value: number; timestamp?: string }[] = [];
+            let lastAddedHour = -1;
+
             for (const row of (data || [])) {
-                const [h, m] = row.hora_registro.split(':');
-                if (m !== '00') continue;
-                hist.push({
-                    time: `${h}:00`,
-                    value: Number(row.temperature) ?? 0,
-                    timestamp: row.timestamp ?? undefined
-                });
+                if (!row.hora_registro) continue;
+
+                const [hStr] = row.hora_registro.split(':');
+                const h = parseInt(hStr, 10);
+
+                if (!isNaN(h) && h !== lastAddedHour) {
+                    lastAddedHour = h;
+                    // Add only the first record for each hour block
+                    hist.push({
+                        time: `${hStr}:00`,
+                        value: Number(row.temperature) ?? 0,
+                        timestamp: row.timestamp ?? undefined
+                    });
+                }
             }
             setHistory(hist);
         };
