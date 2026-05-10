@@ -89,7 +89,6 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
                 .from('telemetry')
                 .select('data_registro, hora_registro, temperature, timestamp, mensage_tipo')
                 .gte('data_registro', yesterdayStr)
-                .in('mensage_tipo', ['periodico', 'relatorio_diario'])
                 .order('data_registro', { ascending: true })
                 .order('hora_registro', { ascending: true });
 
