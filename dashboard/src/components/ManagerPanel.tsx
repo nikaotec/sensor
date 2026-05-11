@@ -58,6 +58,30 @@ const formatPhone = (value: string): string => {
 
 // handlePhoneChange removido para simplificação e correção de erro de foco
 
+// Sincroniza o telefone do usuário na tabela users_devices (usada pelo n8n para alertas WhatsApp)
+const syncPhoneToUsersDevices = async (
+    userId: string,
+    phone: string | null,
+    receiveNotifications: boolean
+): Promise<void> => {
+    const phoneClean = phone?.trim() || null;
+    if (phoneClean) {
+        // Upsert: insere ou atualiza a linha do usuário (device_id=null = todos os dispositivos)
+        await supabase.from('users_devices').upsert({
+            user_id: userId,
+            device_id: null,
+            phone: phoneClean,
+            receive_notifications: receiveNotifications,
+            updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,device_id' });
+    } else {
+        // Sem telefone: remove o usuário da lista de alertas
+        await supabase.from('users_devices').delete()
+            .eq('user_id', userId)
+            .is('device_id', null);
+    }
+};
+
 interface ManagerPanelProps {
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel') => void;
 }
@@ -186,6 +210,9 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
 
             if (error) throw error;
 
+            // 3. Sincronizar telefone na tabela users_devices (para alertas WhatsApp via n8n)
+            await syncPhoneToUsersDevices(uid, newUserWhatsapp || null, newUserReceiveWhatsapp);
+
             setGeneratedCredentials({ email: newUserEmail.toLowerCase(), pass: randomPass });
             showMessage('success', `Usuário ${newUserName} provisionado com sucesso!`);
 
@@ -282,7 +309,10 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                 console.warn('Falha ao excluir no Firebase Auth:', fbResult.error);
             }
 
-            // 2. Exclui no Supabase
+            // 2. Remove da tabela users_devices (alertas WhatsApp)
+            await supabase.from('users_devices').delete().eq('user_id', userId);
+
+            // 3. Exclui no Supabase
             const { error } = await supabase.from('users').delete().eq('id', userId);
             if (error) throw error;
 
@@ -325,6 +355,10 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
             }).eq('id', editingUser.id);
 
             if (error) throw error;
+
+            // Sincronizar telefone na tabela users_devices (para alertas WhatsApp via n8n)
+            await syncPhoneToUsersDevices(editingUser.id, editUserWhatsapp || null, editUserReceiveWhatsapp);
+
             showMessage('success', `Usuário ${editUserName} atualizado com sucesso!`);
             setEditingUser(null);
         } catch (err: any) {
