@@ -159,8 +159,16 @@
         <th>Máx</th>
         <th>Mín</th>
         <th>Atual</th>
-        <th>Tensão</th>
-        <th>Bateria</th>
+        {{ (() => {
+          const selected = $json.selected_variables || ['temperature', 'voltage', 'battery'];
+          let cols = '';
+          if (selected.includes('temp_ext')) cols += '<th>Temp Ext</th>';
+          if (selected.includes('humidity')) cols += '<th>Umidade</th>';
+          if (selected.includes('voltage')) cols += '<th>Tensão</th>';
+          if (selected.includes('battery')) cols += '<th>Bateria</th>';
+          if (selected.includes('door_open')) cols += '<th>Porta</th>';
+          return cols;
+        })() }}
       </tr>
     </thead>
     <tbody>
@@ -173,6 +181,8 @@
             return Number(m[1]);
           };
 
+          const selected = $json.selected_variables || ['temperature', 'voltage', 'battery'];
+
           const dados = ($json.relatorio || [])
             .map(linha => ({
               dia: (linha.DATA || '').split('/')[0] || '',
@@ -182,6 +192,9 @@
               min: linha.MIN ?? linha.MINIMA ?? linha.tempMin ?? linha.TEMP_MIN ?? linha.TEMPMIN ?? linha['TEMP MIN'] ?? linha['TEMP_MIN'] ?? '',
               tensao: linha.TENSAO ?? linha.VOLTAGEM ?? linha.VOLTAGE ?? '',
               bateria: linha.BATERIA ?? linha.BATTERY ?? linha.PERCENTUAL ?? '',
+              temp_ext: linha.TEMP_EXT ?? linha.TEMP_EXTERNA ?? '',
+              umid: linha.UMID ?? linha.UMIDADE ?? linha.HUMIDITY ?? '',
+              porta: linha.PORTA ?? linha.DOOR ?? linha.door_open ?? '',
               obs: linha.OBS ?? linha.OBSERVACAO ?? '',
               rubrica: linha.RUBRICA ?? linha.RUBRICA_MANHA ?? linha.RUBRICA_TARDE ?? '',
               hourNum: toHour(linha.HORA)
@@ -198,8 +211,11 @@
               <td>${linha.max}</td>
               <td>${linha.min}</td>
               <td>${linha.atual}</td>
-              <td>${linha.tensao}</td>
-              <td>${linha.bateria}</td>
+              ${selected.includes('temp_ext') ? `<td>${linha.temp_ext || '--'}</td>` : ''}
+              ${selected.includes('humidity') ? `<td>${linha.umid || '--'}</td>` : ''}
+              ${selected.includes('voltage') ? `<td>${linha.tensao || '--'}</td>` : ''}
+              ${selected.includes('battery') ? `<td>${linha.bateria || '--'}</td>` : ''}
+              ${selected.includes('door_open') ? `<td>${linha.porta || '--'}</td>` : ''}
             </tr>
           `).join('');
         })()
