@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Calendar, FileText, BarChart2, CheckCircle2, Clock, Building2, Cpu } from 'lucide-react';
 import type { ReportForm } from '../../hooks/useReportGenerator';
+import { validateReportSelection } from '../../utils/reportValidation';
 
 // Tipo leve para dispositivos passados ao modal
 interface DeviceOption {
@@ -288,38 +289,40 @@ const SelectorBar: React.FC<{
     availableTenants: any[];
     devices: DeviceOption[];
     currentUser: any;
-}> = ({ form, setForm, availableTenants, devices, currentUser }) => {
+    errors: { tenant?: string; device?: string };
+}> = ({ form, setForm, availableTenants, devices, currentUser, errors }) => {
     const isPrivileged =
         currentUser?.role === 'admin' ||
         currentUser?.role === 'manager' ||
         currentUser?.role === 'gestor';
 
-    // Dispositivos filtrados pela empresa selecionada
-    const filteredDevices = form.tenant_id
-        ? devices.filter(d => d.tenantId === form.tenant_id)
+    // Dispositivos filtrados pela empresa selecionada (ou exibidos normalmente se não for privilegiado)
+    const filteredDevices = isPrivileged
+        ? (form.tenant_id ? devices.filter(d => d.tenantId === form.tenant_id) : [])
         : devices;
 
-    if (!isPrivileged) return null;
-
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5 p-4 bg-[#0F110D]/40 rounded-2xl border border-[#2A2E24]">
+        <div className={`grid grid-cols-1 ${isPrivileged ? 'md:grid-cols-2' : ''} gap-4 mb-5 p-4 bg-[#0F110D]/40 rounded-2xl border border-[#2A2E24]`}>
             {/* Empresa */}
-            <div>
-                <label className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
-                    <Building2 size={10} />
-                    Empresa
-                </label>
-                <select
-                    value={form.tenant_id}
-                    onChange={(e) => setForm(prev => ({ ...prev, tenant_id: e.target.value, device_id: '' }))}
-                    className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition-all"
-                >
-                    <option value="">Todas as Empresas</option>
-                    {availableTenants.map(t => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                </select>
-            </div>
+            {isPrivileged && (
+                <div>
+                    <label className="flex items-center gap-1.5 text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">
+                        <Building2 size={10} />
+                        Empresa
+                    </label>
+                    <select
+                        value={form.tenant_id}
+                        onChange={(e) => setForm(prev => ({ ...prev, tenant_id: e.target.value, device_id: '' }))}
+                        className={`w-full bg-[#0F110D] border ${errors.tenant ? 'border-red-500' : 'border-[#2A2E24]'} rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition-all`}
+                    >
+                        <option value="">-- Selecione uma Empresa --</option>
+                        {availableTenants.map(t => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                    </select>
+                    {errors.tenant && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.tenant}</p>}
+                </div>
+            )}
 
             {/* Dispositivo */}
             <div>
@@ -330,13 +333,14 @@ const SelectorBar: React.FC<{
                 <select
                     value={form.device_id}
                     onChange={(e) => setForm(prev => ({ ...prev, device_id: e.target.value }))}
-                    className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition-all"
+                    className={`w-full bg-[#0F110D] border ${errors.device ? 'border-red-500' : 'border-[#2A2E24]'} rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition-all`}
                 >
-                    <option value="">Geral (Todos os Dispositivos)</option>
+                    <option value="">-- Selecione um Dispositivo --</option>
                     {filteredDevices.map(d => (
                         <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                 </select>
+                {errors.device && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.device}</p>}
             </div>
         </div>
     );
@@ -371,7 +375,14 @@ const ReportModal: React.FC<ReportModalProps> = ({
 }) => {
     if (!show) return null;
 
-    const canGenerate = !generatingReport && (reportForm.selected_variables?.length ?? 0) > 0;
+    const isPrivileged =
+        currentUser?.role === 'admin' ||
+        currentUser?.role === 'manager' ||
+        currentUser?.role === 'gestor';
+
+    const { isValid, errors } = validateReportSelection(reportForm.tenant_id, reportForm.device_id, isPrivileged);
+
+    const canGenerate = !generatingReport && (reportForm.selected_variables?.length ?? 0) > 0 && isValid;
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
@@ -395,13 +406,14 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
                 {/* Corpo */}
                 <div className="p-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                    {/* Seletor de Empresa + Dispositivo — apenas para admin/manager */}
+                    {/* Seletor de Empresa + Dispositivo */}
                     <SelectorBar
                         form={reportForm}
                         setForm={setReportForm}
                         availableTenants={availableTenants}
                         devices={supabaseDevices}
                         currentUser={currentUser}
+                        errors={errors}
                     />
 
                     {/* 3 quadros: Rosa, Verde, Azul */}

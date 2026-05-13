@@ -17,7 +17,8 @@ import {
     UserPlus
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { provisionFirebaseUser, generateRandomPassword, deleteFirebaseUser } from '../services/firebaseAuth';
+import { provisionFirebaseUser, generateRandomPassword } from '../services/firebaseAuth';
+import { deleteUserCompletely } from '../services/userService';
 
 // Máscara de telefone: +55 81 99999-9999
 const formatPhone = (value: string): string => {
@@ -176,23 +177,10 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
         if (!window.confirm(`Tem certeza que deseja remover o acesso de ${userEmail}?`)) return;
 
         try {
-            // 1. Tenta excluir no Firebase via Webhook primeiro
-            // Se falhar o webhook, ainda tentamos excluir no DB para não travar a UI, 
-            // mas o ideal é que o webhook funcione.
-            const fbResult = await deleteFirebaseUser(userId);
-            if (!fbResult.success) {
-                console.warn('Falha ao excluir no Firebase Auth:', fbResult.error);
-                // Opcional: Impedir exclusão se o Firebase falhar? 
-                // Por enquanto apenas logamos para não bloquear se o n8n estiver offline.
+            const result = await deleteUserCompletely(userId);
+            if (result.warning) {
+                console.warn('Aviso durante a exclusão:', result.warning);
             }
-
-            // 2. Remove da tabela users_devices (alertas WhatsApp)
-            await supabase.from('users_devices').delete().eq('user_id', userId);
-
-            // 3. Exclui no Supabase
-            const { error } = await supabase.from('users').delete().eq('id', userId);
-            if (error) throw error;
-
             showMessage('success', 'Usuário removido do sistema (Dashboard e Firebase).');
         } catch (err: any) {
             showMessage('error', `Erro ao remover usuário: ${err.message}`);

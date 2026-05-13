@@ -47,6 +47,9 @@ app.use('/api/n8n', n8nProxy);
 // =============================================
 // Admin Direct Actions: Firebase Auth
 // =============================================
+app.use(cors());
+app.use(express.json());
+
 app.post('/api/admin/delete-user', async (req, res) => {
   const { uid } = req.body;
   if (!uid || typeof uid !== 'string' || uid.length < 5) {
@@ -75,9 +78,7 @@ app.post('/api/admin/delete-user', async (req, res) => {
   }
 });
 
-app.use(cors());
-app.use(express.json());
-
+// Middlewares were moved up
 // CSP headers for fonts and resources
 app.use((req, res, next) => {
   res.setHeader(

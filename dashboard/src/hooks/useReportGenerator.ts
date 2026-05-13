@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../supabase/config';
+import { validateReportSelection } from '../utils/reportValidation';
 
 // Chave de persistência no localStorage para horários do relatório Diário
 const DAILY_HOURS_KEY = 'nikaotec_daily_report_hours';
@@ -125,6 +126,14 @@ export const useReportGenerator = (
 
 
     const handleGenerateReport = async () => {
+        const isPrivileged = userRole === 'admin' || userRole === 'manager' || userRole === 'gestor';
+        const { isValid } = validateReportSelection(reportForm.tenant_id, reportForm.device_id, isPrivileged);
+
+        if (!isValid) {
+            alert('Por favor, selecione uma Empresa e um Dispositivo obrigatórios.');
+            return;
+        }
+
         const selectedTenant = availableTenants.find(t => t.id === reportForm.tenant_id) || (currentTenant.id !== 'all' ? currentTenant : null);
         const tenantId = selectedTenant?.id;
         const companyName = selectedTenant?.name || 'Geral';

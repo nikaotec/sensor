@@ -6,7 +6,8 @@ import {
     createUserWithEmailAndPassword,
     signOut,
     GoogleAuthProvider,
-    signInWithPopup
+    signInWithPopup,
+    updatePassword
 } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../firebase/config';
@@ -29,6 +30,7 @@ interface AuthContextType {
     loginWithGoogle: () => Promise<void>;
     signup: (email: string, pass: string, name: string) => Promise<void>;
     logout: () => Promise<void>;
+    changePassword: (newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -206,8 +208,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         await signOut(auth);
     };
 
+    const changePassword = async (newPassword: string) => {
+        if (!auth.currentUser) throw new Error("Usuário não autenticado no Firebase");
+        await updatePassword(auth.currentUser, newPassword);
+    };
+
     return (
-        <AuthContext.Provider value={{ currentUser, firebaseUser, loading, login, loginWithGoogle, signup, logout }}>
+        <AuthContext.Provider value={{ currentUser, firebaseUser, loading, login, loginWithGoogle, signup, logout, changePassword }}>
             {children}
         </AuthContext.Provider>
     );

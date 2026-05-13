@@ -4,7 +4,8 @@ import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useMqttData } from '../hooks/useMqttData';
 import { useSupabaseData, useUsers } from '../hooks/useSupabaseData';
-import { provisionFirebaseUser, generateRandomPassword, deleteFirebaseUser } from '../services/firebaseAuth';
+import { provisionFirebaseUser, generateRandomPassword } from '../services/firebaseAuth';
+import { deleteUserCompletely } from '../services/userService';
 import {
     Building2,
     UserPlus,
@@ -303,19 +304,10 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         if (!window.confirm(`Deseja realmente excluir o usuário ${userEmail}? Esta ação é IRREVERSÍVEL.`)) return;
 
         try {
-            // 1. Tenta excluir no Firebase via Webhook primeiro
-            const fbResult = await deleteFirebaseUser(userId);
-            if (!fbResult.success) {
-                console.warn('Falha ao excluir no Firebase Auth:', fbResult.error);
+            const result = await deleteUserCompletely(userId);
+            if (result.warning) {
+                console.warn('Aviso durante a exclusão:', result.warning);
             }
-
-            // 2. Remove da tabela users_devices (alertas WhatsApp)
-            await supabase.from('users_devices').delete().eq('user_id', userId);
-
-            // 3. Exclui no Supabase
-            const { error } = await supabase.from('users').delete().eq('id', userId);
-            if (error) throw error;
-
             showMessage('success', `Usuário ${userEmail} removido do sistema e Firebase.`);
         } catch (err: any) {
             showMessage('error', `Erro ao remover usuário: ${err.message}`);

@@ -84,10 +84,22 @@ export const deleteFirebaseUser = async (uid: string) => {
         });
 
         if (!response.ok) {
-            throw new Error(`Erro no webhook: ${response.statusText}`);
+            let errorText = response.statusText;
+            try {
+                const data = await response.json();
+                if (data.error) errorText = data.error;
+            } catch (e) {
+                // Ignore parse errors if response doesn't have json
+            }
+            throw new Error(`Erro na API de exclusão: ${errorText}`);
         }
 
-        return { success: true };
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Falha ao deletar do Firebase Auth');
+        }
+
+        return { success: true, warning: data.warning };
     } catch (error: any) {
         console.error('Erro ao solicitar exclusão no Firebase:', error);
         return { success: false, error: error.message };
