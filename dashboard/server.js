@@ -7,8 +7,38 @@ import { fileURLToPath } from 'url';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import admin from 'firebase-admin';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const execAsync = promisify(exec);
+
+// Inicialização do Firebase Admin SDK
+// Nota: Requer variáveis de ambiente FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL e FIREBASE_PRIVATE_KEY
+const { FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY } = process.env;
+
+if (FIREBASE_PROJECT_ID && FIREBASE_CLIENT_EMAIL && FIREBASE_PRIVATE_KEY) {
+  try {
+    // Verifica se a chave parece uma chave privada real (e não uma API Key do front)
+    if (!FIREBASE_PRIVATE_KEY.includes('BEGIN PRIVATE KEY')) {
+      throw new Error('A FIREBASE_PRIVATE_KEY não parece ser uma chave de Conta de Serviço (deve começar com "-----BEGIN PRIVATE KEY-----")');
+    }
+
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: FIREBASE_PROJECT_ID,
+        clientEmail: FIREBASE_CLIENT_EMAIL,
+        privateKey: FIREBASE_PRIVATE_KEY.includes('\\n') ? FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : FIREBASE_PRIVATE_KEY,
+      }),
+    });
+    console.log('🔥 [Firebase Admin] Inicializado com sucesso.');
+  } catch (error) {
+    console.error('❌ [Firebase Admin] Erro de inicialização (servidor continuará rodando sem exclusão direta):', error.message);
+  }
+} else {
+  console.warn('⚠️ [Firebase Admin] Variáveis de ambiente faltando (ID, Email ou Key). Exclusão direta não funcionará.');
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,8 +80,10 @@ app.use('/api/n8n', n8nProxy);
 app.use(cors());
 app.use(express.json());
 
+// Rota para exclusão de usuário via Firebase Admin SDK
 app.post('/api/admin/delete-user', async (req, res) => {
   const { uid } = req.body;
+
   if (!uid || typeof uid !== 'string' || uid.length < 5) {
     return res.status(400).json({ success: false, error: 'UID inválido' });
   }
@@ -59,24 +91,23 @@ app.post('/api/admin/delete-user', async (req, res) => {
   console.log(`🗑️ [Admin] Solicitando exclusão do UID: ${uid}`);
 
   try {
-    // Executa o comando firebase CLI para deletar o usuário
-    // Usa --force para não pedir confirmação e --project para garantir o contexto
-    const { stdout, stderr } = await execAsync(`firebase auth:delete --uid "${uid}" --project smartrf-iot-dashboard --force`);
-
+    // Tenta deletar usando o SDK Admin
+    await admin.auth().deleteUser(uid);
     console.log(`✅ [Admin] Usuário ${uid} deletado do Firebase!`);
-    if (stdout) console.log('Firebase CLI output:', stdout);
-    if (stderr) console.warn('Firebase CLI dynamic warning:', stderr);
-
     res.json({ success: true });
   } catch (error) {
     console.error('❌ [Admin] Erro ao deletar no Firebase:', error.message);
-    // Se o erro for "user not found", consideramos sucesso (já sumiu)
-    if (error.message.includes('auth/user-not-found') || error.message.includes('no user found')) {
+
+    // Trata erro de usuário não encontrado como sucesso (idempotência)
+    if (error.code === 'auth/user-not-found') {
       return res.json({ success: true, warning: 'Usuário já não existia no Firebase' });
     }
+
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Endpoints depreciados ou removidos movidos para webhooks n8n por segurança e modularidade.
 
 // Middlewares were moved up
 // CSP headers for fonts and resources

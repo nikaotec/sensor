@@ -25,7 +25,7 @@ echo "Build concluído."
 
 # --- 2. Compactar os arquivos (dist e server.js) --- 
 echo "Compactando arquivos para deploy..."
-tar -czvf "${ARCHIVE_NAME}" "${BUILD_DIR}" server.js package.json
+tar -czvf "${ARCHIVE_NAME}" "${BUILD_DIR}" server.js package.json .env
 echo "Compactação concluída: ${ARCHIVE_NAME}"
 
 # --- 3. Copiar o arquivo compactado para a VPS --- 
@@ -51,7 +51,8 @@ ssh "${REMOTE_USER}@${REMOTE_HOST}" << EOF
   echo "Removendo arquivo compactado remoto: ${ARCHIVE_NAME}"
   rm "${ARCHIVE_NAME}"
 
-  echo "Reiniciando a aplicação PM2: ${APP_NAME}"
+  echo "Instalando dependências e reiniciando a aplicação PM2: ${APP_NAME}"
+  rm -rf node_modules && npm install --omit=dev
   pm2 restart "${APP_NAME}"
   echo "Deploy concluído na VPS."
 EOF

@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test": "vitest run",
-    "deploy": "npm run build && tar -czvf dashboard.tar.gz dist server.js package.json && scp dashboard.tar.gz root@109.123.240.215:/var/www/nikaotech && ssh root@109.123.240.215 \"cd /var/www/nikaotech && tar -xzvf dashboard.tar.gz && rm dashboard.tar.gz && pm2 restart dashboard\"",
+    "deploy": "npm run build && tar -czvf dashboard.tar.gz dist server.js package.json .env && scp dashboard.tar.gz root@109.123.240.215:/var/www/nikaotech && ssh root@109.123.240.215 \"cd /var/www/nikaotech && tar -xzvf dashboard.tar.gz && rm dashboard.tar.gz && rm -rf node_modules && npm install --omit=dev && pm2 restart dashboard\"",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -17,8 +17,10 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "firebase": "^12.10.0",
+    "firebase-admin": "^13.9.0",
     "framer-motion": "^12.35.2",
     "http-proxy-middleware": "^3.0.3",
     "lucide-react": "^0.575.0",

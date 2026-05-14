@@ -29,22 +29,33 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        224,
-        192
+        32,
+        976
       ],
-      "id": "0ebab9b2-8c0a-488f-8287-f92f28590577",
+      "id": "051a7334-da07-4037-9041-a41225a22e31",
       "name": "sem numero"
     },
     {
       "parameters": {
         "operation": "getAll",
         "tableId": "users_devices",
+        "matchType": "allFilters",
         "filters": {
           "conditions": [
             {
               "keyName": "device_id",
               "condition": "eq",
               "keyValue": "={{ $('MQTT Trigger').item.json['0'].ID_DISPOSITIVO }}"
+            },
+            {
+              "keyName": "phone",
+              "condition": "neq",
+              "keyValue": "null"
+            },
+            {
+              "keyName": "receive_notifications",
+              "condition": "eq",
+              "keyValue": "TRUE"
             }
           ]
         }
@@ -52,10 +63,10 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        352,
-        608
+        160,
+        1392
       ],
-      "id": "c54f0dc4-8e66-4840-bab7-8dfb07f3f72f",
+      "id": "a6ba6328-1d34-4b1a-955e-07a6b2d79c80",
       "name": "Get many rows",
       "credentials": {
         "supabaseApi": {
@@ -147,36 +158,36 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        -336,
-        704
+        -528,
+        1488
       ],
-      "id": "a2ee6b19-764a-4b17-80c9-2b758d28546a",
+      "id": "3ec03565-1427-46e4-a120-44e7a77ebb8a",
       "name": "Destino Sheet"
     },
     {
       "parameters": {
-        "jsCode": "\nconst raw = $input.item.json;\nconst d = (raw['0'] && typeof raw['0'] === 'object') ? raw['0'] : raw;\nconst tipo = (d.TIPO || '').toString().trim();\n\n// \u2500\u2500 Categorias de eventos \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n// Alertas que v\u00e3o para AMBAS as sheets (SUPORTE + CLIENTE)\nconst alertasAmbos = [\n  'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA',\n  'ALERTA_TENSAO_ALTA', 'ALERTA_TENSAO_BAIXA'\n];\n// Alertas que v\u00e3o APENAS para SUPORTE\nconst alertasSoSuporte = [\n  'ALERTA_FALTA_ENERGIA', 'ENERGIA_RESTABELECIDA',\n  'ALERTA_BATERIA_BAIXA', 'BATERIA_NORMALIZADA',\n  'ALERTA_PORTA_ABERTA', 'PORTA_FECHADA'\n];\n\nconst tipoValido = tipo === 'relatorio_diario'\n  || tipo === 'periodico_suporte'\n  || alertasAmbos.includes(tipo)\n  || alertasSoSuporte.includes(tipo);\n\nif (!tipoValido) return [];\n\n// \u2500\u2500 Campos normalizados \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst temp     = d.TEMP_ATUAL || d.temperatura || d.TEMP || '';\nconst voltagem = d.VOLTAGEM   || d.voltagem    || '';\nconst bateria  = d.BATERIA    || d.bateria     || '';\nconst hora     = d.HORA       || d.hora        || '';\nconst data_    = d.DATA       || d.data        || '';\nconst disp     = d.DISPOSITIVO|| d.dispositivo || '';\nconst maxV     = d.MAX        || d.max         || '';\nconst minV     = d.MIN        || d.min         || '';\nconst alarmMax = d.ALARM_MAX  || '?';\nconst alarmMin = d.ALARM_MIN  || '?';\nconst voltMax  = d.VOLT_MAX_LIMIT || '?';\nconst voltMin  = d.VOLT_MIN_LIMIT || '?';\nconst batMin   = d.BAT_MIN_LIMIT  || '?';\n\n// \u2500\u2500 Observa\u00e7\u00e3o descritiva do evento \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst obsMap = {\n  'relatorio_diario':      'Relat\u00f3rio autom\u00e1tico',\n  'periodico_suporte':     'Monitoramento hor\u00e1rio',\n  'ALERTA_TEMP_ALTA':      `\u26a0\ufe0f Temperatura ALTA ${temp}\u00b0C (limite: ${alarmMax}\u00b0C)`,\n  'ALERTA_TEMP_BAIXA':     `\u26a0\ufe0f Temperatura BAIXA ${temp}\u00b0C (limite: ${alarmMin}\u00b0C)`,\n  'TEMP_NORMALIZADA':      `\u2705 Temperatura normalizada ${temp}\u00b0C`,\n  'ALERTA_TENSAO_ALTA':    `\u26a1 Tens\u00e3o ALTA ${voltagem}V (limite: ${voltMax}V)`,\n  'ALERTA_TENSAO_BAIXA':   `\u26a1 Tens\u00e3o BAIXA ${voltagem}V (limite: ${voltMin}V)`,\n  'ALERTA_FALTA_ENERGIA':  '\ud83d\udd0c Falta de energia detectada',\n  'ENERGIA_RESTABELECIDA': '\u2705 Energia restabelecida',\n  'ALERTA_BATERIA_BAIXA':  `\ud83e\udeab Bateria baixa ${bateria}V (limite: ${batMin}V)`,\n  'BATERIA_NORMALIZADA':   `\u2705 Bateria normalizada ${bateria}V`,\n  'ALERTA_PORTA_ABERTA':   '\ud83d\udeaa Porta aberta detectada',\n  'PORTA_FECHADA':         '\u2705 Porta fechada',\n};\nconst obs = obsMap[tipo] || tipo;\n\n// \u2500\u2500 Linha para sheet SUPORTE (dados completos de todos os sensores) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst linhaSuporte = {\n  _destino_sheet: 'SUPORTE',\n  HORA: hora, DATA: data_, DISPOSITIVO: disp, TIPO: tipo,\n  TEMP: temp, TEMP_AMBIENTE: d.TEMP_EXTERNA || '',\n  MAX: maxV, MIN: minV,\n  VOLTAGEM: voltagem, BATERIA: bateria,\n  OBS: obs\n};\n\n// \u2500\u2500 Linha para sheet CLIENTE (dados de temperatura e limites) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst linhaCliente = {\n  _destino_sheet: 'CLIENTE',\n  HORA: hora, DATA: data_, DISPOSITIVO: disp,\n  TEMP: temp, MAX: maxV, MIN: minV, OBS: obs\n};\n\n// \u2500\u2500 Roteamento \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n\n// periodico_suporte \u2192 apenas SUPORTE (todos os dados hor\u00e1rios)\nif (tipo === 'periodico_suporte') {\n  return [{ json: linhaSuporte }];\n}\n\n// relatorio_diario (8h e 16h) \u2192 apenas CLIENTE\nif (tipo === 'relatorio_diario') {\n  return [{ json: linhaCliente }];\n}\n\n// Alertas de temp/tens\u00e3o \u2192 SUPORTE + CLIENTE\nif (alertasAmbos.includes(tipo)) {\n  return [\n    { json: linhaSuporte },\n    { json: linhaCliente }\n  ];\n}\n\n// Demais alertas (energia, bateria, porta) \u2192 apenas SUPORTE\nreturn [{ json: linhaSuporte }];\n"
+        "jsCode": "\nconst raw = $input.item.json;\nconst d = (raw['0'] && typeof raw['0'] === 'object') ? raw['0'] : raw;\nconst tipo = (d.TIPO || '').toString().trim();\n\n// ── Categorias de eventos ─────────────────────────────────────────────────────\n// Alertas que vão para AMBAS as sheets (SUPORTE + CLIENTE)\nconst alertasAmbos = [\n  'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA',\n  'ALERTA_TENSAO_ALTA', 'ALERTA_TENSAO_BAIXA'\n];\n// Alertas que vão APENAS para SUPORTE\nconst alertasSoSuporte = [\n  'ALERTA_FALTA_ENERGIA', 'ENERGIA_RESTABELECIDA',\n  'ALERTA_BATERIA_BAIXA', 'BATERIA_NORMALIZADA',\n  'ALERTA_PORTA_ABERTA', 'PORTA_FECHADA'\n];\n\nconst tipoValido = tipo === 'relatorio_diario'\n  || tipo === 'periodico_suporte'\n  || alertasAmbos.includes(tipo)\n  || alertasSoSuporte.includes(tipo);\n\nif (!tipoValido) return [];\n\n// ── Campos normalizados ───────────────────────────────────────────────────────\nconst temp     = d.TEMP_ATUAL || d.temperatura || d.TEMP || '';\nconst voltagem = d.VOLTAGEM   || d.voltagem    || '';\nconst bateria  = d.BATERIA    || d.bateria     || '';\nconst hora     = d.HORA       || d.hora        || '';\nconst data_    = d.DATA       || d.data        || '';\nconst disp     = d.DISPOSITIVO|| d.dispositivo || '';\nconst maxV     = d.MAX        || d.max         || '';\nconst minV     = d.MIN        || d.min         || '';\nconst alarmMax = d.ALARM_MAX  || '?';\nconst alarmMin = d.ALARM_MIN  || '?';\nconst voltMax  = d.VOLT_MAX_LIMIT || '?';\nconst voltMin  = d.VOLT_MIN_LIMIT || '?';\nconst batMin   = d.BAT_MIN_LIMIT  || '?';\n\n// ── Observação descritiva do evento ──────────────────────────────────────────\nconst obsMap = {\n  'relatorio_diario':      'Relatório automático',\n  'periodico_suporte':     'Monitoramento horário',\n  'ALERTA_TEMP_ALTA':      `⚠️ Temperatura ALTA ${temp}°C (limite: ${alarmMax}°C)`,\n  'ALERTA_TEMP_BAIXA':     `⚠️ Temperatura BAIXA ${temp}°C (limite: ${alarmMin}°C)`,\n  'TEMP_NORMALIZADA':      `✅ Temperatura normalizada ${temp}°C`,\n  'ALERTA_TENSAO_ALTA':    `⚡ Tensão ALTA ${voltagem}V (limite: ${voltMax}V)`,\n  'ALERTA_TENSAO_BAIXA':   `⚡ Tensão BAIXA ${voltagem}V (limite: ${voltMin}V)`,\n  'ALERTA_FALTA_ENERGIA':  '🔌 Falta de energia detectada',\n  'ENERGIA_RESTABELECIDA': '✅ Energia restabelecida',\n  'ALERTA_BATERIA_BAIXA':  `🪫 Bateria baixa ${bateria}V (limite: ${batMin}V)`,\n  'BATERIA_NORMALIZADA':   `✅ Bateria normalizada ${bateria}V`,\n  'ALERTA_PORTA_ABERTA':   '🚪 Porta aberta detectada',\n  'PORTA_FECHADA':         '✅ Porta fechada',\n};\nconst obs = obsMap[tipo] || tipo;\n\n// ── Linha para sheet SUPORTE (dados completos de todos os sensores) ───────────\nconst linhaSuporte = {\n  _destino_sheet: 'SUPORTE',\n  HORA: hora, DATA: data_, DISPOSITIVO: disp, TIPO: tipo,\n  TEMP: temp, TEMP_AMBIENTE: d.TEMP_EXTERNA || '',\n  MAX: maxV, MIN: minV,\n  VOLTAGEM: voltagem, BATERIA: bateria,\n  OBS: obs\n};\n\n// ── Linha para sheet CLIENTE (dados de temperatura e limites) ─────────────────\nconst linhaCliente = {\n  _destino_sheet: 'CLIENTE',\n  HORA: hora, DATA: data_, DISPOSITIVO: disp,\n  TEMP: temp, MAX: maxV, MIN: minV, OBS: obs\n};\n\n// ── Roteamento ────────────────────────────────────────────────────────────────\n\n// periodico_suporte → apenas SUPORTE (todos os dados horários)\nif (tipo === 'periodico_suporte') {\n  return [{ json: linhaSuporte }];\n}\n\n// relatorio_diario (8h e 16h) → apenas CLIENTE\nif (tipo === 'relatorio_diario') {\n  return [{ json: linhaCliente }];\n}\n\n// Alertas de temp/tensão → SUPORTE + CLIENTE\nif (alertasAmbos.includes(tipo)) {\n  return [\n    { json: linhaSuporte },\n    { json: linhaCliente }\n  ];\n}\n\n// Demais alertas (energia, bateria, porta) → apenas SUPORTE\nreturn [{ json: linhaSuporte }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -544,
-        704
+        -736,
+        1488
       ],
-      "id": "be998f34-bfd5-4834-a5ec-feb638c55183",
+      "id": "efc831f5-0307-4e4b-ab0a-8088bd315a07",
       "name": "Filtro Gravacao"
     },
     {
       "parameters": {
-        "jsCode": "\nconst d = $json;\nconst remoteJid = d.REMOTE_JID || '';\nconst tipo = (d.TIPO || '').toString();\n\n// Build WhatsApp-formatted message from mapped Edit Fields data\nlet msg = '';\n\nif (tipo === 'STATUS_SOLICITADO') {\n  const temp    = d.temperatura || d.TEMP || d.TEMP_C || '?';\n  const max     = d.MAX || d.TEMP_MAX || '?';\n  const min     = d.MIN || d.TEMP_MIN || '?';\n  const volt    = d.VOLTAGEM || '';\n  const bat     = d.BATERIA || '';\n  const hora    = d.hora || '';\n  const dataStr = d.data || '';\n  const device  = d.device || 'Sensor';\n  const rssi    = d.RSSI || '';\n  const modo    = d.MODO || '';\n  const rele    = d.RELE;\n  const alMax   = d.ALARM_MAX || '';\n  const alMin   = d.ALARM_MIN || '';\n\n  msg  = `\ud83c\udf21\ufe0f *Status do Dispositivo*\\n`;\n  msg += `\ud83d\udcf1 *${device}*\\n`;\n  msg += `\ud83d\udcc5 ${dataStr}  \ud83d\udd70\ufe0f ${hora}\\n\\n`;\n  msg += `\ud83c\udf21\ufe0f Temperatura: *${temp}\u00b0C*\\n`;\n  msg += `\ud83d\udcca Hoje \u2014 Min: ${min}\u00b0C / Max: ${max}\u00b0C\\n\\n`;\n\n  if (volt && parseFloat(volt) > 0.1) msg += `\u26a1 Tens\u00e3o: *${volt}V*\\n`;\n  if (bat)  msg += `\ud83d\udd0b Bateria: *${bat}V*\\n`;\n  if (rele !== '' && rele !== undefined) msg += `\ud83d\udca1 Rel\u00e9: *${rele ? 'LIGADO' : 'DESLIGADO'}*\\n`;\n  if (modo) msg += `\u2699\ufe0f Modo: *${modo}*\\n`;\n  if (rssi) msg += `\ud83d\udcf6 Sinal WiFi: *${rssi} dBm*\\n`;\n\n} else if (tipo === 'DADOS_AMBIENTE') {\n  msg = d.msg || `\ud83c\udf0d *Dados Ambientais*\\n\ud83d\udcc5 ${d.data || ''} \u00e0s ${d.hora || ''}`;\n}\n\nif (!msg) return [];\n\n// If we have a specific REMOTE_JID, send directly to that person\nif (remoteJid) {\n  return [{ json: { _destino: 'DIRETO', remoteJid, msg } }];\n}\n\n// No REMOTE_JID (firmware not yet updated): broadcast to all registered users\n// Pass to the next node which handles the numeros array\nconst numeros = d.numeros || d.numeross || [];\nreturn numeros.map(n => ({\n  json: { _destino: 'BROADCAST_UNIT', remoteJid: n.phone, msg }\n}));\n"
+        "jsCode": "\nconst d = $json;\nconst remoteJid = d.REMOTE_JID || '';\nconst tipo = (d.TIPO || '').toString();\n\n// Build WhatsApp-formatted message from mapped Edit Fields data\nlet msg = '';\n\nif (tipo === 'STATUS_SOLICITADO') {\n  const temp    = d.temperatura || d.TEMP || d.TEMP_C || '?';\n  const max     = d.MAX || d.TEMP_MAX || '?';\n  const min     = d.MIN || d.TEMP_MIN || '?';\n  const volt    = d.VOLTAGEM || '';\n  const bat     = d.BATERIA || '';\n  const hora    = d.hora || '';\n  const dataStr = d.data || '';\n  const device  = d.device || 'Sensor';\n  const rssi    = d.RSSI || '';\n  const modo    = d.MODO || '';\n  const rele    = d.RELE;\n  const alMax   = d.ALARM_MAX || '';\n  const alMin   = d.ALARM_MIN || '';\n\n  msg  = `🌡️ *Status do Dispositivo*\\n`;\n  msg += `📱 *${device}*\\n`;\n  msg += `📅 ${dataStr}  🕰️ ${hora}\\n\\n`;\n  msg += `🌡️ Temperatura: *${temp}°C*\\n`;\n  msg += `📊 Hoje — Min: ${min}°C / Max: ${max}°C\\n\\n`;\n\n  if (volt && parseFloat(volt) > 0.1) msg += `⚡ Tensão: *${volt}V*\\n`;\n  if (bat)  msg += `🔋 Bateria: *${bat}V*\\n`;\n  if (rele !== '' && rele !== undefined) msg += `💡 Relé: *${rele ? 'LIGADO' : 'DESLIGADO'}*\\n`;\n  if (modo) msg += `⚙️ Modo: *${modo}*\\n`;\n  if (rssi) msg += `📶 Sinal WiFi: *${rssi} dBm*\\n`;\n\n} else if (tipo === 'DADOS_AMBIENTE') {\n  msg = d.msg || `🌍 *Dados Ambientais*\\n📅 ${d.data || ''} às ${d.hora || ''}`;\n}\n\nif (!msg) return [];\n\n// If we have a specific REMOTE_JID, send directly to that person\nif (remoteJid) {\n  return [{ json: { _destino: 'DIRETO', remoteJid, msg } }];\n}\n\n// No REMOTE_JID (firmware not yet updated): broadcast to all registered users\n// Pass to the next node which handles the numeros array\nconst numeros = d.numeros || d.numeross || [];\nreturn numeros.map(n => ({\n  json: { _destino: 'BROADCAST_UNIT', remoteJid: n.phone, msg }\n}));\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        16,
-        64
+        -176,
+        848
       ],
-      "id": "55431963-457a-4593-8293-f77ef88f1b2d",
+      "id": "861e181f-5a0d-4d47-889a-1877ab2d1c0a",
       "name": "Formatar Resposta Direta"
     },
     {
@@ -190,14 +201,14 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        384,
-        32
+        192,
+        816
       ],
-      "id": "13a84e55-8e54-4214-9b39-6904f1d390c9",
+      "id": "0145448f-536b-4b4b-a629-8f3dcbf3e3c8",
       "name": "Enviar para Solicitante",
       "credentials": {
         "evolutionApi": {
-          "id": "NHEDVfcTkUKGhdah",
+          "id": "JOVeCkm5OfC2REJw",
           "name": "Evolution account"
         }
       }
@@ -213,14 +224,14 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        -48,
-        -144
+        -240,
+        640
       ],
-      "id": "5fbc8655-3102-434c-9765-b93e931d8ce6",
+      "id": "b3fc9c3d-0422-4c5d-8e67-0f58d82f5692",
       "name": "Enviar Resposta Comando",
       "credentials": {
         "evolutionApi": {
-          "id": "NHEDVfcTkUKGhdah",
+          "id": "JOVeCkm5OfC2REJw",
           "name": "Evolution account"
         }
       }
@@ -309,36 +320,36 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
       "position": [
-        -544,
-        192
+        -736,
+        976
       ],
-      "id": "6b56f5de-4fe1-482c-bcba-fe4c37009a6d",
+      "id": "1afe8e07-e56a-45e9-a1f9-3bb844bc132c",
       "name": "Tipo de Resposta"
     },
     {
       "parameters": {
-        "jsCode": "\nconst item = $input.first().json;\nconst tipo = (item.TIPO || '').toString();\nconst remoteJid = item.REMOTE_JID || item.REMOTE_jid || '';\n\n// \u2500\u2500 Helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst fmt = (v, unit='') => (v !== undefined && v !== null && v !== '') ? `${v}${unit}` : '?';\n\n// \u2500\u2500 TIPOS DE TELEMETRIA PERMITIDOS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst tiposTelemetriaPermitidos = [\n  'ALERTA_TEMP_ALTA',\n  'ALERTA_TEMP_BAIXA',\n  'TEMP_NORMALIZADA',\n  'ALERTA_TENSAO_ALTA',\n  'TENSAO_NORMALIZADA',\n  'ALERTA_TENSAO_BAIXA',\n  'ALERTA_BATERIA_BAIXA',\n  'BATERIA_NORMALIZADA',\n  'ALERTA_FALTA_ENERGIA',\n  'ENERGIA_RESTABELECIDA',\n  'ALERTA_PORTA_ABERTA',\n  'PORTA_FECHADA'\n];\n\n// \u2500\u2500 CATEGORY 1: COMANDO \u2013 preformatted static messages \u2500\u2500\u2500\u2500\u2500\u2500\u2500\nconst mensagensComando = {\n  'MANUTENCAO_ATIVADA':     '\ud83d\udd27 *Modo Manuten\u00e7\u00e3o ativado!*\\n\\nTodos alertas e relat\u00f3rios foram suspensos.\\nO dispositivo est\u00e1 em manuten\u00e7\u00e3o.',\n  'MANUTENCAO_DESATIVADA':  '\u2705 *Modo Operacional restaurado!*\\n\\nO sistema voltou ao monitoramento autom\u00e1tico.',\n  'EM_MANUTENCAO':          '\u26a0\ufe0f *Dispositivo em manuten\u00e7\u00e3o.*\\n\\nComandos bloqueados. Envie \\\"operacional\\\" para sair do modo manuten\u00e7\u00e3o.',\n  'ALARME_SILENCIADO':      '\ud83d\udd15 *Alarme silenciado.*\\n\\nOs alertas persistentes foram suspensos at\u00e9 normaliza\u00e7\u00e3o.',\n  'ERRO_NAO_AUTORIZADO':    '\ud83d\udeab *Acesso negado.*\\n\\nVoc\u00ea n\u00e3o tem permiss\u00e3o para executar este comando.',\n  'feedback_comando':        '\u2705 *Comando executado com sucesso.*',\n  'feedback_calibracao_sucesso':         '\ud83d\udccf *Calibra\u00e7\u00e3o de tens\u00e3o realizada com sucesso!*',\n  'feedback_calibracao_bateria':         '\ud83d\udd0b *Calibra\u00e7\u00e3o de bateria realizada com sucesso!*',\n  'ALERTA_ERRO_CALIBRACAO_FATOR':        '\u274c *Erro na calibra\u00e7\u00e3o:* fator inv\u00e1lido.',\n  'ALERTA_ERRO_CALIBRACAO_TENSAO_BAIXA': '\u274c *Erro na calibra\u00e7\u00e3o:* tens\u00e3o lida muito baixa.',\n};\n\n// \u2500\u2500 feedback_configuracao \u2500\u2500 exibe APENAS o que foi alterado \u2500\u2500\nif (tipo === 'feedback_configuracao') {\n  const alarmMax = fmt(item.ALARM_MAX, '\u00b0C');\n  const alarmMin = fmt(item.ALARM_MIN, '\u00b0C');\n  const voltMax  = fmt(item.VOLT_MAX_LIMIT, 'V');\n  const voltMin  = fmt(item.VOLT_MIN_LIMIT, 'V');\n  const batMin   = fmt(item.BAT_MIN_LIMIT, 'V');\n  const doorTime = fmt(item.DOOR_TIME, 's');\n\n  const campos = (item.CAMPOS_ALTERADOS || '').split(',').filter(c => c);\n  const mostrarTudo   = campos.length === 0;\n  const alterouTemp   = mostrarTudo || campos.some(c => c === 'ALARM');\n  const alterouTensao = mostrarTudo || campos.some(c => c === 'VOLT');\n  const alterouBat    = mostrarTudo || campos.some(c => c === 'BAT');\n  const alterouPorta  = mostrarTudo || campos.some(c => c === 'DOOR');\n\n  let msg = '\u2699\ufe0f *Configura\u00e7\u00e3o atualizada!*\\n\\n';\n  if (alterouTemp)   msg += `\ud83c\udf21\ufe0f Temperatura: M\u00edn ${alarmMin} / M\u00e1x ${alarmMax}\\n`;\n  if (alterouTensao && (voltMax !== '?V' || voltMin !== '?V')) msg += `\u26a1 Tens\u00e3o: ${voltMin} \u2013 ${voltMax}\\n`;\n  if (alterouBat    && batMin !== '?V')   msg += `\ud83d\udd0b Bateria m\u00edn: ${batMin}\\n`;\n  if (alterouPorta  && doorTime !== '?s') msg += `\ud83d\udeaa Porta m\u00e1x: ${doorTime}\\n`;\n\n  return [{ json: { _tipo_resposta: 'COMANDO', remoteJid, msg } }];\n}\n\nconst msgComando = mensagensComando[tipo];\n\n// Static COMANDO: requires REMOTE_JID\nif (msgComando && remoteJid) {\n  return [{ json: {\n    _tipo_resposta: 'COMANDO',\n    remoteJid,\n    msg: msgComando\n  }}];\n}\n\n// \u2500\u2500 CATEGORY 2: SOLICITACAO \u2013 response to user data request \u2500\u2500\nconst tiposSolicitacao = ['STATUS_SOLICITADO', 'DADOS_AMBIENTE'];\nif (tiposSolicitacao.includes(tipo)) {\n  return [{ json: { _tipo_resposta: 'SOLICITACAO', ...item }}];\n}\n\n// \u2500\u2500 CATEGORY 3: TELEMETRIA \u2013 apenas alertas permitidos \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nif (tiposTelemetriaPermitidos.includes(tipo)) {\n  return [{ json: { _tipo_resposta: 'TELEMETRIA', ...item }}];\n}\n\n// \u2500\u2500 Qualquer outro tipo: descartar (n\u00e3o propaga) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\nreturn [];\n"
+        "jsCode": "\nconst item = $input.first().json;\nconst tipo = (item.TIPO || '').toString();\nconst remoteJid = item.REMOTE_JID || item.REMOTE_jid || '';\n\n// ── Helpers ──────────────────────────────────────────────────\nconst fmt = (v, unit='') => (v !== undefined && v !== null && v !== '') ? `${v}${unit}` : '?';\n\n// ── TIPOS DE TELEMETRIA PERMITIDOS ────────────────────────────\nconst tiposTelemetriaPermitidos = [\n  'ALERTA_TEMP_ALTA',\n  'ALERTA_TEMP_BAIXA',\n  'TEMP_NORMALIZADA',\n  'ALERTA_TENSAO_ALTA',\n  'TENSAO_NORMALIZADA',\n  'ALERTA_TENSAO_BAIXA',\n  'ALERTA_BATERIA_BAIXA',\n  'BATERIA_NORMALIZADA',\n  'ALERTA_FALTA_ENERGIA',\n  'ENERGIA_RESTABELECIDA',\n  'ALERTA_PORTA_ABERTA',\n  'PORTA_FECHADA'\n];\n\n// ── CATEGORY 1: COMANDO – preformatted static messages ───────\nconst mensagensComando = {\n  'MANUTENCAO_ATIVADA':     '🔧 *Modo Manutenção ativado!*\\n\\nTodos alertas e relatórios foram suspensos.\\nO dispositivo está em manutenção.',\n  'MANUTENCAO_DESATIVADA':  '✅ *Modo Operacional restaurado!*\\n\\nO sistema voltou ao monitoramento automático.',\n  'EM_MANUTENCAO':          '⚠️ *Dispositivo em manutenção.*\\n\\nComandos bloqueados. Envie \\\"operacional\\\" para sair do modo manutenção.',\n  'ALARME_SILENCIADO':      '🔕 *Alarme silenciado.*\\n\\nOs alertas persistentes foram suspensos até normalização.',\n  'ERRO_NAO_AUTORIZADO':    '🚫 *Acesso negado.*\\n\\nVocê não tem permissão para executar este comando.',\n  'feedback_comando':        '✅ *Comando executado com sucesso.*',\n  'feedback_calibracao_sucesso':         '📏 *Calibração de tensão realizada com sucesso!*',\n  'feedback_calibracao_bateria':         '🔋 *Calibração de bateria realizada com sucesso!*',\n  'ALERTA_ERRO_CALIBRACAO_FATOR':        '❌ *Erro na calibração:* fator inválido.',\n  'ALERTA_ERRO_CALIBRACAO_TENSAO_BAIXA': '❌ *Erro na calibração:* tensão lida muito baixa.',\n};\n\n// ── feedback_configuracao ── exibe APENAS o que foi alterado ──\nif (tipo === 'feedback_configuracao') {\n  const alarmMax = fmt(item.ALARM_MAX, '°C');\n  const alarmMin = fmt(item.ALARM_MIN, '°C');\n  const voltMax  = fmt(item.VOLT_MAX_LIMIT, 'V');\n  const voltMin  = fmt(item.VOLT_MIN_LIMIT, 'V');\n  const batMin   = fmt(item.BAT_MIN_LIMIT, 'V');\n  const doorTime = fmt(item.DOOR_TIME, 's');\n\n  const campos = (item.CAMPOS_ALTERADOS || '').split(',').filter(c => c);\n  const mostrarTudo   = campos.length === 0;\n  const alterouTemp   = mostrarTudo || campos.some(c => c === 'ALARM');\n  const alterouTensao = mostrarTudo || campos.some(c => c === 'VOLT');\n  const alterouBat    = mostrarTudo || campos.some(c => c === 'BAT');\n  const alterouPorta  = mostrarTudo || campos.some(c => c === 'DOOR');\n\n  let msg = '⚙️ *Configuração atualizada!*\\n\\n';\n  if (alterouTemp)   msg += `🌡️ Temperatura: Mín ${alarmMin} / Máx ${alarmMax}\\n`;\n  if (alterouTensao && (voltMax !== '?V' || voltMin !== '?V')) msg += `⚡ Tensão: ${voltMin} – ${voltMax}\\n`;\n  if (alterouBat    && batMin !== '?V')   msg += `🔋 Bateria mín: ${batMin}\\n`;\n  if (alterouPorta  && doorTime !== '?s') msg += `🚪 Porta máx: ${doorTime}\\n`;\n\n  return [{ json: { _tipo_resposta: 'COMANDO', remoteJid, msg } }];\n}\n\nconst msgComando = mensagensComando[tipo];\n\n// Static COMANDO: requires REMOTE_JID\nif (msgComando && remoteJid) {\n  return [{ json: {\n    _tipo_resposta: 'COMANDO',\n    remoteJid,\n    msg: msgComando\n  }}];\n}\n\n// ── CATEGORY 2: SOLICITACAO – response to user data request ──\nconst tiposSolicitacao = ['STATUS_SOLICITADO', 'DADOS_AMBIENTE'];\nif (tiposSolicitacao.includes(tipo)) {\n  return [{ json: { _tipo_resposta: 'SOLICITACAO', ...item }}];\n}\n\n// ── CATEGORY 3: TELEMETRIA – apenas alertas permitidos ────────\nif (tiposTelemetriaPermitidos.includes(tipo)) {\n  return [{ json: { _tipo_resposta: 'TELEMETRIA', ...item }}];\n}\n\n// ── Qualquer outro tipo: descartar (não propaga) ──────────────\nreturn [];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -848,
-        208
+        -1040,
+        992
       ],
-      "id": "383e188c-a60b-48f2-a9e6-e1cbcbde641e",
+      "id": "e13ffa6f-a6a0-47bf-80f6-6a48784847e7",
       "name": "Roteador de Resposta"
     },
     {
       "parameters": {
-        "amount": "={{ Math.floor(Math.random() * 271) + 30 }}"
+        "amount": "={{ Math.floor(Math.random() * 45) + 10 }}"
       },
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        1152,
-        320
+        960,
+        1104
       ],
-      "id": "81b551ab-1c07-4095-9180-2714cf37a578",
+      "id": "e2de16fa-54bc-4670-9d49-57600a5cca5c",
       "name": "Wait Anti-Spam",
       "webhookId": "b17a93cb-2e5d-4a88-bfe1-cc48fd7c1035"
     },
@@ -353,10 +364,10 @@
       "type": "n8n-nodes-evolution-api.evolutionApi",
       "typeVersion": 1,
       "position": [
-        864,
-        240
+        672,
+        1024
       ],
-      "id": "58230259-602c-41ed-90a1-9262d160d49c",
+      "id": "fa70c0f8-49d3-46cd-ae59-7a64bb5ad01b",
       "name": "Enviar para Todos",
       "credentials": {
         "evolutionApi": {
@@ -372,10 +383,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        880,
-        608
+        688,
+        1392
       ],
-      "id": "7998a88a-8425-4c12-930b-2393695ac892",
+      "id": "df3b9e52-7778-44ea-ab28-284e621bf5bd",
       "name": "Split Users Broadcast"
     },
     {
@@ -539,10 +550,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1024,
-        208
+        -1216,
+        992
       ],
-      "id": "4ea24655-e917-4219-a267-61c8db1d26a5",
+      "id": "04132788-f444-4cfd-8a47-3cfba5552720",
       "name": "Edit Fields"
     },
     {
@@ -556,10 +567,10 @@
       "type": "n8n-nodes-base.mqttTrigger",
       "typeVersion": 1,
       "position": [
-        -1200,
-        208
+        -1392,
+        992
       ],
-      "id": "5ebc1cfc-872b-4e4d-8708-c31c099f1bd5",
+      "id": "90567285-90e7-4ce6-913c-69dcfbda0568",
       "name": "MQTT Trigger",
       "credentials": {
         "mqtt": {
@@ -596,23 +607,23 @@
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.2,
       "position": [
-        32,
-        608
+        -160,
+        1392
       ],
-      "id": "4db0e4d1-cb61-45a4-9e7b-cfc335f05365",
+      "id": "c5f1a2e7-bf2c-4254-b9f1-e07e4f7706be",
       "name": "Filtro de Alerta WhatsApp"
     },
     {
       "parameters": {
-        "jsCode": "\nconst d = $json;\nconst tipo = d.TIPO || '';\nconst is_repeat = d.IS_REPEAT === true || String(d.IS_REPEAT).toLowerCase() === 'true';\n\nconst device = d.device || d.DISPOSITIVO || 'N/A';\nconst dataStr = d.data || d.DATA || '';\nconst hora = d.hora || d.HORA || '';\nconst temp = d.temperatura || d.TEMP || '';\nconst max = d.MAX || 'N/A';\nconst min = d.MIN || 'N/A';\nconst volt = d.VOLTAGEM || 'N/A';\nconst bat = d.BATERIA || 'N/A';\nconst porta = d.PORTA || 'N/A';\n\nconst titulos = {\n  'ALERTA_TEMP_ALTA': '\ud83c\udf21\ufe0f\ud83d\udd34 Alerta: Temperatura Elevada',\n  'ALERTA_TEMP_BAIXA': '\ud83c\udf21\ufe0f\ud83d\udd35 Alerta: Temperatura Baixa',\n  'TEMP_NORMALIZADA': '\ud83c\udf21\ufe0f\u2705 Temperatura Normalizada',\n  'ALERTA_TENSAO_ALTA': '\u26a1\ud83d\udd34 Alerta: Sobretens\u00e3o Detectada',\n  'ALERTA_TENSAO_BAIXA': '\u26a1\ud83d\udd35 Alerta: Subtens\u00e3o Detectada',\n  'TENSAO_NORMALIZADA': '\u26a1\u2705 Tens\u00e3o Normalizada',\n  'ALERTA_BATERIA_BAIXA': '\ud83d\udd0b\ud83e\udeab Alerta: Bateria Fraca',\n  'BATERIA_NORMALIZADA': '\ud83d\udd0b\u2705 Bateria Normalizada',\n  'ALERTA_FALTA_ENERGIA': '\ud83d\udd0c\ud83d\udd34 Alerta: Falta de Energia',\n  'ENERGIA_RESTABELECIDA': '\ud83d\udd0c\u2705 Energia Restabelecida',\n  'ALERTA_PORTA_ABERTA': '\ud83d\udeaa\ud83d\udd34 Alerta: Porta Aberta',\n  'PORTA_FECHADA': '\ud83d\udeaa\u2705 Porta Fechada'\n};\n\nlet titulo = titulos[tipo] || `\u26a0\ufe0f ${tipo}`;\n\nif (tipo === 'periodico_suporte' || tipo === 'relatorio_diario') {\n  return [{ json: { output: '{\"gestor\": \"IGNORAR\", \"outro\": \"IGNORAR\"}' } }];\n}\n\nlet gestor = `${titulo}\\n\\n\ud83d\udcf1 Dispositivo: ${device}\\n\ud83d\udcc5 ${dataStr} \u00e0s ${hora}\\n\\n`;\n\nif (tipo.includes('TEMP')) {\n    gestor += `\ud83c\udf21\ufe0f Temperatura atual: ${temp}\u00b0C\\n`;\n    if (min !== 'N/A' && max !== 'N/A' && min !== '' && max !== '') {\n        gestor += `\ud83d\udcca Limites: ${min}\u00b0C m\u00edn / ${max}\u00b0C m\u00e1x\\n`;\n    }\n} else if (tipo.includes('TENSAO') || tipo.includes('ENERGIA')) {\n    if (volt !== 'N/A' && parseFloat(volt) > 0) gestor += `\u26a1 Tens\u00e3o: ${volt}V\\n`;\n} else if (tipo.includes('BATERIA')) {\n    if (bat !== 'N/A' && bat !== '') gestor += `\ud83d\udd0b Bateria: ${bat}V\\n`;\n} else if (tipo.includes('PORTA')) {\n    if (porta !== 'N/A' && porta !== '') gestor += `\ud83d\udeaa Porta: ${porta}\\n`;\n} else {\n    if (temp !== '') gestor += `\ud83c\udf21\ufe0f Temperatura atual: ${temp}\u00b0C\\n`;\n    if (volt !== 'N/A' && parseFloat(volt) > 0) gestor += `\u26a1 Tens\u00e3o: ${volt}V\\n`;\n    if (bat !== 'N/A' && bat !== '') gestor += `\ud83d\udd0b Bateria: ${bat}V\\n`;\n}\n\nif (is_repeat) gestor += `\\n\u26a0\ufe0f Alerta persistente`;\n\nlet outro = gestor;\nlet parsed = { gestor, outro };\n\nreturn [{ json: { output: JSON.stringify(parsed) } }];\n"
+        "jsCode": "\nconst d = $json;\nconst tipo = d.TIPO || '';\nconst is_repeat = d.IS_REPEAT === true || String(d.IS_REPEAT).toLowerCase() === 'true';\n\nconst device = d.device || d.DISPOSITIVO || 'N/A';\nconst dataStr = d.data || d.DATA || '';\nconst hora = d.hora || d.HORA || '';\nconst temp = d.temperatura || d.TEMP || '';\nconst max = d.MAX || 'N/A';\nconst min = d.MIN || 'N/A';\nconst volt = d.VOLTAGEM || 'N/A';\nconst bat = d.BATERIA || 'N/A';\nconst porta = d.PORTA || 'N/A';\n\nconst titulos = {\n  'ALERTA_TEMP_ALTA': '🌡️🔴 Alerta: Temperatura Elevada',\n  'ALERTA_TEMP_BAIXA': '🌡️🔵 Alerta: Temperatura Baixa',\n  'TEMP_NORMALIZADA': '🌡️✅ Temperatura Normalizada',\n  'ALERTA_TENSAO_ALTA': '⚡🔴 Alerta: Sobretensão Detectada',\n  'ALERTA_TENSAO_BAIXA': '⚡🔵 Alerta: Subtensão Detectada',\n  'TENSAO_NORMALIZADA': '⚡✅ Tensão Normalizada',\n  'ALERTA_BATERIA_BAIXA': '🔋🪫 Alerta: Bateria Fraca',\n  'BATERIA_NORMALIZADA': '🔋✅ Bateria Normalizada',\n  'ALERTA_FALTA_ENERGIA': '🔌🔴 Alerta: Falta de Energia',\n  'ENERGIA_RESTABELECIDA': '🔌✅ Energia Restabelecida',\n  'ALERTA_PORTA_ABERTA': '🚪🔴 Alerta: Porta Aberta',\n  'PORTA_FECHADA': '🚪✅ Porta Fechada'\n};\n\nlet titulo = titulos[tipo] || `⚠️ ${tipo}`;\n\nif (tipo === 'periodico_suporte' || tipo === 'relatorio_diario') {\n  return [{ json: { output: '{\"gestor\": \"IGNORAR\", \"outro\": \"IGNORAR\"}' } }];\n}\n\nlet gestor = `${titulo}\\n\\n📱 Dispositivo: ${device}\\n📅 ${dataStr} às ${hora}\\n\\n`;\n\nif (tipo.includes('TEMP')) {\n    gestor += `🌡️ Temperatura atual: ${temp}°C\\n`;\n    if (min !== 'N/A' && max !== 'N/A' && min !== '' && max !== '') {\n        gestor += `📊 Limites: ${min}°C mín / ${max}°C máx\\n`;\n    }\n} else if (tipo.includes('TENSAO') || tipo.includes('ENERGIA')) {\n    if (volt !== 'N/A' && parseFloat(volt) > 0) gestor += `⚡ Tensão: ${volt}V\\n`;\n} else if (tipo.includes('BATERIA')) {\n    if (bat !== 'N/A' && bat !== '') gestor += `🔋 Bateria: ${bat}V\\n`;\n} else if (tipo.includes('PORTA')) {\n    if (porta !== 'N/A' && porta !== '') gestor += `🚪 Porta: ${porta}\\n`;\n} else {\n    if (temp !== '') gestor += `🌡️ Temperatura atual: ${temp}°C\\n`;\n    if (volt !== 'N/A' && parseFloat(volt) > 0) gestor += `⚡ Tensão: ${volt}V\\n`;\n    if (bat !== 'N/A' && bat !== '') gestor += `🔋 Bateria: ${bat}V\\n`;\n}\n\nif (is_repeat) gestor += `\\n⚠️ Alerta persistente`;\n\nlet outro = gestor;\nlet parsed = { gestor, outro };\n\nreturn [{ json: { output: JSON.stringify(parsed) } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -208,
-        256
+        -400,
+        1040
       ],
-      "id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+      "id": "c4efdc9a-a1b4-4143-9d86-96506801ef3c",
       "name": "Gerar Mensagem Alerta"
     }
   ],
@@ -656,8 +667,7 @@
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
     "Roteador de Resposta": {
@@ -789,10 +799,11 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "c9301c3b-25ef-4c8f-802a-238492fed941",
+  "versionId": "ddc9b4e4-540a-4032-be69-b9c3e56f9f37",
   "meta": {
+    "templateCredsSetupCompleted": true,
     "instanceId": "5443fd5bdc9d3431927382ec8e5c304fa67a6b82f67ab279705a022736db3f0d"
   },
-  "id": "DL7Ew4uU6DSdpaMJ",
+  "id": "SxSs60xhQsrpqVsN",
   "tags": []
 }
