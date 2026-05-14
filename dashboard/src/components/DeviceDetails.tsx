@@ -57,6 +57,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const [voltCalibration, setVoltCalibration] = useState<string>('');
     const [batCalibration, setBatCalibration] = useState<string>('');
     const [tempCalibration, setTempCalibration] = useState<string>('');
+    const [selectedTempSensor, setSelectedTempSensor] = useState<'DS18B20' | 'PT100'>('DS18B20');
 
     // Estados para edição de nome
     const [isEditingName, setIsEditingName] = useState(false);
@@ -185,11 +186,11 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
         if (!hysteresisOnInput || !hysteresisOffInput) return;
         const tempOn = parseFloat(hysteresisOnInput);
         const tempOff = parseFloat(hysteresisOffInput);
-        
+
         // Atualiza immediately no estado local para feedback visual
         setHysteresisOnInput(hysteresisOnInput);
         setHysteresisOffInput(hysteresisOffInput);
-        
+
         handleAction('configurar_rele', {
             rele_index: 0,
             temp_on: tempOn,
@@ -233,7 +234,14 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
         if (!val || isNaN(parseFloat(val))) return;
         const intent = type === 'temperatura' ? 'calibrar_temperatura' : type === 'tensao' ? 'calibrar_tensao' : 'calibrar_bateria';
         const payloadKey = type === 'temperatura' ? 'nova_temperatura' : 'nova_tensao';
-        handleAction(intent, { [payloadKey]: parseFloat(val) }, `Calibração de ${type}`);
+
+        const extraPayload: any = { [payloadKey]: parseFloat(val) };
+        if (type === 'temperatura') {
+            extraPayload.sensor_tipo = selectedTempSensor;
+        }
+
+        handleAction(intent, extraPayload, `Calibração de ${type} (${type === 'temperatura' ? selectedTempSensor : 'Principal'})`);
+
         if (type === 'tensao') setVoltCalibration('');
         else if (type === 'bateria') setBatCalibration('');
         else setTempCalibration('');
@@ -309,6 +317,8 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                             handleCalibration={handleCalibration}
                                             isUpdating={isUpdating}
                                             isConnected={isConnected}
+                                            tempSensor={selectedTempSensor}
+                                            setTempSensor={setSelectedTempSensor}
                                         />
                                         <RelayControl
                                             device={device}

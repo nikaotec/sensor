@@ -1,5 +1,7 @@
 import React from 'react';
 import { Settings2 } from 'lucide-react';
+import SensorSelector from './SensorSelector';
+import type { TempSensorType } from './SensorSelector';
 
 interface CalibrationControlProps {
     voltCalibration: string;
@@ -11,6 +13,8 @@ interface CalibrationControlProps {
     handleCalibration: (type: 'tensao' | 'bateria' | 'temperatura') => void;
     isUpdating: boolean;
     isConnected: boolean;
+    tempSensor: TempSensorType;
+    setTempSensor: (type: TempSensorType) => void;
 }
 
 const CalibrationControl: React.FC<CalibrationControlProps> = ({
@@ -22,7 +26,9 @@ const CalibrationControl: React.FC<CalibrationControlProps> = ({
     setTempCalibration,
     handleCalibration,
     isUpdating,
-    isConnected
+    isConnected,
+    tempSensor,
+    setTempSensor
 }) => {
     return (
         <div className="mt-6 pt-5 border-t border-[#2A2E24]">
@@ -84,6 +90,13 @@ const CalibrationControl: React.FC<CalibrationControlProps> = ({
                 {/* Calibração de Temperatura */}
                 <div className="space-y-1.5 focus-within:ring-1 focus-within:ring-red-500/30 rounded-lg transition-all p-1">
                     <label className="text-[9px] text-slate-400 font-bold uppercase tracking-wider ml-1">Temperatura Real (°C)</label>
+
+                    <SensorSelector
+                        selected={tempSensor}
+                        onChange={setTempSensor}
+                        disabled={isUpdating || !isConnected}
+                    />
+
                     <div className="flex gap-2">
                         <input
                             type="number"
