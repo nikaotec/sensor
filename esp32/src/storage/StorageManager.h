@@ -2,7 +2,7 @@
 #define STORAGE_MANAGER_H
 
 #include <EEPROM.h>
-#include "Config.h"
+#include "../config/Config.h"
 
 class StorageManager {
 public:

@@ -10,15 +10,17 @@ import DeviceList from './components/DeviceList'
 import Settings from './components/Settings'
 import ManagerPanel from './components/ManagerPanel'
 import AdminUserPanel from './components/AdminUserPanel'
+import OtaPanel from './components/ota/OtaPanel'
 import { TenantProvider, useTenant } from './contexts/TenantContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useMqttData } from './hooks/useMqttData'
 import { X, AlertOctagon } from 'lucide-react'
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext'
+import { useOtaManager } from './hooks/useOtaManager'
 import { supabase } from './supabase/config'
 
-type Screen = 'login' | 'signup' | 'dashboard' | 'device-list' | 'device-details' | 'alerts' | 'reports' | 'settings' | 'manager-panel' | 'admin-users'
+type Screen = 'login' | 'signup' | 'dashboard' | 'device-list' | 'device-details' | 'alerts' | 'reports' | 'settings' | 'manager-panel' | 'admin-users' | 'ota-panel'
 
 // Component to handle screen rendering and navigation inside the provider
 const AppContent = () => {
@@ -141,7 +143,7 @@ const AppContent = () => {
   };
 
   // Monitorar Alertas MQTT Globalmente
-  useMqttData(
+  const { isConnected, mqttClient, devices } = useMqttData(
     currentTenant?.id || 'all',
     currentUser?.role,
     [],
@@ -152,6 +154,8 @@ const AppContent = () => {
     },
     handleDeviceNameChange
   );
+
+  const { progressMap, sendOta, clearProgress } = useOtaManager({ mqttClient });
 
   const getAlertValue = (alert: any) => {
     if (alert.TIPO?.includes('BATERIA')) return `${alert.BATERIA}V`;
@@ -265,6 +269,16 @@ const AppContent = () => {
       {currentScreen === 'settings' && <Settings onNavigate={handleNavigation} />}
       {currentScreen === 'manager-panel' && <ManagerPanel onNavigate={handleNavigation} />}
       {currentScreen === 'admin-users' && <AdminUserPanel onNavigate={handleNavigation} />}
+      {currentScreen === 'ota-panel' && (
+        <OtaPanel
+          devices={devices}
+          progressMap={progressMap}
+          onSendOta={sendOta}
+          onClearProgress={clearProgress}
+          onNavigate={handleNavigation}
+          isMqttConnected={isConnected}
+        />
+      )}
     </div>
   )
 }

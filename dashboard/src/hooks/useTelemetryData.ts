@@ -6,6 +6,7 @@ export interface TelemetryData {
     devices: any[];
     displayDevices: any[];
     mqttConnected: boolean;
+    mqttClient?: any;
 }
 
 export const useTelemetryData = (
@@ -23,7 +24,7 @@ export const useTelemetryData = (
         currentUser?.role
     );
 
-    const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData(
+    const { devices: tenantDevices, isConnected: mqttConnected, mqttClient } = useMqttData(
         'all',
         currentUser?.role,
         supabaseDevices
@@ -64,6 +65,7 @@ export const useTelemetryData = (
         supabaseDevices,
         tenantDevices,
         displayDevices,
-        mqttConnected
+        mqttConnected,
+        mqttClient
     };
 };

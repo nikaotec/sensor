@@ -1,7 +1,7 @@
 #ifndef BUTTON_MANAGER_H
 #define BUTTON_MANAGER_H
 
-#include "Config.h"
+#include "../config/Config.h"
 #include <Arduino.h>
 #include <Wire.h>
 

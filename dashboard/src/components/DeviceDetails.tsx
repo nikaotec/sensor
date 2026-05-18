@@ -21,7 +21,7 @@ import RecentEvents from './device/RecentEvents';
 
 interface DeviceDetailsProps {
     deviceId: string;
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users' | 'ota-panel') => void;
 }
 
 const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) => {
@@ -64,7 +64,18 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const [newDeviceName, setNewDeviceName] = useState('');
     const [isChangingName, setIsChangingName] = useState(false);
 
+    // Estado para silenciar alertas de offline (localStorage)
+    const [isOfflinePaused, setIsOfflinePaused] = useState<boolean>(() => {
+        return localStorage.getItem(`offline_alerts_paused_${deviceId}`) === 'true';
+    });
+
     const device = tenantDevices.find(d => d.id === deviceId);
+
+    const handleToggleOfflinePause = () => {
+        const newValue = !isOfflinePaused;
+        setIsOfflinePaused(newValue);
+        localStorage.setItem(`offline_alerts_paused_${deviceId}`, newValue ? 'true' : 'false');
+    };
 
     // Sincronizar inputs com dados do dispositivo
     useEffect(() => {
@@ -306,6 +317,8 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                         />
                                         <SensorAlarmToggles
                                             chkVolt={chkVolt} chkBat={chkBat} chkTemp={chkTemp} chkDoor={chkDoor}
+                                            isOfflinePaused={isOfflinePaused}
+                                            onToggleOfflinePause={handleToggleOfflinePause}
                                             handleToggleAlarm={handleToggleAlarm}
                                             isUpdating={isUpdating}
                                             isConnected={isConnected}

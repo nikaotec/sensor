@@ -1,7 +1,7 @@
 #ifndef AMBIENT_SENSOR_H
 #define AMBIENT_SENSOR_H
 
-#include "Config.h"
+#include "../config/Config.h"
 #include <Arduino.h>
 #include <Wire.h>
 

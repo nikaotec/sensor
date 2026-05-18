@@ -5,7 +5,7 @@ import { useSettings } from '../hooks/useSettings';
 import { Router, EyeOff, ShieldCheck, AlertTriangle, Thermometer, BatteryWarning, BellRing, Mail, MessageCircle, FileText, Info, Save } from 'lucide-react';
 
 interface SettingsProps {
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users' | 'ota-panel') => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({ onNavigate }) => {

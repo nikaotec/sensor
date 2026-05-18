@@ -12,12 +12,15 @@ import {
     Shield,
     PanelLeftClose,
     PanelLeftOpen,
-    Users
+    Users,
+    UploadCloud
 } from 'lucide-react';
 
+type SidebarScreen = 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users' | 'ota-panel';
+
 interface SidebarProps {
-    activeItem: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users';
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
+    activeItem: SidebarScreen;
+    onNavigate: (screen: SidebarScreen) => void;
     isCollapsed?: boolean;
     onToggleCollapse?: (collapsed: boolean) => void;
 }
@@ -31,7 +34,8 @@ const iconMap = {
     settings: Settings,
     'device-details': Cpu,
     'manager-panel': Shield,
-    'admin-users': Users
+    'admin-users': Users,
+    'ota-panel': UploadCloud
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, isCollapsed: externalCollapsed, onToggleCollapse }) => {
@@ -65,7 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, isCollapsed: 
     const isAdmin = currentUser?.role === 'admin';
     const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
 
-    const menuItems = (['dashboard', 'device-list', 'alerts', 'reports', 'settings'] as const).filter(item => {
+    const menuItems: SidebarScreen[] = (['dashboard', 'device-list', 'alerts', 'reports', 'settings'] as SidebarScreen[]).filter(item => {
         // Apenas Gestores e Admins podem ver Dispositivos
         if (item === 'device-list') return isManager || isAdmin;
         // Apenas Gestores podem ver Relatórios
@@ -73,7 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, isCollapsed: 
         return true;
     });
 
-    let finalMenuItems: ('dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'manager-panel' | 'admin-users')[] = [...menuItems];
+    let finalMenuItems: SidebarScreen[] = [...menuItems];
 
     if (isManager) {
         finalMenuItems.push('manager-panel');
@@ -81,6 +85,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, isCollapsed: 
 
     if (isAdmin) {
         finalMenuItems.push('admin-users');
+    }
+
+    if (isManager || isAdmin) {
+        finalMenuItems.push('ota-panel');
     }
 
     return (
@@ -100,7 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, isCollapsed: 
 
                 <nav className="flex-1 px-2 lg:px-3 space-y-2 mt-2 overflow-y-auto custom-scrollbar">
                     {finalMenuItems.map((item) => (
-                        <button key={item} onClick={() => onNavigate(item as any)} className={getLinkClass(item)} title={item}>
+                        <button key={item} onClick={() => onNavigate(item)} className={getLinkClass(item)} title={item}>
                             <div className="relative">
                                 {renderIcon(item as keyof typeof iconMap)}
                                 {item === 'alerts' && hasAlerts && (
@@ -114,7 +122,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, isCollapsed: 
                                             item === 'alerts' ? 'Alertas' :
                                                 item === 'settings' ? 'Configurações' :
                                                     item === 'manager-panel' ? 'Administração' :
-                                                        item === 'dashboard' ? 'Dashboard' : item}
+                                                        item === 'ota-panel' ? 'Firmware' :
+                                                            item === 'dashboard' ? 'Dashboard' : item}
                                 </span>
                             )}
                         </button>
@@ -154,7 +163,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, isCollapsed: 
                 {finalMenuItems.map((item) => (
                     <button
                         key={`mobile-${item}`}
-                        onClick={() => onNavigate(item as any)}
+                        onClick={() => onNavigate(item)}
                         className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all flex-1 ${activeItem === item
                             ? "text-primary bg-primary/10"
                             : "text-slate-400 hover:text-white"

@@ -175,6 +175,23 @@ void DisplayManager::update(float temp, float max, float min, float voltage,
   }
 }
 
+void DisplayManager::showOtaProgress(int percent) {
+  display.clearBuffer();
+  display.setFont(u8g2_font_6x12_tf);
+  display.drawStr(10, 20, "ATUALIZANDO...");
+
+  // Barra de progresso
+  display.drawFrame(10, 30, 108, 10);
+  display.drawBox(12, 32, (percent * 104) / 100, 6);
+
+  char pStr[10];
+  sprintf(pStr, "%d%%", percent);
+  int width = display.getStrWidth(pStr);
+  display.drawStr((128 - width) / 2, 55, pStr);
+
+  display.sendBuffer();
+}
+
 // --- MENU LOGIC ---
 
 void DisplayManager::openMenu() {

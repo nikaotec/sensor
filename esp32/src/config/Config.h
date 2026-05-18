@@ -5,12 +5,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+// ---------- VERSÃO ----------
+#define FIRMWARE_VERSION "1.1.7"
+
 // ---------- DEFAULTS ----------
 #define DEFAULT_DEVICE_NAME "ESP32 Sensor"
 #define DEFAULT_COMPANY_NAME "Nikaotec"
 #define DEFAULT_DEVICE_LOCATION "Nao Definida"
 
-// ---------- REDE ----------
+// ---------- REDE (OBSOLETO: Usando WiFiManager) ----------
+// As credenciais abaixo são usadas apenas como fallback em caso de falha TOTAL
 #define WIFI_SSID "VENANCIO"
 #define WIFI_PASS "liza1980"
 // #define MQTT_SERVER "173.249.10.19"
@@ -71,12 +75,13 @@
 #define ADDR_DEVICE_NAME 48
 #define ADDR_COMPANY_NAME 80
 #define ADDR_DEVICE_LOCATION 112
-// Endereços dos relés (cada relé usa 32 bytes: 17 nome + 1 func + 4 tempOn + 4 tempOff + 1 manualState + 5 padding)
-// IMPORTANTE: Struct RelayConfig tem 27 bytes, alinhamos para 32 bytes por segurança
+// Endereços dos relés (cada relé usa 32 bytes: 17 nome + 1 func + 4 tempOn + 4
+// tempOff + 1 manualState + 5 padding) IMPORTANTE: Struct RelayConfig tem 27
+// bytes, alinhamos para 32 bytes por segurança
 #define ADDR_RELAY_0 144
-#define ADDR_RELAY_1 176  // 144 + 32 (era 168 - causing overlap!)
-#define ADDR_RELAY_2 208  // 176 + 32 (era 192 - causing overlap!)
-#define ADDR_RELAY_3 240  // 208 + 32 (era 216 - causing overlap!)
+#define ADDR_RELAY_1 176 // 144 + 32 (era 168 - causing overlap!)
+#define ADDR_RELAY_2 208 // 176 + 32 (era 192 - causing overlap!)
+#define ADDR_RELAY_3 240 // 208 + 32 (era 216 - causing overlap!)
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0

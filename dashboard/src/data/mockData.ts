@@ -69,6 +69,7 @@ export interface Device {
         // Sensores adicionais
         secondsOpen?: number;
         tempExt?: number;
+        version?: string;
     };
     config?: {
         minTempInfo?: number;

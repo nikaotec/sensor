@@ -32,6 +32,10 @@ const SystemInfo: React.FC<SystemInfoProps> = ({
                     <span className="font-mono text-white font-medium">{device?.telemetry?.modo || '--'}</span>
                 </div>
                 <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Versão do Firmware</span>
+                    <span className="font-mono text-white font-medium">{device?.telemetry?.version || '--'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
                     <span className="text-slate-400">Uptime</span>
                     <span className="font-mono text-white font-medium">
                         {device?.telemetry?.uptime ? `${Math.floor(device.telemetry.uptime / 3600)}h ${Math.floor((device.telemetry.uptime % 3600) / 60)}m` : '--'}

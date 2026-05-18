@@ -90,6 +90,7 @@ export class TelemetryService {
         addIfDefined('protocolo', payload.PROTOCOLO ?? payload.protocolo);
         addIfDefined('modo', payload.MODO ?? payload.modo);
         addIfDefined('saude', payload.SAUDE_SENSORES ?? payload.saude);
+        addIfDefined('version', payload.version ?? payload.VERSAO ?? payload.VERSION);
 
         // Fallback para chave legado 'rele'
         if (normalized.rele0 !== undefined) {

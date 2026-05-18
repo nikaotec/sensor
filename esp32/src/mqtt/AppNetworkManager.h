@@ -1,10 +1,11 @@
 #ifndef APP_NETWORK_MANAGER_H
 #define APP_NETWORK_MANAGER_H
 
-#include "Config.h"
+#include "../config/Config.h"
+#include <WiFi.h>
+#include <WiFiManager.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
-#include <WiFi.h>
 #include <functional>
 
 // Define callback type

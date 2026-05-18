@@ -1,5 +1,5 @@
-import React from 'react';
-import { Shield, ServerCrash } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Shield, ServerCrash, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Sidebar from './Sidebar';
 import DashboardHeader from './dashboard/DashboardHeader';
 import DeviceCard from './dashboard/DeviceCard';
@@ -8,10 +8,12 @@ import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useTelemetryData } from '../hooks/useTelemetryData';
 import { useReportGenerator } from '../hooks/useReportGenerator';
+import { useOtaManager } from '../hooks/useOtaManager';
+import { LATEST_FIRMWARE_VERSION } from '../services/OtaService';
 
 interface DashboardProps {
     onDeviceClick: (deviceId: string) => void;
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users' | 'ota-panel') => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
@@ -28,8 +30,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
     const {
         supabaseDevices,
         displayDevices,
-        mqttConnected
+        mqttConnected,
+        mqttClient
     } = useTelemetryData(currentTenant, availableTenants, currentUser);
+
+    const { progressMap, clearProgress } = useOtaManager({ mqttClient });
 
     const {
         reportForm,
@@ -42,6 +47,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         handleGenerateReport
     } = useReportGenerator(currentTenant, availableTenants, supabaseDevices, displayDevices, currentUser?.role);
 
+    // Agrupar dispositivos por versão de firmware
+    const { outdatedDevices, updatedDevices } = useMemo(() => {
+        const outdated: any[] = [];
+        const updated: any[] = [];
+        displayDevices.forEach(d => {
+            const currentVer = d.telemetry?.version || d.telemetry?.VERSAO || d.telemetry?.VERSION;
+            if (currentVer === LATEST_FIRMWARE_VERSION) {
+                updated.push(d);
+            } else {
+                outdated.push(d);
+            }
+        });
+        return { outdatedDevices: outdated, updatedDevices: updated };
+    }, [displayDevices]);
+
     if (!currentTenant || !currentUser) {
         return (
             <div className="flex h-screen items-center justify-center bg-slate-900 text-white">
@@ -49,6 +69,23 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
             </div>
         );
     }
+
+    const renderDeviceList = (devices: any[]) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {devices.map((device: any) => (
+                <DeviceCard
+                    key={device.id}
+                    device={device}
+                    onDeviceClick={onDeviceClick}
+                    isManager={isManager || isAdmin}
+                    currentTenantId={currentTenant?.id || ''}
+                    availableTenants={availableTenants}
+                    otaStatus={progressMap[device.id]}
+                    onClearOtaProgress={clearProgress}
+                />
+            ))}
+        </div>
+    );
 
     return (
         <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
@@ -97,7 +134,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                     </div>
 
                     {/* DEVICE GRID */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="min-h-[400px]">
                         {!canSeeDevices ? (
                             <div className="col-span-1 md:col-span-2 xl:col-span-3 py-12 flex flex-col items-center justify-center text-slate-500 bg-[#1A1D17] rounded-2xl border border-[#2A2E24]">
                                 <Shield className="mb-4 opacity-50 text-amber-500" size={48} />
@@ -110,16 +147,27 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                 <p className="text-lg">Nenhum dispositivo encontrado para esta empresa.</p>
                             </div>
                         ) : (
-                            displayDevices.map((device) => (
-                                <DeviceCard
-                                    key={device.id}
-                                    device={device}
-                                    onDeviceClick={onDeviceClick}
-                                    isManager={isManager || isAdmin}
-                                    currentTenantId={currentTenant.id}
-                                    availableTenants={availableTenants}
-                                />
-                            ))
+                            <div className="space-y-12">
+                                {outdatedDevices.length > 0 && (
+                                    <section>
+                                        <h3 className="text-amber-500 font-medium mb-4 flex items-center gap-2">
+                                            <AlertCircle size={20} />
+                                            Dispositivos para Atualizar ({outdatedDevices.length})
+                                        </h3>
+                                        {renderDeviceList(outdatedDevices)}
+                                    </section>
+                                )}
+
+                                {updatedDevices.length > 0 && (
+                                    <section>
+                                        <h3 className="text-emerald-500 font-medium mb-4 flex items-center gap-2">
+                                            <CheckCircle2 size={20} />
+                                            Dispositivos Atualizados ({updatedDevices.length})
+                                        </h3>
+                                        {renderDeviceList(updatedDevices)}
+                                    </section>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>

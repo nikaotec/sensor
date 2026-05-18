@@ -1,7 +1,7 @@
 #ifndef DISPLAY_MANAGER_H
 #define DISPLAY_MANAGER_H
 
-#include "Config.h"
+#include "../config/Config.h"
 #include <U8g2lib.h>
 #include <WiFi.h>
 #include <Wire.h>
@@ -55,6 +55,8 @@ public:
   void menuPrev();
   int menuEnter(float &targetMax, float &targetMin, bool &targetAlarm,
                 bool &targetRelay); // Retorna 1 se alterou algo
+
+  void showOtaProgress(int percent);
 };
 
 #endif

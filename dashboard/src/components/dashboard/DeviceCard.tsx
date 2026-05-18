@@ -9,8 +9,12 @@ import {
     ServerCrash,
     Thermometer,
     Wifi,
-    Zap
+    Zap,
+    BellOff,
+    Bell
 } from 'lucide-react';
+import type { OtaStatus } from '../../types/ota';
+import OtaProgressBadge from '../ota/OtaProgressBadge';
 
 interface DeviceCardProps {
     device: any;
@@ -18,6 +22,8 @@ interface DeviceCardProps {
     isManager: boolean;
     currentTenantId: string;
     availableTenants: any[];
+    otaStatus?: OtaStatus;
+    onClearOtaProgress?: (deviceId: string) => void;
 }
 
 const DeviceCard: React.FC<DeviceCardProps> = ({
@@ -25,8 +31,21 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     onDeviceClick,
     isManager,
     currentTenantId,
-    availableTenants
+    availableTenants,
+    otaStatus,
+    onClearOtaProgress
 }) => {
+    const [isOfflinePaused, setIsOfflinePaused] = React.useState<boolean>(() => {
+        return localStorage.getItem(`offline_alerts_paused_${device.id}`) === 'true';
+    });
+
+    const handleTogglePause = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Evitar abrir detalhes ao clicar no botão
+        const newValue = !isOfflinePaused;
+        setIsOfflinePaused(newValue);
+        localStorage.setItem(`offline_alerts_paused_${device.id}`, newValue ? 'true' : 'false');
+    };
+
     const getStatusLabel = (status: string) => {
         switch (status) {
             case 'online': return 'ESTÁVEL';
@@ -72,19 +91,37 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
             <div className="mb-4 flex flex-col z-10">
                 <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-loose font-heading">Monitoramento em Tempo Real</h3>
                 <div className="flex justify-between items-center mt-1">
-                    <div>
-                        <h4 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{device.name}</h4>
-                        {device.location && (
-                            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
-                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
-                                {device.location}
-                            </p>
-                        )}
-                        {currentTenantId === 'all' && (
-                            <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md mt-1.5 inline-block font-medium">
-                                {availableTenants.find(t => t.id === device.tenantId)?.name || device.tenantId}
-                            </span>
-                        )}
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <h4 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{device.name}</h4>
+                            {device.location && (
+                                <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                    {device.location}
+                                    {device.telemetry?.version && (
+                                        <span className="ml-2 text-[8px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded-full border border-slate-700 font-bold uppercase tracking-tighter">
+                                            FW {device.telemetry.version}
+                                        </span>
+                                    )}
+                                </p>
+                            )}
+                            {currentTenantId === 'all' && (
+                                <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md mt-1.5 inline-block font-medium">
+                                    {availableTenants.find(t => t.id === device.tenantId)?.name || device.tenantId}
+                                </span>
+                            )}
+                        </div>
+                        {/* Botão de Silenciar Alertas Offline */}
+                        <button
+                            onClick={handleTogglePause}
+                            className={`p-2 rounded-xl border transition-all duration-300 ${isOfflinePaused
+                                ? 'bg-rose-500/20 border-rose-500/40 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.1)]'
+                                : 'bg-[#0F110D] border-[#2A2E24] text-slate-500 hover:text-slate-300 hover:border-slate-700'
+                                }`}
+                            title={isOfflinePaused ? "Alertas Offline Pausados" : "Pausar Alertas Offline"}
+                        >
+                            {isOfflinePaused ? <BellOff size={18} /> : <Bell size={18} />}
+                        </button>
                     </div>
                 </div>
             </div>
@@ -111,6 +148,16 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                     {getStatusLabel(device.status || 'offline')}
                 </div>
             </div>
+
+            {/* OTA Progress Overlay in Card */}
+            {otaStatus && otaStatus.phase !== 'idle' && (
+                <div className="mb-4 z-10">
+                    <OtaProgressBadge
+                        status={otaStatus}
+                        onDismiss={() => onClearOtaProgress?.(device.id)}
+                    />
+                </div>
+            )}
 
             {/* Telemetria Secundária: Ambiente e Umidade */}
             <div className="flex items-center justify-between px-4 py-2 bg-[#0F110D]/50 rounded-xl border border-[#2A2E24] mb-4 z-10">

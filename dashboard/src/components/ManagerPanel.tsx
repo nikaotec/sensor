@@ -23,7 +23,9 @@ import {
     Trash2,
     Edit2,
     Phone,
-    X
+    X,
+    BellOff,
+    Bell
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -113,6 +115,25 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const [newUserTenants, setNewUserTenants] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [generatedCredentials, setGeneratedCredentials] = useState<{ email: string, pass: string } | null>(null);
+
+    // Estado para silenciar alertas de offline (localStorage)
+    const [pausedDevices, setPausedDevices] = useState<{ [key: string]: boolean }>({});
+
+    // Inicializar estado de pausa do localStorage
+    useEffect(() => {
+        const stored: { [key: string]: boolean } = {};
+        mqttDevices.forEach(d => {
+            stored[d.id] = localStorage.getItem(`offline_alerts_paused_${d.id}`) === 'true';
+        });
+        setPausedDevices(stored);
+    }, [mqttDevices.length]);
+
+    const handleToggleOfflinePause = (deviceId: string) => {
+        const isCurrentlyPaused = localStorage.getItem(`offline_alerts_paused_${deviceId}`) === 'true';
+        const newValue = !isCurrentlyPaused;
+        localStorage.setItem(`offline_alerts_paused_${deviceId}`, newValue ? 'true' : 'false');
+        setPausedDevices(prev => ({ ...prev, [deviceId]: newValue }));
+    };
 
     // Modal de edição de usuário
     const [editingUser, setEditingUser] = useState<any>(null);
@@ -896,12 +917,27 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                             return (
                                                 <div key={dev.id} className={`bg-white/5 border rounded-3xl p-6 group transition-all flex flex-col ${isLinked ? 'border-indigo-500/20' : 'border-orange-500/20 hover:border-orange-500/40'}`}>
                                                     <div className="flex items-start justify-between mb-6">
-                                                        <div className={`p-3 rounded-2xl ${isLinked ? 'bg-indigo-500/10 text-indigo-500' : 'bg-orange-500/10 text-orange-500'}`}>
-                                                            <Cpu size={24} />
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`p-3 rounded-2xl ${isLinked ? 'bg-indigo-500/10 text-indigo-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                                                                    <Cpu size={24} />
+                                                                </div>
+                                                                {/* Botão de Silenciar Alertas Offline */}
+                                                                <button
+                                                                    onClick={() => handleToggleOfflinePause(dev.id)}
+                                                                    className={`p-2 rounded-xl border transition-all duration-300 ${pausedDevices[dev.id]
+                                                                        ? 'bg-rose-500/20 border-rose-500/40 text-rose-400'
+                                                                        : 'bg-black/40 border-white/5 text-slate-500 hover:text-slate-300'
+                                                                        }`}
+                                                                    title={pausedDevices[dev.id] ? "Alertas Offline Pausados" : "Pausar Alertas Offline"}
+                                                                >
+                                                                    {pausedDevices[dev.id] ? <BellOff size={18} /> : <Bell size={18} />}
+                                                                </button>
+                                                            </div>
+                                                            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${isLinked ? 'bg-emerald-500/10 text-emerald-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                                                                {isLinked ? availableTenants.find(t => t.id === dev.tenantId)?.name || 'Vinculado' : 'Aguardando Vínculo'}
+                                                            </span>
                                                         </div>
-                                                        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${isLinked ? 'bg-emerald-500/10 text-emerald-500' : 'bg-orange-500/10 text-orange-500'}`}>
-                                                            {isLinked ? availableTenants.find(t => t.id === dev.tenantId)?.name || 'Vinculado' : 'Aguardando Vínculo'}
-                                                        </span>
                                                     </div>
                                                     <div className="mb-8">
                                                         <p className="text-lg font-bold text-white">{dev.name || 'Dispositivo sem Nome'}</p>

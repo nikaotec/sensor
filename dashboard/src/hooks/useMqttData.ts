@@ -82,27 +82,101 @@ export const useMqttData = (
         }
     }, [initialDevices]);
 
-    // Verification method to check if device is offline (5 minutes without incoming data)
+    // Verification method to check if device is offline (2 minutes without incoming data)
     useEffect(() => {
         const interval = setInterval(() => {
-            setDevices(prevDevices =>
-                prevDevices.map(device => {
-                    if (device.status !== 'offline' && device.lastSeen) {
-                        const lastSeenTime = new Date(device.lastSeen).getTime();
-                        const now = new Date().getTime();
-                        const OFFLINE_TIMEOUT = 5 * 60 * 1000; // 5 minutos sem comunicação
+            const now = Date.now();
+            const OFFLINE_TIMEOUT = 2 * 60 * 1000; // 2 minutos sem comunicação
+            const devicesToBeMarkedOffline: string[] = [];
+            const alertsToTrigger: any[] = [];
 
-                        if (now - lastSeenTime > OFFLINE_TIMEOUT) {
-                            return { ...device, status: 'offline' };
+            // 1. Identify which devices transitioned to offline or need a recurring alert
+            devicesRef.current.forEach(device => {
+                if (device.lastSeen) {
+                    const lastSeenTime = new Date(device.lastSeen).getTime();
+
+                    if (now - lastSeenTime > OFFLINE_TIMEOUT) {
+                        if (device.status !== 'offline') {
+                            devicesToBeMarkedOffline.push(device.id);
+                        }
+
+                        // Check for recurring alert frequency
+                        const lastSentKey = `offline_last_sent_${device.id}`;
+                        const lastSent = localStorage.getItem(lastSentKey);
+                        const lastSentTime = lastSent ? parseInt(lastSent, 10) : 0;
+
+                        // Verifica se o usuário silenciou alertas para este dispositivo
+                        const isPaused = localStorage.getItem(`offline_alerts_paused_${device.id}`) === 'true';
+
+                        if (!isPaused && (now - lastSentTime > OFFLINE_TIMEOUT)) {
+                            alertsToTrigger.push(device);
+                        } else if (isPaused) {
+                            // Se estiver pausado, removemos o registro de envio para resetar o ciclo ao despausar
+                            localStorage.removeItem(lastSentKey);
                         }
                     }
-                    return device;
-                })
-            );
-        }, 60000); // Check every 1 minute
+                }
+            });
+
+            // 2. Update state for all devices needing offline status (Batch update)
+            if (devicesToBeMarkedOffline.length > 0) {
+                setDevices(prev => prev.map(d =>
+                    devicesToBeMarkedOffline.includes(d.id) ? { ...d, status: 'offline' } : d
+                ));
+            }
+
+            // 3. Trigger side-effects outside of state updates
+            alertsToTrigger.forEach(device => {
+                const nowTs = Date.now();
+                console.warn(`⚠️ Dispositivo ${device.name || device.id} OFFLINE. Enviando alerta.`);
+
+                // Local Alert
+                if (onAlert) {
+                    onAlert({
+                        TIPO: 'ALERTA_OFFLINE_LOCAL',
+                        device_name: device.name,
+                        id: device.id,
+                        msg: `Dispositivo ${device.name} está offline há mais de 2 minutos.`
+                    });
+                }
+
+                // MQTT Alert for WhatsApp
+                const offlinePayload = {
+                    TIPO: 'ALERTA_DISPOSITIVO_OFFLINE',
+                    ID_DISPOSITIVO: device.id,
+                    DISPOSITIVO: device.name || 'Sensor',
+                    EMPRESA: device.tenantId || 'Unknown',
+                    ALA: device.location || '',
+                    HORA: new Date().toLocaleTimeString('pt-BR'),
+                    DATA: new Date().toLocaleDateString('pt-BR'),
+                    // Preencher campos com últimos dados conhecidos
+                    TEMP: device.telemetry?.temp ?? 0,
+                    MAX: device.telemetry?.tempMax ?? 0,
+                    MIN: device.telemetry?.tempMin ?? 0,
+                    ALARM_MAX: device.telemetry?.alarmMax ?? 0,
+                    ALARM_MIN: device.telemetry?.alarmMin ?? 0,
+                    VOLTAGEM: device.telemetry?.inputVoltage ?? 0,
+                    BATERIA: device.telemetry?.batteryVoltage ?? 0,
+                    RSSI: device.telemetry?.signal ?? 0,
+                    MODO: device.telemetry?.modo ?? 'AUTO',
+                    RELES: {
+                        R0: device.telemetry?.rele0 ? 1 : 0,
+                        R1: device.telemetry?.rele1 ? 1 : 0,
+                        R2: device.telemetry?.rele2 ? 1 : 0,
+                        R3: device.telemetry?.rele3 ? 1 : 0
+                    }
+                };
+
+                if (mqttClient && isConnected) {
+                    mqttClient.publish('esp32c3/data', JSON.stringify(offlinePayload));
+                }
+
+                localStorage.setItem(`offline_last_sent_${device.id}`, nowTs.toString());
+            });
+        }, 30000); // Check every 30 seconds
 
         return () => clearInterval(interval);
-    }, []);
+    }, [mqttClient, isConnected, onAlert]);
 
     useEffect(() => {
         if (!tenantId) return;
@@ -125,7 +199,7 @@ export const useMqttData = (
 
             // Subscribe to all device telemetries
             // In a real scenario, you might scope this to `tenantId/devices/#`
-            client.subscribe(['sensor/telemetry/#', 'esp32c3/#'], (err) => {
+            client.subscribe(['sensor/telemetry/#', 'esp32c3/#', 'devices/#'], (err) => {
                 if (err) {
                     console.error('MQTT Subscription error:', err);
                 } else {
@@ -143,12 +217,12 @@ export const useMqttData = (
 
                 // Normalização centralizada via Service (SOLID - SRP)
                 const payload = TelemetryService.normalizePayload(rawPayload);
+                const deviceId = payload.id;
 
                 // Handle special confirmation messages (NOME_ALTERADO|NovoNome)
                 const rawMsg = message.toString();
                 if (rawMsg.startsWith('NOME_ALTERADO|')) {
                     const newName = rawMsg.split('|')[1]?.trim();
-                    const deviceId = payload.id;
                     if (deviceId && newName) {
                         if (onDeviceNameChange) onDeviceNameChange(deviceId, newName);
                         supabase.from('devices_status').update({ name: newName, updated_at: new Date().toISOString() }).eq('id', deviceId)
@@ -158,10 +232,48 @@ export const useMqttData = (
                     }
                 }
 
+                // 1. Identify recovery BEFORE updating state
+                const existingInRef = devicesRef.current.find(d =>
+                    (deviceId && d.id === deviceId) ||
+                    (d.name === payload.device_name && d.tenantId === payload.company)
+                );
+
+                if (existingInRef && existingInRef.status === 'offline') {
+                    if (mqttClient && isConnected) {
+                        const recoveryPayload = {
+                            TIPO: 'ALERTA_DISPOSITIVO_ONLINE',
+                            ID_DISPOSITIVO: existingInRef.id,
+                            DISPOSITIVO: existingInRef.name || payload.device_name || 'Sensor',
+                            EMPRESA: existingInRef.tenantId || 'all',
+                            ALA: existingInRef.location || '',
+                            HORA: new Date().toLocaleTimeString('pt-BR'),
+                            DATA: new Date().toLocaleDateString('pt-BR'),
+                            TEMP: payload.temp ?? 0,
+                            MAX: payload.tempMax ?? 0,
+                            MIN: payload.tempMin ?? 0,
+                            ALARM_MAX: payload.alarmMax ?? 0,
+                            ALARM_MIN: payload.alarmMin ?? 0,
+                            VOLTAGEM: payload.inputVoltage ?? 0,
+                            BATERIA: payload.batteryVoltage ?? 0,
+                            RSSI: payload.signal ?? 0,
+                            MODO: payload.modo ?? 'AUTO',
+                            RELES: {
+                                R0: payload.rele0 ? 1 : 0,
+                                R1: payload.rele1 ? 1 : 0,
+                                R2: payload.rele2 ? 1 : 0,
+                                R3: payload.rele3 ? 1 : 0
+                            }
+                        };
+                        mqttClient.publish('esp32c3/data', JSON.stringify(recoveryPayload));
+                        localStorage.removeItem(`offline_last_sent_${existingInRef.id}`);
+                    }
+                }
+
+                // 2. Update state
                 setDevices((prevDevices) => {
                     const existingDeviceIndex = prevDevices.findIndex(d =>
-                        (payload.id && d.id === payload.id) ||
-                        ((!payload.id || d.id.startsWith('mqtt-')) && d.name === payload.device_name && d.tenantId === payload.company)
+                        (deviceId && d.id === deviceId) ||
+                        ((!deviceId || d.id.startsWith('mqtt-')) && d.name === payload.device_name && d.tenantId === payload.company)
                     );
 
                     const existing = existingDeviceIndex >= 0 ? prevDevices[existingDeviceIndex] : null;
@@ -268,5 +380,5 @@ export const useMqttData = (
         });
     }, []);
 
-    return { devices, isConnected, publish, updateDeviceLocal };
+    return { devices, isConnected, publish, updateDeviceLocal, mqttClient };
 };

@@ -11,23 +11,25 @@ AppNetworkManager::AppNetworkManager() : client(espClient) {
 void AppNetworkManager::begin(MqttCallback handler) {
   messageHandler = handler;
 
-  Serial.println("[NET] Conectando ao WiFi: " + String(WIFI_SSID));
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  WiFiManager wm;
 
-  unsigned long startAttempt = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 30000) {
-    delay(500);
-    Serial.print(".");
-  }
+  // Configurações do portal
+  wm.setConnectTimeout(60);       // Timeout para tentar conectar ao WiFi salvo
+  wm.setConfigPortalTimeout(180); // Timeout para o AP de configuração (3 min)
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n[NET] WiFi CONECTADO - IP: " + WiFi.localIP().toString());
-  } else {
-    Serial.println("\n[NET] FALHA no WiFi. Reiniciando...");
+  String apName = "Sensor-" + getIdDispositivo();
+  Serial.println("[NET] Iniciando WiFiManager. AP: " + apName);
+
+  // autoConnect tenta conectar ao WiFi salvo.
+  // Se falhar, abre o AP chamando apName.
+  if (!wm.autoConnect(apName.c_str())) {
+    Serial.println(
+        "[NET] Falha ao conectar e timeout do portal. Reiniciando...");
     delay(3000);
     ESP.restart();
   }
+
+  Serial.println("\n[NET] WiFi CONECTADO - IP: " + WiFi.localIP().toString());
 
   client.setServer(MQTT_SERVER, MQTT_PORT);
   client.setBufferSize(1024);
@@ -91,7 +93,8 @@ void AppNetworkManager::update() {
 
 void AppNetworkManager::resetWifi() {
   Serial.println("[NET] Resetando configuracoes de WiFi...");
-  WiFi.disconnect(true); // Apaga credenciais salvas da NVM
+  WiFiManager wm;
+  wm.resetSettings();
   delay(500);
   ESP.restart();
 }

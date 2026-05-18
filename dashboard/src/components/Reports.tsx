@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 interface ReportsProps {
-    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users') => void;
+    onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users' | 'ota-panel') => void;
 }
 
 const REPORT_WEBHOOK_URL = '/api/n8n/webhook/generate-report';
