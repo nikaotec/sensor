@@ -79,6 +79,7 @@ void MqttManager::setupTopics() {
   _client.subscribe(cmdTopic.c_str());
   _client.subscribe(
       MSG_TOPIC_WEB); // Mantendo compatibilidade com sistema atual
+  _client.subscribe(MSG_TOPIC_STATUS); // Escuta os comandos do dashboard React!
   Serial.println("[MQTT] Inscrito nos topicos de comando.");
 }
 

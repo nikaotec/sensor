@@ -141,4 +141,14 @@ describe('TelemetryService', () => {
         expect(result).not.toHaveProperty('rele0');
         expect(result).not.toHaveProperty('R0_TEMP_ON');
     });
+
+    it('should normalize silenced alarm status from firmware payloads', () => {
+        const payloadUpper = { id: 'ESP1', SILENCIADO: true };
+        const payloadLower = { id: 'ESP2', silenciado: false };
+        const payloadNumber = { id: 'ESP3', silenciado: 1 };
+
+        expect(TelemetryService.normalizePayload(payloadUpper).silenced).toBe(true);
+        expect(TelemetryService.normalizePayload(payloadLower).silenced).toBe(false);
+        expect(TelemetryService.normalizePayload(payloadNumber).silenced).toBe(true);
+    });
 });

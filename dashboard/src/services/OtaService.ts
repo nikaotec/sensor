@@ -7,7 +7,7 @@ import type { OtaMqttProgressPayload, OtaStatus } from '../types/ota';
 
 const MQTT_CMD_TOPIC = (deviceId: string) => `devices/${deviceId}/cmd`;
 
-export const LATEST_FIRMWARE_VERSION = '1.1.7';
+export const LATEST_FIRMWARE_VERSION = '1.1.11';
 
 export interface IOtaService {
     publishOtaCommand(

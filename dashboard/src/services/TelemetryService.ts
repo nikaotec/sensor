@@ -17,11 +17,16 @@ export class TelemetryService {
             }
         };
 
-        // Identificadores base
-        addIfDefined('id', payload.id || payload.ID_DISPOSITIVO);
-        addIfDefined('company', payload.company || payload.EMPRESA);
-        addIfDefined('device_name', payload.device_name || payload.DISPOSITIVO);
-        addIfDefined('ala', payload.ala !== undefined ? payload.ala : payload.ALA);
+        // Identificadores base (não sobrepor valores se já definidos)
+        const deviceId = payload.id || payload.ID_DISPOSITIVO;
+        const company = payload.company || payload.EMPRESA;
+        const deviceName = payload.device_name || payload.DISPOSITIVO || payload.name;
+        const ala = payload.ala !== undefined ? payload.ala : payload.ALA;
+
+        if (deviceId) normalized.id = deviceId;
+        if (company) normalized.company = company;
+        if (deviceName) normalized.device_name = deviceName;
+        if (ala !== undefined) normalized.ala = ala;
 
         // Temperaturas
         addIfDefined('temp', this.parseNumber(payload.temp ?? payload.temperature ?? payload.TEMP ?? payload.TEMP_ATUAL ?? payload.TEMP_C));

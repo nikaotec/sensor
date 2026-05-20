@@ -68,18 +68,11 @@ void DisplayManager::drawWifiSignal(bool connected) {
   }
 }
 
-void DisplayManager::update(float temp, float max, float min, float voltage,
+void DisplayManager::update(float temp, float observedMin, float observedMax,
                             bool wifiConnected, bool manual, bool relay,
-                            bool alarm) {
+                            SensorType sensorType, String datetime,
+                            bool resetDone) {
   unsigned long now = millis();
-
-  // Controle de Mensagem no Rodapé
-  if (tempoMensagemRodape > 0 && now > tempoMensagemRodape) {
-    mensagemRodape = manual ? "EM MANUTENCAO" : "OPERACIONAL";
-    tempoMensagemRodape = 0;
-    currentMsgPage = 0;
-    totalPages = 1;
-  }
 
   if (now - lastDisplayUpdate > 250) {
     lastDisplayUpdate = now;
@@ -90,220 +83,428 @@ void DisplayManager::update(float temp, float max, float min, float voltage,
     }
 
     display.clearBuffer();
-    display.setFont(u8g2_font_6x12_tf);
 
-    // Hora
-    struct tm t;
-    char hS[10] = "--:--:--"; // Valor padrão
-    if (getLocalTime(&t)) {
-      strftime(hS, sizeof(hS), "%H:%M:%S", &t);
-    }
-    display.drawStr(0, 10, hS);
-
-    // Tensão
-    char vStr[10];
-    sprintf(vStr, "%.0fV", voltage);
-    display.drawStr(70, 10,
-                    vStr); // Movido para X=70 para evitar conflito com WiFi
-
-    // WiFi
+    // Status Bar & Datetime
+    display.setFont(u8g2_font_6x12_tr);
+    display.drawStr(0, 10, datetime.c_str());
     drawWifiSignal(wifiConnected);
+    display.drawHLine(0, 15, 128);
 
     // Temp Grande
-    // Mover para Y=38 para evitar conflito com Rodapé/Linha Divisória
+    display.setFont(u8g2_font_logisoso26_tr);
     char tB[10];
     dtostrf(temp, 4, 1, tB);
-    display.setFont(u8g2_font_logisoso24_tf);
-    display.drawStr(0, 42, tB);
+    display.drawStr(0, 50, tB);
 
-    display.setFont(u8g2_font_6x12_tf);
-    display.drawStr(60, 30, "oC");
+    display.setFont(u8g2_font_9x15_tr);
+    display.drawStr(65, 38, "C");
 
-    // Min/Max (Coluna Direita - Compactado)
+    // Min/Max (Coluna Direita)
+    display.setFont(u8g2_font_6x12_tr);
     char mB[10];
-    dtostrf(max, 4, 1, mB);
-    display.drawStr(80, 28, "Mx");
-    display.drawStr(100, 28, mB);
+    String minTxt = "MIN:";
+    if (observedMin < 9000.0) {
+      dtostrf(observedMin, 4, 1, mB);
+      minTxt += mB;
+    } else
+      minTxt += "--.-";
 
-    dtostrf(min, 4, 1, mB);
-    display.drawStr(80, 40, "Mn");
-    display.drawStr(100, 40, mB);
+    String maxTxt = "MAX:";
+    if (observedMax > -9000.0) {
+      dtostrf(observedMax, 4, 1, mB);
+      maxTxt += mB;
+    } else
+      maxTxt += "--.-";
 
-    // Linha Divisória
-    display.drawLine(0, 48, 127, 48);
+    display.drawStr(80, 35, minTxt.c_str());
+    display.drawStr(80, 50, maxTxt.c_str());
 
-    // --- RODAPÉ DINÂMICO ---
-    // --- RODAPÉ DINÂMICO (PAGING) ---
+    // Linha inferior informativa
+    display.drawStr(0, 64, "OPERACIONAL");
 
-    // Logic to switch pages
-    if (totalPages > 1) {
-      if (now - lastPageChange > 3000) { // 3 seconds per page
-        lastPageChange = now;
-        currentMsgPage++;
-        if (currentMsgPage >= totalPages) {
-          currentMsgPage = 0;
-        }
-      }
-    } else {
-      currentMsgPage = 0;
-    }
-
-    // Logic to extract substring for current page
-    // Page size = 18 chars
-    int pageSize = 18;
-    int startIndex = currentMsgPage * pageSize;
-    String pageText =
-        mensagemRodape.substring(startIndex, startIndex + pageSize);
-
-    // Center the text
-    int width = display.getStrWidth(pageText.c_str());
-    int xPos = (128 - width) / 2;
-    if (xPos < 0)
-      xPos = 0;
-
-    display.drawStr(xPos, 62, pageText.c_str());
-
-    // Alerta Sobreposto
-    if (alarm) {
-      display.setDrawColor(0);
-      display.drawBox(105, 52, 23, 12);
-      display.setDrawColor(1);
-      display.drawStr(105, 62, "!!!");
+    if (resetDone) {
+      display.drawStr(110, 64, "OK");
     }
 
     display.sendBuffer();
   }
 }
 
+void DisplayManager::drawPasswordScreen() {
+  display.clearBuffer();
+  display.setFont(u8g2_font_6x12_tr);
+  display.drawStr(0, 10, "DIGITE A SENHA");
+
+  display.setFont(u8g2_font_logisoso20_tr);
+  char buffer[16];
+  snprintf(buffer, sizeof(buffer), "%d %d %d %d", _password[0], _password[1],
+           _password[2], _password[3]);
+
+  display.drawStr(10, 58, buffer);
+
+  int xPositions[4] = {8, 36, 64, 92};
+  display.drawFrame(xPositions[_passwordIndex] - 2, 34, 22, 28);
+  display.sendBuffer();
+}
+
+void DisplayManager::drawMainMenuPaged() {
+  display.clearBuffer();
+  display.setFont(u8g2_font_6x12_tr);
+
+  const int totalItems = 8;
+  const char *mainMenuNames[] = {
+      "CONTROLE", "SAIDAS",          "TESTAR SAIDAS", "ENTRADAS",
+      "SENSOR",   "OFF SET DS18B20", "LUZ INTERNA",   "OFF SET PT100"};
+
+  const int itemsPerPage = 4;
+  int totalPages = (totalItems + itemsPerPage - 1) / itemsPerPage;
+  int page = _menuIndex / itemsPerPage;
+  int startItem = page * itemsPerPage;
+  int endItem = startItem + itemsPerPage;
+  if (endItem > totalItems)
+    endItem = totalItems;
+
+  String title = "MENU ";
+  title += String(page + 1) + "/" + String(totalPages);
+  display.drawStr(0, 10, title.c_str());
+
+  int line = 0;
+  for (int i = startItem; i < endItem; i++) {
+    int y = 24 + line * 10;
+    if (i == _menuIndex) {
+      display.drawBox(0, y - 8, 128, 10);
+      display.setDrawColor(0);
+      display.drawStr(2, y, mainMenuNames[i]);
+      display.setDrawColor(1);
+    } else {
+      display.drawStr(2, y, mainMenuNames[i]);
+    }
+    line++;
+  }
+  display.sendBuffer();
+}
+
+void DisplayManager::drawSubMenu(const char *title, const char **items,
+                                 int count, int index) {
+  display.clearBuffer();
+  display.setFont(u8g2_font_6x12_tr);
+  display.drawStr(0, 10, title);
+
+  for (int i = 0; i < count; i++) {
+    int y = 24 + i * 10;
+    if (i == index) {
+      display.drawBox(0, y - 8, 128, 10);
+      display.setDrawColor(0);
+      display.drawStr(2, y, items[i]);
+      display.setDrawColor(1);
+    } else {
+      display.drawStr(2, y, items[i]);
+    }
+  }
+  display.sendBuffer();
+}
+
+void DisplayManager::drawEditValue(const char *title, float value,
+                                   const char *unit) {
+  display.clearBuffer();
+  display.setFont(u8g2_font_6x12_tr);
+  display.drawStr(0, 10, title);
+  display.drawStr(0, 24, "UP/DOWN ajustes");
+  display.drawStr(0, 36, "ENTER salvar");
+
+  display.setFont(u8g2_font_logisoso20_tr);
+  char buf[10];
+  dtostrf(value, 4, 1, buf);
+  display.drawStr(18, 64, buf);
+
+  display.setFont(u8g2_font_6x12_tr);
+  display.drawStr(95, 60, unit);
+  display.sendBuffer();
+}
+
+void DisplayManager::drawTestRelayToggle(int relayIndex, bool state) {
+  display.clearBuffer();
+  display.setFont(u8g2_font_6x12_tr);
+  char buf[20];
+  sprintf(buf, "RELE %02d", relayIndex);
+  display.drawStr(0, 10, buf);
+  display.drawStr(0, 24, "ENTER alterna");
+  display.drawStr(0, 36, "BACK retorna");
+
+  display.setFont(u8g2_font_logisoso20_tr);
+  display.drawStr(20, 64, state ? "ON" : "OFF");
+  display.sendBuffer();
+}
+
+void DisplayManager::drawMenu() {
+  switch (_currentMenu) {
+  case MENU_PASSWORD:
+    drawPasswordScreen();
+    break;
+  case MENU_MAIN:
+    drawMainMenuPaged();
+    break;
+  case MENU_CONTROLE: {
+    const char *items[] = {"TEMP MIN", "TEMP MAX", "VOLTAR"};
+    drawSubMenu("CONTROLE", items, 3, _subMenuIndex);
+  } break;
+  case MENU_SAIDAS: {
+    const char *items[] = {"MOTOR", "LUZ INTERNA", "BATERIA", "COOLER",
+                           "VOLTAR"};
+    drawSubMenu("SAIDAS", items, 5, _subMenuIndex);
+  } break;
+  case MENU_TESTAR_SAIDAS: {
+    const char *items[] = {"RELE 00", "RELE 01", "RELE 02", "RELE 03",
+                           "VOLTAR"};
+    drawSubMenu("TESTAR", items, 5, _subMenuIndex);
+  } break;
+  case MENU_ENTRADAS: {
+    const char *items[] = {"PINO DS18B20", "VOLTAR"};
+    drawSubMenu("ENTRADAS", items, 2, _subMenuIndex);
+  } break;
+  case MENU_SENSOR: {
+    const char *items[] = {"TIPO SENSOR", "VOLTAR"};
+    drawSubMenu("SENSOR", items, 2, _subMenuIndex);
+  } break;
+  case MENU_LUZ: {
+    const char *items[] = {"FUNCAO", "VOLTAR"};
+    drawSubMenu("LUZ INTERNA", items, 2, _subMenuIndex);
+  } break;
+  case EDIT_TEMP_MIN:
+    drawEditValue("TEMP MIN", _tempAdjust, "C");
+    break;
+  case EDIT_TEMP_MAX:
+    drawEditValue("TEMP MAX", _tempAdjust, "C");
+    break;
+  case EDIT_DS18B20_OFFSET:
+    drawEditValue("OFFSET DS18", _tempAdjust, "C");
+    break;
+  case EDIT_PT100_OFFSET:
+    drawEditValue("OFFSET PT100", _tempAdjust, "C");
+    break;
+  // ... logic for other edit screens would go here or handled by generic
+  // drawEditValue
+  default:
+    break;
+  }
+}
+
+void DisplayManager::openMenu() {
+  _currentMenu = MENU_PASSWORD;
+  _passwordIndex = 0;
+  for (int i = 0; i < 4; i++)
+    _password[i] = 0;
+}
+
+void DisplayManager::closeMenu() { _currentMenu = MENU_OFF; }
+
+void DisplayManager::menuNext(int maxItems) {
+  if (_currentMenu == MENU_MAIN)
+    _menuIndex = (_menuIndex + 1) % maxItems;
+  else
+    _subMenuIndex = (_subMenuIndex + 1) % maxItems;
+}
+
+void DisplayManager::menuPrev(int maxItems) {
+  if (_currentMenu == MENU_MAIN)
+    _menuIndex = (_menuIndex + maxItems - 1) % maxItems;
+  else
+    _subMenuIndex = (_subMenuIndex + maxItems - 1) % maxItems;
+}
+
 void DisplayManager::showOtaProgress(int percent) {
   display.clearBuffer();
   display.setFont(u8g2_font_6x12_tf);
   display.drawStr(10, 20, "ATUALIZANDO...");
-
-  // Barra de progresso
   display.drawFrame(10, 30, 108, 10);
   display.drawBox(12, 32, (percent * 104) / 100, 6);
-
   char pStr[10];
   sprintf(pStr, "%d%%", percent);
   int width = display.getStrWidth(pStr);
   display.drawStr((128 - width) / 2, 55, pStr);
-
   display.sendBuffer();
 }
 
-// --- MENU LOGIC ---
-
-void DisplayManager::openMenu() {
-  _currentMenu = MENU_MAIN;
-  _menuIndex = 0;
-  showMessage("Menu Ativo", 2000);
-}
-
-void DisplayManager::closeMenu() {
-  _currentMenu = MENU_OFF;
-  showMessage("Menu Fechado", 2000);
-}
-
-void DisplayManager::menuNext() {
-  if (_currentMenu == MENU_MAIN) {
-    _menuIndex = (_menuIndex + 1) % 5;
-  } else if (_currentMenu == SET_TEMP_MAX || _currentMenu == SET_TEMP_MIN) {
-    _tempAdjust += 0.5;
-  }
-}
-
-void DisplayManager::menuPrev() {
-  if (_currentMenu == MENU_MAIN) {
-    _menuIndex = (_menuIndex + 4) % 5;
-  } else if (_currentMenu == SET_TEMP_MAX || _currentMenu == SET_TEMP_MIN) {
-    _tempAdjust -= 0.5;
-  }
-}
-
-int DisplayManager::menuEnter(float &targetMax, float &targetMin,
-                              bool &targetAlarm, bool &targetRelay) {
-  if (_currentMenu == MENU_MAIN) {
-    if (_menuIndex == 0) {
-      _currentMenu = SET_TEMP_MAX;
-      _tempAdjust = targetMax;
-    } else if (_menuIndex == 1) {
-      _currentMenu = SET_TEMP_MIN;
-      _tempAdjust = targetMin;
-    } else if (_menuIndex == 2) {
-      _currentMenu = TOGGLE_ALARM;
-    } else if (_menuIndex == 3) {
-      _currentMenu = TEST_RELAY;
-    } else if (_menuIndex == 4) {
-      _currentMenu = RESET_WIFI;
-    }
-    return 0;
-  } else {
-    int changed = 0;
-    if (_currentMenu == SET_TEMP_MAX) {
-      targetMax = _tempAdjust;
-      changed = 1;
-    } else if (_currentMenu == SET_TEMP_MIN) {
-      targetMin = _tempAdjust;
-      changed = 1;
-    } else if (_currentMenu == TOGGLE_ALARM) {
-      targetAlarm = !targetAlarm;
-      changed = 1;
-    } else if (_currentMenu == TEST_RELAY) {
-      targetRelay = !targetRelay;
-      changed = 1;
-    } else if (_currentMenu == RESET_WIFI) {
-      changed = 2; // Código especial para Reset
-    }
-
-    _currentMenu = MENU_MAIN;
-    return changed;
-  }
-}
-
-void DisplayManager::drawMenu() {
+void DisplayManager::drawCalibrationPT100(float temp, int adc, float voltage) {
   display.clearBuffer();
-  display.setFont(u8g2_font_6x12_tf);
+  display.setFont(u8g2_font_ncenB08_tr);
+  display.drawStr(0, 10, "CALIBRACAO PT100");
+  display.drawHLine(0, 13, 128);
+  display.setFont(u8g2_font_ncenB12_tr);
+  display.setCursor(0, 35);
+  display.print("Temp: ");
+  display.print(temp, 1);
+  display.print(" C");
+  display.setFont(u8g2_font_6x10_tf);
+  display.setCursor(0, 52);
+  display.print("ADC: ");
+  display.print(adc);
+  display.setCursor(0, 63);
+  display.print("Tensao: ");
+  display.print(voltage, 2);
+  display.print(" V");
+  display.sendBuffer();
+}
+void DisplayManager::menuAction(ButtonEvent ev) {
+  if (ev == BTN_NONE)
+    return;
 
-  if (_currentMenu == MENU_MAIN) {
-    display.drawStr(0, 10, "> CONFIGURACOES");
-    const char *options[] = {"1. Temp Max", "2. Temp Min", "3. Alarme ON/OFF",
-                             "4. Testar Rele", "5. Reset WiFi"};
-    for (int i = 0; i < 5; i++) {
-      if (i == _menuIndex)
-        display.drawStr(0, 25 + (i * 12), ">");
-      display.drawStr(10, 25 + (i * 12), options[i]);
-    }
-  } else if (_currentMenu == SET_TEMP_MAX || _currentMenu == SET_TEMP_MIN) {
-    display.drawStr(0, 10,
-                    _currentMenu == SET_TEMP_MAX ? "AJUSTE TEMP MAX"
-                                                 : "AJUSTE TEMP MIN");
-    char buf[10];
-    dtostrf(_tempAdjust, 4, 1, buf);
-    display.setFont(u8g2_font_logisoso24_tf);
-    display.drawStr(30, 45, buf);
-    display.setFont(u8g2_font_6x12_tf);
-    display.drawStr(90, 45, "oC");
-    display.drawStr(0, 62, "[ENTER] p/ Salvar");
-  } else if (_currentMenu == TOGGLE_ALARM) {
-    display.drawStr(0, 10, "STATUS ALARME");
-    display.setFont(u8g2_font_logisoso24_tf);
-    display.drawStr(20, 45, "CONFIRMAR?");
-    display.setFont(u8g2_font_6x12_tf);
-    display.drawStr(0, 62, "[ENTER] Inverter");
-  } else if (_currentMenu == TEST_RELAY) {
-    display.drawStr(0, 10, "TESTE DE SAIDA");
-    display.setFont(u8g2_font_logisoso24_tf);
-    display.drawStr(20, 45, "RELE?");
-    display.setFont(u8g2_font_6x12_tf);
-    display.drawStr(0, 62, "[ENTER] p/ Alternar");
-  } else if (_currentMenu == RESET_WIFI) {
-    display.drawStr(0, 10, "RESETAR WIFI?");
-    display.setFont(u8g2_font_logisoso24_tf);
-    display.drawStr(5, 45, "CONFIRMAR?");
-    display.setFont(u8g2_font_6x12_tf);
-    display.drawStr(0, 62, "[ENTER] Apagar Tudo");
+  if (_currentMenu == MENU_OFF) {
+    if (ev == BTN_PRESSED_MENU)
+      openMenu();
+    return;
   }
 
-  display.sendBuffer();
+  // BACK / MENU volta um nível ou fecha
+  if (ev == BTN_PRESSED_MENU) {
+    switch (_currentMenu) {
+    case MENU_PASSWORD:
+    case MENU_MAIN:
+      closeMenu();
+      break;
+    case MENU_CONTROLE:
+    case MENU_SAIDAS:
+    case MENU_TESTAR_SAIDAS:
+    case MENU_ENTRADAS:
+    case MENU_SENSOR:
+    case MENU_LUZ:
+    case EDIT_DS18B20_OFFSET:
+    case EDIT_PT100_OFFSET:
+      _currentMenu = MENU_MAIN;
+      break;
+    case EDIT_TEMP_MIN:
+    case EDIT_TEMP_MAX:
+      _currentMenu = MENU_CONTROLE;
+      break;
+    case TEST_RELAY_TOGGLE:
+      _currentMenu = MENU_TESTAR_SAIDAS;
+      break;
+    default:
+      _currentMenu = MENU_MAIN;
+      break;
+    }
+    return;
+  }
+
+  // Navegação UP/DOWN e Ajustes
+  if (ev == BTN_PRESSED_UP || ev == BTN_PRESSED_DOWN) {
+    int dir = (ev == BTN_PRESSED_UP) ? -1 : 1;
+
+    switch (_currentMenu) {
+    case MENU_PASSWORD:
+      _password[_passwordIndex] = (_password[_passwordIndex] + dir + 10) % 10;
+      break;
+    case MENU_MAIN:
+      _menuIndex = (_menuIndex + dir + 8) % 8; // 8 itens no menu principal
+      break;
+    case MENU_CONTROLE:
+      _subMenuIndex = (_subMenuIndex + dir + 3) % 3;
+      break;
+    case MENU_SAIDAS:
+      _subMenuIndex = (_subMenuIndex + dir + 5) % 5;
+      break;
+    case MENU_TESTAR_SAIDAS:
+      _subMenuIndex = (_subMenuIndex + dir + 5) % 5;
+      break;
+    case MENU_ENTRADAS:
+      _subMenuIndex = (_subMenuIndex + dir + 2) % 2;
+      break;
+    case MENU_SENSOR:
+      _subMenuIndex = (_subMenuIndex + dir + 2) % 2;
+      break;
+    case MENU_LUZ:
+      _subMenuIndex = (_subMenuIndex + dir + 2) % 2;
+      break;
+    case EDIT_TEMP_MIN:
+    case EDIT_TEMP_MAX:
+    case EDIT_DS18B20_OFFSET:
+    case EDIT_PT100_OFFSET:
+      _tempAdjust += dir * 0.1f;
+      break;
+    default:
+      break;
+    }
+  }
+
+  // ENTER seleciona ou confirma
+  if (ev == BTN_PRESSED_ENTER) {
+    switch (_currentMenu) {
+    case MENU_PASSWORD:
+      if (_passwordIndex < 3) {
+        _passwordIndex++;
+      } else {
+        // Verifica senha (default 0000 para agora, ou uma fixa)
+        if (_password[0] == 0 && _password[1] == 0 && _password[2] == 0 &&
+            _password[3] == 0) {
+          _currentMenu = MENU_MAIN;
+          _menuIndex = 0;
+        } else {
+          showMessage("SENHA INCORRETA", 2000);
+          closeMenu();
+        }
+      }
+      break;
+
+    case MENU_MAIN:
+      _subMenuIndex = 0;
+      switch (_menuIndex) {
+      case 0:
+        _currentMenu = MENU_CONTROLE;
+        break;
+      case 1:
+        _currentMenu = MENU_SAIDAS;
+        break;
+      case 2:
+        _currentMenu = MENU_TESTAR_SAIDAS;
+        break;
+      case 3:
+        _currentMenu = MENU_ENTRADAS;
+        break;
+      case 4:
+        _currentMenu = MENU_SENSOR;
+        break;
+      case 5:
+        _currentMenu = EDIT_DS18B20_OFFSET;
+        break;
+      case 6:
+        _currentMenu = MENU_LUZ;
+        break;
+      case 7:
+        _currentMenu = EDIT_PT100_OFFSET;
+        break;
+      }
+      break;
+
+    case MENU_CONTROLE:
+      if (_subMenuIndex == 0)
+        _currentMenu = EDIT_TEMP_MIN;
+      else if (_subMenuIndex == 1)
+        _currentMenu = EDIT_TEMP_MAX;
+      else
+        _currentMenu = MENU_MAIN;
+      break;
+
+    case MENU_TESTAR_SAIDAS:
+      if (_subMenuIndex < 4) {
+        _currentMenu = TEST_RELAY_TOGGLE;
+        // relay Index = _subMenuIndex
+      } else {
+        _currentMenu = MENU_MAIN;
+      }
+      break;
+
+    case EDIT_TEMP_MIN:
+    case EDIT_TEMP_MAX:
+    case EDIT_DS18B20_OFFSET:
+    case EDIT_PT100_OFFSET:
+      // O valor alterado deve ser capturado pelo main.cpp antes de voltar
+      // ou definimos um mecanismo de "save dirty"
+      _currentMenu = MENU_MAIN; // Volta ao principal ou sub após salvar
+      break;
+
+    default:
+      _currentMenu = MENU_MAIN;
+      break;
+    }
+  }
 }

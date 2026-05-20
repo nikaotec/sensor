@@ -7,10 +7,14 @@ import {
     BatteryCharging,
     Zap,
     RotateCw,
-    Wifi
+    Wifi,
+    CheckCircle2,
+    Cpu
 } from 'lucide-react';
 import type { Device } from '../../data/mockData';
 import { getStatusStyle, getStatusLabel } from '../../utils/statusUtils';
+import { firmwareRegistryService } from '../../services/FirmwareRegistryService';
+import { VersionService } from '../../services/VersionService';
 
 interface DeviceTelemetryCardProps {
     device: Device;
@@ -20,7 +24,39 @@ interface DeviceTelemetryCardProps {
 const DeviceTelemetryCard: React.FC<DeviceTelemetryCardProps> = ({ device, isManager }) => {
     return (
         <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg">
-            <h3 className="text-xs font-medium text-slate-400 uppercase mb-4 tracking-wider font-heading">Monitoramento em Tempo Real</h3>
+            <h3 className="text-xs font-medium text-slate-400 uppercase mb-3 tracking-wider font-heading">Monitoramento em Tempo Real</h3>
+
+            {/* Badge de Versão de Firmware */}
+            {(device?.telemetry as any)?.version && (() => {
+                const latestFw = firmwareRegistryService.getLatestVersion();
+                const latestVersion = latestFw?.version;
+                const deviceVersion = (device.telemetry as any).version;
+                const isUpToDate = latestVersion ? VersionService.isUpToDate(deviceVersion, latestVersion) : true;
+                return (
+                    <div className="flex items-center gap-2 mb-4 p-2.5 rounded-xl border border-[#2A2E24] bg-[#0F110D]">
+                        <div className="size-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 shrink-0">
+                            <Cpu size={14} />
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Firmware Instalado</span>
+                            <span className="text-xs font-bold text-white font-mono">v{deviceVersion}</span>
+                        </div>
+                        <div className="ml-auto">
+                            {isUpToDate ? (
+                                <span className="text-[8px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2 py-1 rounded-full font-bold uppercase tracking-tighter flex items-center gap-1">
+                                    <CheckCircle2 size={10} />
+                                    Atualizado
+                                </span>
+                            ) : (
+                                <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-1 rounded-full font-bold uppercase tracking-tighter flex items-center gap-1">
+                                    <AlertTriangle size={10} />
+                                    Atualizar para v{latestVersion}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {device?.status === 'offline' && (
                 <div className="mb-4 bg-[#0F110D] text-slate-400 text-xs px-4 py-3 rounded-xl border border-amber-500/20 flex items-start gap-3 shadow-[0_0_15px_rgba(245,158,11,0.1)]">

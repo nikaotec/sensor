@@ -11,10 +11,13 @@ import {
     Wifi,
     Zap,
     BellOff,
-    Bell
+    Bell,
+    CheckCircle2
 } from 'lucide-react';
 import type { OtaStatus } from '../../types/ota';
 import OtaProgressBadge from '../ota/OtaProgressBadge';
+import { VersionService } from '../../services/VersionService';
+import { firmwareRegistryService } from '../../services/FirmwareRegistryService';
 
 interface DeviceCardProps {
     device: any;
@@ -98,11 +101,29 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                                 <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
                                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
                                     {device.location}
-                                    {device.telemetry?.version && (
-                                        <span className="ml-2 text-[8px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded-full border border-slate-700 font-bold uppercase tracking-tighter">
-                                            FW {device.telemetry.version}
-                                        </span>
-                                    )}
+                                    {device.telemetry?.version && (() => {
+                                        const latestFw = firmwareRegistryService.getLatestVersion();
+                                        const latestVersion = latestFw?.version;
+                                        const isUpToDate = latestVersion ? VersionService.isUpToDate(device.telemetry.version, latestVersion) : true;
+                                        return (
+                                            <div className="flex items-center gap-1.5 ml-2">
+                                                <span className="text-[8px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded-full border border-slate-700 font-bold uppercase tracking-tighter">
+                                                    FW {device.telemetry.version}
+                                                </span>
+                                                {isUpToDate ? (
+                                                    <span className="text-[8px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter flex items-center gap-1">
+                                                        <CheckCircle2 size={10} />
+                                                        Atualizado
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter flex items-center gap-1">
+                                                        <AlertTriangle size={10} />
+                                                        Atualizar
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </p>
                             )}
                             {currentTenantId === 'all' && (

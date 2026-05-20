@@ -293,7 +293,7 @@ export const useMqttData = (
                         const newDevices = [...prevDevices];
                         newDevices[existingDeviceIndex] = {
                             ...existing,
-                            name: lockedData?.name || (existing.name || payload.device_name),
+                            name: lockedData?.name || existing.name || payload.device_name || existing.id,
                             location: payload.ala || existing.location,
                             status: 'online',
                             lastSeen: new Date().toISOString(),
@@ -308,7 +308,7 @@ export const useMqttData = (
                         const newDevice: any = {
                             id: payload.id,
                             tenantId: payload.company || 'Unknown',
-                            name: payload.device_name || 'Desconhecido',
+                            name: payload.device_name || payload.id,
                             type: 'sensor_temp',
                             status: 'online',
                             location: payload.ala || '',

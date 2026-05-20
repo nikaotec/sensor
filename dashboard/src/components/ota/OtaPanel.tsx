@@ -3,6 +3,10 @@ import { Cpu, Send, AlertTriangle, CheckCircle2, ChevronLeft, UploadCloud, Hash,
 import type { OtaProgressMap } from '../../types/ota';
 import OtaProgressBadge from './OtaProgressBadge';
 import { LATEST_FIRMWARE_VERSION } from '../../services/OtaService';
+import { VersionService } from '../../services/VersionService';
+import { firmwareRegistryService, type FirmwareVersion } from '../../services/FirmwareRegistryService';
+
+const FIRMWARE_BASE_URL = 'https://firmware.nikaotech.com/';
 
 interface Device {
     id: string;
@@ -34,20 +38,65 @@ const OtaPanel: React.FC<OtaPanelProps> = ({
     onNavigate,
     isMqttConnected,
 }) => {
-    const [firmwareUrl, setFirmwareUrl] = useState('');
+    const [firmwareFilename, setFirmwareFilename] = useState('');
     const [firmwareHash, setFirmwareHash] = useState('');
     const [selectionMode, setSelectionMode] = useState<SelectionMode>('all');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [confirming, setConfirming] = useState(false);
     const [urlError, setUrlError] = useState('');
+    const [versions, setVersions] = useState<FirmwareVersion[]>([]);
+    const [isAddingVersion, setIsAddingVersion] = useState(false);
+    const [newVersionInput, setNewVersionInput] = useState({ version: '', filename: '', hash: '' });
+
+    // Load versions on mount
+    React.useEffect(() => {
+        setVersions(firmwareRegistryService.getVersions());
+    }, []);
+
+    const dynamicLatestVersion = useMemo(() => {
+        const latest = versions.find(v => v.isLatest);
+        return latest?.version || LATEST_FIRMWARE_VERSION;
+    }, [versions]);
 
     const onlineDevices = useMemo(() => devices.filter(d => d.status !== 'offline'), [devices]);
 
-    // Grouping logic
-    const outdatedDevices = useMemo(() => devices.filter(d => d.telemetry?.version !== LATEST_FIRMWARE_VERSION), [devices]);
-    const updatedDevices = useMemo(() => devices.filter(d => d.telemetry?.version === LATEST_FIRMWARE_VERSION), [devices]);
+    // Grouping logic based on dynamic latest version
+    const outdatedDevices = useMemo(() => devices.filter(d => !VersionService.isUpToDate(d.telemetry?.version, dynamicLatestVersion)), [devices, dynamicLatestVersion]);
+    const updatedDevices = useMemo(() => devices.filter(d => VersionService.isUpToDate(d.telemetry?.version, dynamicLatestVersion)), [devices, dynamicLatestVersion]);
 
     const onlineOutdatedCount = useMemo(() => outdatedDevices.filter(d => d.status !== 'offline').length, [outdatedDevices]);
+
+    const handleSelectVersion = (v: FirmwareVersion) => {
+        setFirmwareFilename(v.filename);
+        setFirmwareHash(v.hash || '');
+        setConfirming(false);
+        setUrlError('');
+    };
+
+    const handleAddVersion = () => {
+        if (!newVersionInput.version || !newVersionInput.filename) return;
+        firmwareRegistryService.addVersion({
+            id: `v${newVersionInput.version}-${Date.now()}`,
+            version: newVersionInput.version,
+            filename: newVersionInput.filename,
+            hash: newVersionInput.hash
+        });
+        setVersions(firmwareRegistryService.getVersions());
+        setIsAddingVersion(false);
+        setNewVersionInput({ version: '', filename: '', hash: '' });
+    };
+
+    const handleSetLatest = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        firmwareRegistryService.setLatest(id);
+        setVersions(firmwareRegistryService.getVersions());
+    };
+
+    const handleRemoveVersion = (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        firmwareRegistryService.removeVersion(id);
+        setVersions(firmwareRegistryService.getVersions());
+    };
 
     const effectiveDeviceIds = selectionMode === 'all'
         ? outdatedDevices.filter(d => d.status !== 'offline').map(d => d.id)
@@ -61,13 +110,13 @@ const OtaPanel: React.FC<OtaPanelProps> = ({
         });
     };
 
-    const validateUrl = (url: string) => {
-        if (!url.startsWith('http')) {
-            setUrlError('A URL deve começar com http:// ou https://');
+    const validateUrl = (filename: string) => {
+        if (!filename.trim()) {
+            setUrlError('Informe o nome do arquivo de firmware');
             return false;
         }
-        if (!url.endsWith('.bin')) {
-            setUrlError('A URL deve apontar para um arquivo .bin');
+        if (!filename.endsWith('.bin')) {
+            setUrlError('O arquivo deve ter extensão .bin');
             return false;
         }
         setUrlError('');
@@ -75,13 +124,14 @@ const OtaPanel: React.FC<OtaPanelProps> = ({
     };
 
     const handleSubmit = () => {
-        if (!validateUrl(firmwareUrl)) return;
+        if (!validateUrl(firmwareFilename)) return;
         if (effectiveDeviceIds.length === 0) return;
         if (!confirming) { setConfirming(true); return; }
 
-        onSendOta(effectiveDeviceIds, firmwareUrl, firmwareHash || undefined);
+        const fullUrl = FIRMWARE_BASE_URL + firmwareFilename.trim();
+        onSendOta(effectiveDeviceIds, fullUrl, firmwareHash || undefined);
         setConfirming(false);
-        setFirmwareUrl('');
+        setFirmwareFilename('');
         setFirmwareHash('');
     };
 
@@ -92,7 +142,7 @@ const OtaPanel: React.FC<OtaPanelProps> = ({
     const renderDeviceItem = (device: Device, isInteractive: boolean) => {
         const status = progressMap[device.id];
         const isOffline = device.status === 'offline';
-        const isUpdated = device.telemetry?.version === LATEST_FIRMWARE_VERSION;
+        const isUpdated = VersionService.isUpToDate(device.telemetry?.version, dynamicLatestVersion);
 
         if (isInteractive) {
             return (
@@ -191,26 +241,129 @@ const OtaPanel: React.FC<OtaPanelProps> = ({
 
             <div className="max-w-5xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                {/* ── Left: Form ─────────────────────────────── */}
-                <div className="space-y-4 font-sans">
+                {/* ── Left: Versions & Form ──────────────────── */}
+                <div className="space-y-6 font-sans">
+                    {/* Firmware Library */}
+                    <div className="bg-[#1A1D17] rounded-2xl border border-[#2A2E24] p-6">
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                                <UploadCloud size={15} className="text-primary" />
+                                Biblioteca de Firmwares
+                            </h2>
+                            <button
+                                onClick={() => setIsAddingVersion(!isAddingVersion)}
+                                className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-widest"
+                            >
+                                {isAddingVersion ? 'Cancelar' : '+ Adicionar'}
+                            </button>
+                        </div>
+
+                        {isAddingVersion && (
+                            <div className="mb-6 p-4 rounded-xl border border-[#2A2E24] bg-[#0F110D] space-y-3">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Versão (ex: 1.2.0)"
+                                        value={newVersionInput.version}
+                                        onChange={e => setNewVersionInput({ ...newVersionInput, version: e.target.value })}
+                                        className="bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-xs text-white focus:outline-none placeholder:text-slate-600"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Arquivo (ex: fw.bin)"
+                                        value={newVersionInput.filename}
+                                        onChange={e => setNewVersionInput({ ...newVersionInput, filename: e.target.value })}
+                                        className="bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-xs text-white focus:outline-none placeholder:text-slate-600"
+                                    />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="SHA256 Hash (opcional)"
+                                    value={newVersionInput.hash}
+                                    onChange={e => setNewVersionInput({ ...newVersionInput, hash: e.target.value })}
+                                    className="w-full bg-[#1A1D17] border border-[#2A2E24] rounded-lg px-3 py-2 text-xs text-white focus:outline-none placeholder:text-slate-600"
+                                />
+                                <button
+                                    onClick={handleAddVersion}
+                                    disabled={!newVersionInput.version || !newVersionInput.filename}
+                                    className="w-full py-2 bg-primary text-black rounded-lg text-xs font-bold disabled:opacity-30"
+                                >
+                                    Salvar na Biblioteca
+                                </button>
+                            </div>
+                        )}
+
+                        <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                            {versions.length === 0 ? (
+                                <p className="text-[10px] text-slate-500 italic text-center py-4">Nenhum firmware cadastrado</p>
+                            ) : (
+                                versions.map(v => (
+                                    <div
+                                        key={v.id}
+                                        onClick={() => handleSelectVersion(v)}
+                                        className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${firmwareFilename === v.filename
+                                            ? 'bg-primary/5 border-primary/40 shadow-[0_0_15px_rgba(202,255,0,0.05)]'
+                                            : 'bg-[#0F110D] border-[#2A2E24] hover:border-slate-700'
+                                            }`}
+                                    >
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs font-bold text-white">v{v.version}</span>
+                                                {v.isLatest && (
+                                                    <span className="text-[8px] bg-primary/20 text-primary border border-primary/30 px-1 rounded uppercase font-black">Latest</span>
+                                                )}
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 truncate">{v.filename}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            {!v.isLatest && (
+                                                <button
+                                                    onClick={(e) => handleSetLatest(v.id, e)}
+                                                    className="p-1.5 rounded-lg border border-[#2A2E24] text-slate-500 hover:text-primary hover:border-primary/40 transition-all shadow-sm"
+                                                    title="Marcar como Versão Atual"
+                                                >
+                                                    <CheckCircle size={14} />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={(e) => handleRemoveVersion(v.id, e)}
+                                                className="p-1.5 rounded-lg border border-[#2A2E24] text-slate-500 hover:text-red-400 hover:border-red-500/40 transition-all shadow-sm"
+                                                title="Remover"
+                                            >
+                                                <AlertTriangle size={14} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+
                     <div className="bg-[#1A1D17] rounded-2xl border border-[#2A2E24] p-6">
                         <h2 className="text-sm font-bold text-slate-200 mb-5 flex items-center gap-2">
-                            <UploadCloud size={15} className="text-primary" />
+                            <Send size={15} className="text-primary" />
                             Configurar Atualização
                         </h2>
 
                         {/* URL */}
                         <div className="mb-4">
                             <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                                <Globe size={11} /> URL do Firmware
+                                <Globe size={11} /> Arquivo de Firmware
                             </label>
-                            <input
-                                type="url"
-                                value={firmwareUrl}
-                                onChange={(e) => { setFirmwareUrl(e.target.value); setUrlError(''); setConfirming(false); }}
-                                placeholder="https://cdn.exemplo.com/firmware_v2.bin"
-                                className={`w-full bg-[#0F110D] border ${urlError ? 'border-red-500/60' : 'border-[#2A2E24]'} rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-primary/50 transition-colors`}
-                            />
+                            <div className={`flex items-center w-full bg-[#0F110D] border ${urlError ? 'border-red-500/60' : 'border-[#2A2E24]'} rounded-xl overflow-hidden focus-within:border-primary/50 transition-colors`}>
+                                <span className="px-3 py-3 text-sm text-slate-500 whitespace-nowrap border-r border-[#2A2E24] bg-[#141710] shrink-0">
+                                    {FIRMWARE_BASE_URL}
+                                </span>
+                                <input
+                                    type="text"
+                                    value={firmwareFilename}
+                                    onChange={(e) => { setFirmwareFilename(e.target.value); setUrlError(''); setConfirming(false); }}
+                                    placeholder="firmware_v1.2.0.bin"
+                                    className="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder:text-slate-600 focus:outline-none min-w-0"
+                                />
+                            </div>
                             {urlError && <p className="text-[11px] text-red-400 mt-1.5 flex items-center gap-1"><AlertTriangle size={11} />{urlError}</p>}
                         </div>
 
@@ -254,11 +407,6 @@ const OtaPanel: React.FC<OtaPanelProps> = ({
                             </div>
                         )}
 
-                        {selectionMode === 'individual' && onlineDevices.length === 0 && (
-                            <div className="mb-4 py-8 text-center bg-[#0F110D] rounded-xl border border-dashed border-[#2A2E24]">
-                                <p className="text-[11px] text-slate-500 font-sans">Nenhum dispositivo online para atualizar</p>
-                            </div>
-                        )}
 
                         {/* Warnings */}
                         {!isMqttConnected && (
@@ -282,7 +430,7 @@ const OtaPanel: React.FC<OtaPanelProps> = ({
                         {/* Submit button */}
                         <button
                             onClick={handleSubmit}
-                            disabled={!isMqttConnected || !firmwareUrl || effectiveDeviceIds.length === 0 || hasActiveOta}
+                            disabled={!isMqttConnected || !firmwareFilename || effectiveDeviceIds.length === 0 || hasActiveOta}
                             className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${confirming
                                 ? 'bg-amber-500 hover:bg-amber-600 text-black'
                                 : 'bg-primary hover:bg-primary/90 text-black'

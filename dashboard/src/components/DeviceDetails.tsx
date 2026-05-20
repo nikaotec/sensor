@@ -258,6 +258,11 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
         else setTempCalibration('');
     };
 
+    const handleSensorChange = (type: 'DS18B20' | 'PT100') => {
+        setSelectedTempSensor(type);
+        handleAction('set_sensor_type', { sensor_type: type }, `Tipo de sensor alterado para ${type}`);
+    };
+
     return (
         <div className="flex h-screen overflow-hidden bg-background-dark text-slate-100 font-display">
             <Sidebar activeItem="device-list" onNavigate={onNavigate} />
@@ -331,7 +336,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                             isUpdating={isUpdating}
                                             isConnected={isConnected}
                                             tempSensor={selectedTempSensor}
-                                            setTempSensor={setSelectedTempSensor}
+                                            handleSensorChange={handleSensorChange}
                                         />
                                         <RelayControl
                                             device={device}

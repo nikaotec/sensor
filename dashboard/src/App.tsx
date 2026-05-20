@@ -15,6 +15,7 @@ import { TenantProvider, useTenant } from './contexts/TenantContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useMqttData } from './hooks/useMqttData'
+import { useTelemetryData } from './hooks/useTelemetryData'
 import { X, AlertOctagon } from 'lucide-react'
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext'
 import { useOtaManager } from './hooks/useOtaManager'
@@ -142,8 +143,11 @@ const AppContent = () => {
     }
   };
 
-  // Monitorar Alertas MQTT Globalmente
-  const { isConnected, mqttClient, devices } = useMqttData(
+  // Gerenciamento centralizado de telemetria e dispositivos
+  const { displayDevices, mqttConnected, mqttClient } = useTelemetryData(currentTenant, availableTenants, currentUser);
+
+  // Monitorar Alertas MQTT Globalmente (Side effects apenas)
+  useMqttData(
     currentTenant?.id || 'all',
     currentUser?.role,
     [],
@@ -271,12 +275,12 @@ const AppContent = () => {
       {currentScreen === 'admin-users' && <AdminUserPanel onNavigate={handleNavigation} />}
       {currentScreen === 'ota-panel' && (
         <OtaPanel
-          devices={devices}
+          devices={displayDevices}
           progressMap={progressMap}
           onSendOta={sendOta}
           onClearProgress={clearProgress}
           onNavigate={handleNavigation}
-          isMqttConnected={isConnected}
+          isMqttConnected={mqttConnected}
         />
       )}
     </div>

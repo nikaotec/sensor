@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Shield, ServerCrash, AlertCircle, CheckCircle2 } from 'lucide-react';
+import React from 'react';
+import { Shield, ServerCrash } from 'lucide-react';
 import Sidebar from './Sidebar';
 import DashboardHeader from './dashboard/DashboardHeader';
 import DeviceCard from './dashboard/DeviceCard';
@@ -9,7 +9,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTelemetryData } from '../hooks/useTelemetryData';
 import { useReportGenerator } from '../hooks/useReportGenerator';
 import { useOtaManager } from '../hooks/useOtaManager';
-import { LATEST_FIRMWARE_VERSION } from '../services/OtaService';
 
 interface DashboardProps {
     onDeviceClick: (deviceId: string) => void;
@@ -46,21 +45,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
         openReportModal,
         handleGenerateReport
     } = useReportGenerator(currentTenant, availableTenants, supabaseDevices, displayDevices, currentUser?.role);
-
-    // Agrupar dispositivos por versão de firmware
-    const { outdatedDevices, updatedDevices } = useMemo(() => {
-        const outdated: any[] = [];
-        const updated: any[] = [];
-        displayDevices.forEach(d => {
-            const currentVer = d.telemetry?.version || d.telemetry?.VERSAO || d.telemetry?.VERSION;
-            if (currentVer === LATEST_FIRMWARE_VERSION) {
-                updated.push(d);
-            } else {
-                outdated.push(d);
-            }
-        });
-        return { outdatedDevices: outdated, updatedDevices: updated };
-    }, [displayDevices]);
 
     if (!currentTenant || !currentUser) {
         return (
@@ -148,25 +132,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                             </div>
                         ) : (
                             <div className="space-y-12">
-                                {outdatedDevices.length > 0 && (
-                                    <section>
-                                        <h3 className="text-amber-500 font-medium mb-4 flex items-center gap-2">
-                                            <AlertCircle size={20} />
-                                            Dispositivos para Atualizar ({outdatedDevices.length})
-                                        </h3>
-                                        {renderDeviceList(outdatedDevices)}
-                                    </section>
-                                )}
-
-                                {updatedDevices.length > 0 && (
-                                    <section>
-                                        <h3 className="text-emerald-500 font-medium mb-4 flex items-center gap-2">
-                                            <CheckCircle2 size={20} />
-                                            Dispositivos Atualizados ({updatedDevices.length})
-                                        </h3>
-                                        {renderDeviceList(updatedDevices)}
-                                    </section>
-                                )}
+                                <section>
+                                    {renderDeviceList(displayDevices)}
+                                </section>
                             </div>
                         )}
                     </div>

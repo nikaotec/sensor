@@ -3,7 +3,7 @@ import { expect, test, vi } from 'vitest';
 import CalibrationControl from '../components/device/CalibrationControl';
 
 test('renders sensor selection buttons and allows selecting PT100', () => {
-    const setTempSensor = vi.fn();
+    const handleSensorChange = vi.fn();
     const handleCalibration = vi.fn();
 
     const props = {
@@ -16,10 +16,8 @@ test('renders sensor selection buttons and allows selecting PT100', () => {
         handleCalibration,
         isUpdating: false,
         isConnected: true,
-        // @ts-ignore - Propositalmente ignorando erro de tipo até a implementação
         tempSensor: 'DS18B20' as const,
-        // @ts-ignore
-        setTempSensor
+        handleSensorChange
     };
 
     render(<CalibrationControl {...props} />);
@@ -33,5 +31,5 @@ test('renders sensor selection buttons and allows selecting PT100', () => {
 
     // Simula clique no PT100
     fireEvent.click(ptButton);
-    expect(setTempSensor).toHaveBeenCalledWith('PT100');
+    expect(handleSensorChange).toHaveBeenCalledWith('PT100');
 });

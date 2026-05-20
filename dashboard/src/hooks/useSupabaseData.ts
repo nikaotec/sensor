@@ -3,6 +3,7 @@ import { supabase } from '../supabase/config';
 import type { Device } from '../data/mockData';
 import { useTenant } from '../contexts/TenantContext';
 import { mapRowToDevice } from '../services/SupabaseMapper';
+import { channelManager } from '../services/ChannelManager';
 
 export interface DeviceEvent {
     id: string;
@@ -64,17 +65,13 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
 
         fetchDevices();
 
-        const channel = supabase
-            .channel('devices_status_changes')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'devices_status' },
-                () => fetchDevices()
-            )
-            .subscribe();
+        const channelId = `devices_status_${tenantId}_${deviceId || 'all'}`;
+        channelManager.subscribe(channelId, 'devices_status', () => {
+            fetchDevices();
+        });
 
         return () => {
-            supabase.removeChannel(channel);
+            channelManager.unsubscribe(channelId);
         };
     }, [tenantId, isManager, availableTenants, userRole, deviceId]);
 
@@ -131,17 +128,16 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
 
         fetchHistory();
 
-        const channel = supabase
-            .channel('telemetry_changes')
-            .on(
-                'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'telemetry' },
-                () => fetchHistory()
-            )
-            .subscribe();
+        const channelId = `telemetry_${tenantId}_${deviceId || 'all'}`;
+        channelManager.subscribe(
+            channelId,
+            'telemetry',
+            () => fetchHistory(),
+            { event: 'INSERT', schema: 'public' }
+        );
 
         return () => {
-            supabase.removeChannel(channel);
+            channelManager.unsubscribe(channelId);
         };
     }, [tenantId, deviceId, devices]);
 
@@ -194,17 +190,13 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
         if (userRole) {
             fetchEvents();
 
-            const channel = supabase
-                .channel('events_changes')
-                .on(
-                    'postgres_changes',
-                    { event: '*', schema: 'public', table: 'events' },
-                    () => fetchEvents()
-                )
-                .subscribe();
+            const channelId = `events_${tenantId}_${deviceId || 'all'}`;
+            channelManager.subscribe(channelId, 'events', () => {
+                fetchEvents();
+            });
 
             return () => {
-                supabase.removeChannel(channel);
+                channelManager.unsubscribe(channelId);
             };
         }
     }, [tenantId, deviceId, userRole, availableTenants, isManager]);
@@ -276,17 +268,13 @@ export const useUsers = (userRole?: string) => {
 
         fetchUsers();
 
-        const channel = supabase
-            .channel('users_changes')
-            .on(
-                'postgres_changes',
-                { event: '*', schema: 'public', table: 'users' },
-                () => fetchUsers()
-            )
-            .subscribe();
+        const channelId = 'users_global_changes';
+        channelManager.subscribe(channelId, 'users', () => {
+            fetchUsers();
+        });
 
         return () => {
-            supabase.removeChannel(channel);
+            channelManager.unsubscribe(channelId);
         };
     }, [userRole]);
 
@@ -317,15 +305,13 @@ export const useReports = (tenantId: string) => {
 
     useEffect(() => {
         fetchReports();
-        const channel = supabase
-            .channel('report_configs_changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'report_configs' }, () => {
-                fetchReports();
-            })
-            .subscribe();
+        const channelId = `report_configs_${tenantId}`;
+        channelManager.subscribe(channelId, 'report_configs', () => {
+            fetchReports();
+        });
 
         return () => {
-            supabase.removeChannel(channel);
+            channelManager.unsubscribe(channelId);
         };
     }, [tenantId]);
 

@@ -14,7 +14,7 @@ interface CalibrationControlProps {
     isUpdating: boolean;
     isConnected: boolean;
     tempSensor: TempSensorType;
-    setTempSensor: (type: TempSensorType) => void;
+    handleSensorChange: (type: TempSensorType) => void;
 }
 
 const CalibrationControl: React.FC<CalibrationControlProps> = ({
@@ -28,7 +28,7 @@ const CalibrationControl: React.FC<CalibrationControlProps> = ({
     isUpdating,
     isConnected,
     tempSensor,
-    setTempSensor
+    handleSensorChange
 }) => {
     return (
         <div className="mt-6 pt-5 border-t border-[#2A2E24]">
@@ -93,7 +93,7 @@ const CalibrationControl: React.FC<CalibrationControlProps> = ({
 
                     <SensorSelector
                         selected={tempSensor}
-                        onChange={setTempSensor}
+                        onChange={handleSensorChange}
                         disabled={isUpdating || !isConnected}
                     />
 

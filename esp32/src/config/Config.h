@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // ---------- VERSÃO ----------
-#define FIRMWARE_VERSION "1.1.7"
+#define FIRMWARE_VERSION "1.1.13"
 
 // ---------- DEFAULTS ----------
 #define DEFAULT_DEVICE_NAME "ESP32 Sensor"
@@ -41,6 +41,7 @@
 #define PIN_DOOR 32
 #define PIN_DHT11 0
 #define PIN_BUZZER 14
+#define PIN_PT100 36
 
 #define SDA_PIN 21
 #define SCL_PIN 22
@@ -49,14 +50,18 @@
 #define PCF8574_ADDR 0x20
 #define AHT10_ADDR 0x38
 
+// ---------- TIPO SENSOR ----------
+enum SensorType { SENSOR_DS18B20 = 0, SENSOR_PT100 = 1 };
+
 // ---------- BOTÕES PCF8574 ----------
-#define BTN_MENU 4
-#define BTN_UP 5
-#define BTN_DOWN 6
-#define BTN_ENTER 7
+#define BTN_ENTER 0
+#define BTN_UP 1
+#define BTN_DOWN 2
+#define BTN_BACK 3
+#define BTN_MENU BTN_BACK
 
 // ---------- ENDEREÇOS EEPROM ----------
-#define EEPROM_SIZE 288
+#define EEPROM_SIZE 320 // Aumentado para acomodar novos campos
 #define ADDR_MAX_REC 0
 #define ADDR_MIN_REC 4
 #define ADDR_ALM_MAX 8
@@ -82,6 +87,10 @@
 #define ADDR_RELAY_1 176 // 144 + 32 (era 168 - causing overlap!)
 #define ADDR_RELAY_2 208 // 176 + 32 (era 192 - causing overlap!)
 #define ADDR_RELAY_3 240 // 208 + 32 (era 216 - causing overlap!)
+// Novos campos
+#define ADDR_PT100_OFFSET 272
+#define ADDR_SENSOR_TYPE 276
+#define ADDR_LIGHT_ENABLED 280
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0
@@ -124,7 +133,7 @@ struct SystemSettings {
   float voltMin;
   float voltCalFactor;
   float batCalFactor;
-  float tempCalOffset;
+  float tempCalOffset; // OFFSET DS18B20
   float batMinLimit;
   int doorMaxTime;
   bool chkVolt;
@@ -136,6 +145,10 @@ struct SystemSettings {
   char deviceLocation[32]; // Armazenamento fixo para strings na EEPROM
   // Configuração dos 4 relés
   RelayConfig relays[RELAY_COUNT];
+  // Novos campos
+  float pt100Offset;
+  uint8_t sensorType;
+  bool lightEnabled;
 };
 
 #endif

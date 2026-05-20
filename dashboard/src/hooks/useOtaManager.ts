@@ -42,7 +42,11 @@ export const useOtaManager = ({
 
                 setProgressMap((prev) => ({
                     ...prev,
-                    [raw.ID_DISPOSITIVO]: status,
+                    [raw.ID_DISPOSITIVO]: {
+                        ...status,
+                        // Preservar a versão se ela já existir no estado anterior (versão alvo)
+                        version: status.version || prev[raw.ID_DISPOSITIVO]?.version
+                    },
                 }));
             } catch {
                 // ignore malformed messages
@@ -57,7 +61,7 @@ export const useOtaManager = ({
 
     // ── Send OTA command ────────────────────────────────────────────────────
     const sendOta = useCallback(
-        (deviceIds: string[], url: string, hash?: string) => {
+        (deviceIds: string[], url: string, version?: string, hash?: string) => {
             if (!mqttClient) {
                 console.error('[useOtaManager] mqttClient not available');
                 return;
@@ -69,7 +73,7 @@ export const useOtaManager = ({
             setProgressMap((prev) => {
                 const next = { ...prev };
                 deviceIds.forEach((id) => {
-                    next[id] = { phase: 'pending', progress: 0, updatedAt: Date.now() };
+                    next[id] = { phase: 'pending', progress: 0, updatedAt: Date.now(), version };
                 });
                 return next;
             });

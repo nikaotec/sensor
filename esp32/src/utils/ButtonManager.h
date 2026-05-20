@@ -30,7 +30,7 @@ public:
   void begin() {
     // Escrita inicial para garantir pullups no PCF8574
     Wire.beginTransmission(_address);
-    Wire.write(0xF0); // Pinos 4-7 como entrada (HIGH)
+    Wire.write(0xFF); // Todos como entrada (HIGH)
     Wire.endTransmission();
   }
 
@@ -40,8 +40,8 @@ public:
       return BTN_NONE;
 
     uint8_t currentState = Wire.read();
-    // Filtra apenas os bits dos botões (4, 5, 6, 7)
-    currentState &= 0xF0;
+    // Filtra apenas os bits dos botões (0, 1, 2, 3)
+    currentState &= 0x0F;
 
     // Detecta mudança de estado (borda de descida = botão pressionado)
     if (currentState == _lastState)
@@ -54,7 +54,7 @@ public:
     _lastDebounceTime = millis();
 
     // Bits que foram de HIGH para LOW (pressionados no PCF8574 pullup = LOW)
-    uint8_t pressed = _lastState & (~currentState) & 0xF0;
+    uint8_t pressed = (_lastState & (~currentState)) & 0x0F;
 
     // Atualiza estado APÓS detectar
     _lastState = currentState;

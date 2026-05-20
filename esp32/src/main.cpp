@@ -52,9 +52,14 @@ String statusSeguranca = "OK";
 String ultimoRemoteJid = "";        // remoteJid do ultimo comando recebido
 String ultimosCamposAlterados = ""; // Campos alterados na ultima configuracao
 int qtdSensoresDs18b20 = 0;         // Quantidade de sensores DS18B20 conectados
+bool modoPT100 = false;             // Modo de calibração PT100
+int leituraADCPT100 = 0;
+float tensaoPT100 = 0.0;
+float temperaturaPT100 = 0.0;
 
 // ---------- TIMERS ----------
 unsigned long lastTempCheck = 0;
+unsigned long startSilenciamento = 0;  // Timeout de 5 min para o silenciamento
 unsigned long lastReportTime = 0;      // Novo Timer
 unsigned long lastWebReport = 0;       // Timer para Dashboard Web
 unsigned long lastDashboardReport = 0; // Timer para Dashboard Especial (1 min)
@@ -70,6 +75,7 @@ void enviarDadosWeb();
 void notificarUsuario(String mensagem, int tempo = 4000);
 bool isDeviceLinked();
 void handleCommand(String intent, JsonObject params); // Forward declaration
+float lerTemperaturaPT100();
 
 // ---------- FUNÇÕES AUXILIARES ----------
 void emitirBipe(int tempo = 100, int repeticoes = 1, int pausa = 100) {
@@ -133,6 +139,35 @@ void notificarUsuario(String mensagem, int tempo) {
   mqtt.publish(MSG_TOPIC_WEB_STATUS, output);
 }
 
+// ---------- PT100 LOGIC ----------
+float lerTemperaturaPT100() {
+  leituraADCPT100 = analogRead(PIN_PT100);
+
+  // converte ADC em tensão (ESP32 ADC 0-3.3V, 12-bit = 4095)
+  // ajuste fino se necessário conforme o hardware
+  tensaoPT100 = (leituraADCPT100 / 4095.0) * 3.3;
+
+  // mapeamento linear da temperatura baseada na tensão
+  // V_MIN (4mA) -> T_MIN
+  // V_MAX (20mA) -> T_MAX
+  // Constantes fixas para calibração PT100 (0-100C, 4-20mA -> 0.6-3.0V)
+  const float V_MIN = 0.6;
+  const float V_MAX = 3.0;
+  const float T_MIN = 0.0;
+  const float T_MAX = 100.0;
+
+  if (tensaoPT100 < V_MIN) {
+    temperaturaPT100 = T_MIN;
+  } else if (tensaoPT100 > V_MAX) {
+    temperaturaPT100 = T_MAX;
+  } else {
+    temperaturaPT100 =
+        T_MIN + (tensaoPT100 - V_MIN) * (T_MAX - T_MIN) / (V_MAX - V_MIN);
+  }
+
+  return temperaturaPT100;
+}
+
 // ---------- LOOP ----------
 void firmware_loop() {
   delay(1); // Watchdog Feed
@@ -141,43 +176,81 @@ void firmware_loop() {
   // 0. Ler Botões e Gerenciar Menu
   ButtonEvent ev = buttons.checkButtons();
   if (ev != BTN_NONE) {
-    if (!display.isMenuOpen()) {
-      if (ev == BTN_PRESSED_MENU)
-        display.openMenu();
-    } else {
-      if (ev == BTN_PRESSED_MENU)
-        display.closeMenu();
-      else if (ev == BTN_PRESSED_UP)
-        display.menuPrev();
-      else if (ev == BTN_PRESSED_DOWN)
-        display.menuNext();
-      else if (ev == BTN_PRESSED_ENTER) {
-        bool relayStatus = releEstado[0];
-        int res =
-            display.menuEnter(storage.data.alarmMax, storage.data.alarmMin,
-                              storage.data.chkVolt, relayStatus);
-        if (res == 1) {
-          // Se alterou algum parâmetro, salva
-          storage.save();
-          enviarDadosMqtt("feedback_configuracao");
+    DisplayManager::MenuState oldState = display.getMenuState();
+    display.menuAction(ev);
+    DisplayManager::MenuState newState = display.getMenuState();
 
-          // Trata teste de relé especificamente
-          if (relayStatus != releEstado[0]) {
-            releEstado[0] = relayStatus;
-            digitalWrite(RELAY_PINS[0], releEstado[0] ? HIGH : LOW);
-            modoManual = true; // Força modo manual para teste
-          }
-        } else if (res == 2) {
-          // RESET WIFI
-          display.showMessage("RESETANDO WIFI...", 3000);
-          mqtt.resetWifi();
+    // Sincronização: main -> display (carrega valores atuais para edição)
+    if (newState != oldState) {
+      if (newState == DisplayManager::EDIT_TEMP_MIN)
+        display.setTempAdjust(storage.data.alarmMin);
+      else if (newState == DisplayManager::EDIT_TEMP_MAX)
+        display.setTempAdjust(storage.data.alarmMax);
+      else if (newState == DisplayManager::EDIT_DS18B20_OFFSET)
+        display.setTempAdjust(storage.data.tempCalOffset);
+      else if (newState == DisplayManager::EDIT_PT100_OFFSET)
+        display.setTempAdjust(storage.data.pt100Offset);
+    }
+
+    // Ações de confirmação (ENTER)
+    if (ev == BTN_PRESSED_ENTER) {
+      bool salvou = false;
+      if (oldState == DisplayManager::EDIT_TEMP_MIN) {
+        storage.data.alarmMin = display.getTempAdjust();
+        salvou = true;
+      } else if (oldState == DisplayManager::EDIT_TEMP_MAX) {
+        storage.data.alarmMax = display.getTempAdjust();
+        salvou = true;
+      } else if (oldState == DisplayManager::EDIT_DS18B20_OFFSET) {
+        storage.data.tempCalOffset = display.getTempAdjust();
+        salvou = true;
+      } else if (oldState == DisplayManager::EDIT_PT100_OFFSET) {
+        storage.data.pt100Offset = display.getTempAdjust();
+        salvou = true;
+      } else if (oldState == DisplayManager::TEST_RELAY_TOGGLE) {
+        // Alterna o relé selecionado no menu anterior
+        int idx = display.getSubMenuIndex();
+        if (idx >= 0 && idx < RELAY_COUNT) {
+          releEstado[idx] = !releEstado[idx];
+          digitalWrite(RELAY_PINS[idx], releEstado[idx] ? HIGH : LOW);
+          modoManual = true; // Força manual durante teste
+          manualTimeout = millis();
         }
+      }
+
+      if (salvou) {
+        storage.save();
+        enviarDadosMqtt("feedback_configuracao");
+        emitirBipe(100, 1);
       }
     }
   }
 
   // 1. Atualizar Rede
   mqtt.update();
+
+  // 1.0 Modo PT100 (Calibração)
+  if (modoPT100) {
+    if (now - lastTempCheck > 500) {
+      lastTempCheck = now;
+      lerTemperaturaPT100();
+      display.drawCalibrationPT100(temperaturaPT100, leituraADCPT100,
+                                   tensaoPT100);
+
+      // Envia telemetria PT100 enquanto estiver nesse modo
+      StaticJsonDocument<256> doc;
+      doc["TIPO"] = "TELEMETRIA_PT100";
+      doc["ID_DISPOSITIVO"] = getIdDispositivo();
+      doc["TEMP"] = serialized(String(temperaturaPT100, 1));
+      doc["ADC"] = leituraADCPT100;
+      doc["VOLT"] = serialized(String(tensaoPT100, 2));
+
+      String out;
+      serializeJson(doc, out);
+      mqtt.publish(MSG_TOPIC_DATA, out);
+    }
+    return; // Pula o resto do loop se estiver em modo calibração
+  }
 
   // 1.1 Atualizar Dashboard Web (Tempo Real)
   if (now - lastWebReport >= 2000) {
@@ -191,263 +264,273 @@ void firmware_loop() {
     enviarDadosDashboard();
   }
 
-  // 2. Ler Sensores (a cada 1s para bipes mais frequentes)
-  if (now - lastTempCheck > 1000) {
-    lastTempCheck = now;
-
+  // 2. Ler Sensores
+  if (storage.data.sensorType == SENSOR_PT100) {
+    temperaturaAtual = lerTemperaturaPT100() + storage.data.pt100Offset;
+  } else {
     sensors.requestTemperatures();
     float tempBruta = sensors.getTempCByIndex(0);
-    temperaturaAtual = tempBruta + storage.data.tempCalOffset;
-    float tVoltagem = voltSensor.getVoltage();
-    float tBateria = voltSensor.getBatteryVoltage();
-    ambientSensor.read();
-    bool isDoorOpen = digitalRead(PIN_DOOR) == HIGH;
-    if (isDoorOpen) {
-      if (doorOpenStart == 0)
-        doorOpenStart = now;
+    if (tempBruta > -50 && tempBruta < 85) {
+      temperaturaAtual = tempBruta + storage.data.tempCalOffset;
     } else {
-      doorOpenStart = 0;
+      temperaturaAtual = -127.0; // Sensor desconectado
     }
-
-    // 2.1 Envio Periódico de Alerta (Sincronização de timers)
-    bool foraDaFaixa =
-        (storage.data.chkTemp && (temperaturaAtual > storage.data.alarmMax ||
-                                  temperaturaAtual < storage.data.alarmMin)) ||
-        (storage.data.chkVolt &&
-         (tVoltagem > storage.data.voltMax ||
-          tVoltagem < storage.data.voltMin || tVoltagem < VOLT_OUTAGE_THR)) ||
-        (storage.data.chkBat && (tBateria < storage.data.batMinLimit)) ||
-        (storage.data.chkDoor && isDoorOpen);
-
-    // Sincroniza o silêncio na borda
-    static bool prevForaDaFaixa = false;
-    if (foraDaFaixa && !prevForaDaFaixa) {
-      alertasSilenciados =
-          false; // Garante que alerta novo não nasça silenciado
-    }
-    prevForaDaFaixa = foraDaFaixa;
-
-    // Auto-reset do silêncio se voltar ao normal
-    if (!foraDaFaixa) {
-      alertasSilenciados = false;
-    }
-
-    // --- VERIFICAÇÃO DE ALERTAS E CONTROLE ---
-
-    // Atualiza registros se temperatura válida (independente do modo)
-    if (temperaturaAtual > -50 && temperaturaAtual < 80) {
-      storage.updateRecords(temperaturaAtual);
-    }
-
-    // Controle e Alertas (Apenas se não estiver em manutenção)
-    // 0. Verifica timeout do modo manual (restaura após 5 minutos)
-    if (modoManual && (now - manualTimeout > 300000)) {
-      modoManual = false;
-      display.showMessage("Aviso: M. Auto Retomado", 4000);
-      enviarDadosMqtt("MODO_AUTOMATICO_RETOMADO_TIMEOUT");
-      Serial.println("[TIMER] Modo Manual expirado, retornando ao automático");
-    }
-
-    if (!modoManual) {
-      // --- LÓGICA DE CONTROLE DOS RELÉS (HISTERESE E MANUAL) ---
-      if (temperaturaAtual > -50 && temperaturaAtual < 80) {
-        for (int i = 0; i < RELAY_COUNT; i++) {
-          RelayConfig &relay = storage.data.relays[i];
-          bool anterior = releEstado[i];
-
-          if (relay.func == RELAY_FUNC_AUTO) {
-            // Histerese: Liga se >= max, Desliga se <= min
-            if (temperaturaAtual >= relay.tempOn) {
-              releEstado[i] = true;
-            } else if (temperaturaAtual <= relay.tempOff) {
-              releEstado[i] = false;
-            }
-          } else if (relay.func == RELAY_FUNC_MANUAL) {
-            releEstado[i] = relay.manualState;
-          } else {
-            releEstado[i] = false; // DESLIGADO
-          }
-
-          // Aplica ao hardware se o estado mudou
-          digitalWrite(RELAY_PINS[i], releEstado[i] ? HIGH : LOW);
-
-          if (releEstado[i] != anterior) {
-            Serial.print(F("[RELE] R"));
-            Serial.print(i);
-            Serial.println(releEstado[i] ? F(" LIGADO") : F(" DESLIGADO"));
-          }
-        }
-      }
-
-      // 1. Declaração de status de temperatura
-      AlertStatus stMax = alertTempMax.check(
-          storage.data.chkTemp && (temperaturaAtual >= storage.data.alarmMax));
-      AlertStatus stMin = alertTempMin.check(
-          storage.data.chkTemp && (temperaturaAtual <= storage.data.alarmMin));
-
-      // 2. Falta de Energia
-      AlertStatus stPower = alertPower.check(storage.data.chkVolt &&
-                                             (tVoltagem < VOLT_OUTAGE_THR));
-      if (stPower == ALERT_STARTED) {
-        enviarDadosMqtt("ALERTA_FALTA_ENERGIA", false);
-        notificarUsuario("FALTA ENERGIA", 6000);
-      } else if (stPower == ALERT_REPEATED && !alertasSilenciados) {
-        enviarDadosMqtt("ALERTA_FALTA_ENERGIA", true);
-      }
-
-      if (stPower == ALERT_NORMALIZED) {
-        enviarDadosMqtt("ENERGIA_RESTABELECIDA", false);
-        notificarUsuario("ENERGIA OK", 4000);
-      }
-
-      // 3. Bateria Baixa
-      AlertStatus stBat = alertBatLow.check(
-          storage.data.chkBat && (tBateria < storage.data.batMinLimit));
-      if (stBat == ALERT_STARTED) {
-        enviarDadosMqtt("ALERTA_BATERIA_BAIXA", false);
-        notificarUsuario("BATERIA FRACA", 6000);
-      } else if (stBat == ALERT_REPEATED && !alertasSilenciados) {
-        enviarDadosMqtt("ALERTA_BATERIA_BAIXA", true);
-      }
-
-      if (stBat == ALERT_NORMALIZED) {
-        enviarDadosMqtt("BATERIA_NORMALIZADA", false);
-        notificarUsuario("BATERIA OK", 4000);
-      }
-
-      // 4. Porta
-      AlertStatus stDoor = alertDoor.check(storage.data.chkDoor && isDoorOpen);
-
-      // Registro Único no DB
-      if (stDoor == ALERT_STARTED) {
-        enviarDadosMqtt("ALERTA_PORTA_ABERTA", false);
-        notificarUsuario("PORTA ABERTA", 6000);
-      }
-
-      // Envio de repetições locais removidos. Som acontece na central do loop.
-      if (!alertasSilenciados && stDoor == ALERT_REPEATED) {
-        enviarDadosMqtt("ALERTA_PORTA_ABERTA", true);
-      }
-
-      if (stDoor == ALERT_NORMALIZED) {
-        enviarDadosMqtt("PORTA_FECHADA", false);
-        notificarUsuario("PORTA FECHADA", 4000);
-      }
-
-      // 5. Tensão da Rede
-      bool activeVoltMonitoring =
-          storage.data.chkVolt && (tVoltagem > VOLT_OUTAGE_THR);
-      AlertStatus stVoltMax = alertVoltMax.check(
-          activeVoltMonitoring && (tVoltagem > storage.data.voltMax));
-      AlertStatus stVoltMin = alertVoltMin.check(
-          activeVoltMonitoring && (tVoltagem < storage.data.voltMin));
-
-      if (stVoltMax == ALERT_STARTED) {
-        enviarDadosMqtt("ALERTA_TENSAO_ALTA", false);
-        notificarUsuario("TENSAO ALTA", 6000);
-      } else if (stVoltMax == ALERT_REPEATED && !alertasSilenciados) {
-        enviarDadosMqtt("ALERTA_TENSAO_ALTA", true);
-      }
-      if (stVoltMax == ALERT_NORMALIZED) {
-        enviarDadosMqtt("TENSAO_NORMALIZADA", false);
-        notificarUsuario("TENSAO OK", 4000);
-      }
-
-      if (stVoltMin == ALERT_STARTED) {
-        enviarDadosMqtt("ALERTA_TENSAO_BAIXA", false);
-        notificarUsuario("TENSAO BAIXA", 6000);
-      } else if (stVoltMin == ALERT_REPEATED && !alertasSilenciados) {
-        enviarDadosMqtt("ALERTA_TENSAO_BAIXA", true);
-      }
-      if (stVoltMin == ALERT_NORMALIZED) {
-        enviarDadosMqtt("TENSAO_NORMALIZADA", false);
-        notificarUsuario("TENSAO OK", 4000);
-      }
-
-      // 6. Temperatura Alerts
-      if (stMax == ALERT_STARTED) {
-        statusSeguranca = "QUENTE!";
-        enviarDadosMqtt("ALERTA_TEMP_ALTA", false);
-        notificarUsuario("TEMP. ALTA!", 8000);
-      } else if (stMax == ALERT_REPEATED && !alertasSilenciados) {
-        enviarDadosMqtt("ALERTA_TEMP_ALTA", true);
-      }
-
-      if (stMin == ALERT_STARTED) {
-        statusSeguranca = "FRIO!";
-        enviarDadosMqtt("ALERTA_TEMP_BAIXA", false);
-        notificarUsuario("TEMP. BAIXA!", 8000);
-      } else if (stMin == ALERT_REPEATED && !alertasSilenciados) {
-        enviarDadosMqtt("ALERTA_TEMP_BAIXA", true);
-      }
-
-      // Verifica Normalização Temperatura
-      if (stMax == ALERT_NORMALIZED || stMin == ALERT_NORMALIZED) {
-        statusSeguranca = "OK";
-        enviarDadosMqtt("TEMP_NORMALIZADA", false);
-        notificarUsuario("TEMP. NORMAL", 4000);
-      }
-    }
-
-    // 3. Reset Diário 06:00 e 16:00
-    struct tm t;
-    if (getLocalTime(&t)) {
-      // Check if hour changed to avoid multiple triggers within the same hour
-      static int lastReportHour = -1;
-      if ((t.tm_hour == 8 || t.tm_hour == 16) && t.tm_hour != lastReportHour) {
-        lastReportHour = t.tm_hour;
-        enviarDadosMqtt("relatorio_diario", false);
-        storage.resetMinMax(temperaturaAtual);
-        display.showMessage("Reset Diario", 5000);
-      }
-      // Update tracking variable when hour changes (to allow re-trigger next
-      // day)
-      if (t.tm_hour != 8 && t.tm_hour != 16) {
-        lastReportHour = -1;
-      }
-    }
-
-    // 3.1. Relatório Periódico de Telemetria (hora cheia para log histórico
-    // no Firestore)
-    if (!modoManual) {
-      static int lastProcessedHour = -1;
-      if (t.tm_hour != lastProcessedHour) {
-        lastProcessedHour = t.tm_hour;
-        // Se já enviou relatorio_diario nesta hora (8 ou 16), o periodico é
-        // redundante por que o relatorio_diario já contém todos os campos e é
-        // salvo pelo n8n.
-        if (t.tm_hour != 8 && t.tm_hour != 16) {
-          enviarDadosMqtt("periodico", false);
-        }
-      }
-    }
-
-    // 3.2. Relatorio de suporte (hora em hora)
-    if (!modoManual && (now - lastSupportReport >= 3600000UL)) {
-      lastSupportReport = now;
-      enviarDadosMqtt("periodico_suporte", false);
-    }
-
-    // 3.3. Feedback Sonoro Local Contínuo
-    if (!alertasSilenciados) {
-      if (alertTempMax.isActive() || alertTempMin.isActive() ||
-          alertDoor.isActive()) {
-        emitirBipeAlertaCritico(1);
-      } else if (alertVoltMax.isActive() || alertVoltMin.isActive() ||
-                 alertBatLow.isActive() || alertPower.isActive()) {
-        emitirBipe(300, 1, 100);
-      }
-    }
-
-    // 4. Atualizar Display
-    display.update(temperaturaAtual, storage.data.tempMaxRec,
-                   storage.data.tempMinRec, voltSensor.getVoltage(),
-                   mqtt.isWifiConnected(), modoManual, releEstado[0],
-                   (alertTempMax.isActive() || alertTempMin.isActive() ||
-                    alertVoltMax.isActive() || alertVoltMin.isActive() ||
-                    alertBatLow.isActive() || alertPower.isActive() ||
-                    alertDoor.isActive()));
   }
+  float tVoltagem = voltSensor.getVoltage();
+  float tBateria = voltSensor.getBatteryVoltage();
+  ambientSensor.read();
+  bool isDoorOpen = digitalRead(PIN_DOOR) == HIGH;
+  if (isDoorOpen) {
+    if (doorOpenStart == 0)
+      doorOpenStart = now;
+  } else {
+    doorOpenStart = 0;
+  }
+
+  // 2.1 Envio Periódico de Alerta (Sincronização de timers)
+
+  // --- VERIFICAÇÃO DE ALERTAS E CONTROLE ---
+
+  // Atualiza registros se temperatura válida (independente do modo)
+  if (temperaturaAtual > -50 && temperaturaAtual < 80) {
+    storage.updateRecords(temperaturaAtual);
+  }
+
+  // Controle e Alertas (Apenas se não estiver em manutenção)
+  // 0. Verifica timeout do modo manual (restaura após 5 minutos)
+  if (modoManual && (now - manualTimeout > 300000)) {
+    modoManual = false;
+    display.showMessage("Aviso: M. Auto Retomado", 4000);
+    enviarDadosMqtt("MODO_AUTOMATICO_RETOMADO_TIMEOUT");
+    Serial.println("[TIMER] Modo Manual expirado, retornando ao automático");
+  }
+
+  if (!modoManual) {
+    // --- LÓGICA DE CONTROLE DOS RELÉS (HISTERESE E MANUAL) ---
+    if (temperaturaAtual > -50 && temperaturaAtual < 80) {
+      for (int i = 0; i < RELAY_COUNT; i++) {
+        RelayConfig &relay = storage.data.relays[i];
+        bool anterior = releEstado[i];
+
+        if (relay.func == RELAY_FUNC_AUTO) {
+          // Histerese: Liga se >= max, Desliga se <= min
+          if (temperaturaAtual >= relay.tempOn) {
+            releEstado[i] = true;
+          } else if (temperaturaAtual <= relay.tempOff) {
+            releEstado[i] = false;
+          }
+        } else if (relay.func == RELAY_FUNC_MANUAL) {
+          releEstado[i] = relay.manualState;
+        } else {
+          releEstado[i] = false; // DESLIGADO
+        }
+
+        // Aplica ao hardware se o estado mudou
+        digitalWrite(RELAY_PINS[i], releEstado[i] ? HIGH : LOW);
+
+        if (releEstado[i] != anterior) {
+          Serial.print(F("[RELE] R"));
+          Serial.print(i);
+          Serial.println(releEstado[i] ? F(" LIGADO") : F(" DESLIGADO"));
+        }
+      }
+    }
+
+    // 1. Declaração de status de temperatura
+    AlertStatus stMax = alertTempMax.check(
+        storage.data.chkTemp && (temperaturaAtual >= storage.data.alarmMax));
+    AlertStatus stMin = alertTempMin.check(
+        storage.data.chkTemp && (temperaturaAtual <= storage.data.alarmMin));
+
+    // 2. Falta de Energia
+    AlertStatus stPower =
+        alertPower.check(storage.data.chkVolt && (tVoltagem < VOLT_OUTAGE_THR));
+    if (stPower == ALERT_STARTED) {
+      enviarDadosMqtt("ALERTA_FALTA_ENERGIA", false);
+      notificarUsuario("FALTA ENERGIA", 6000);
+    } else if (stPower == ALERT_REPEATED && !alertasSilenciados) {
+      enviarDadosMqtt("ALERTA_FALTA_ENERGIA", true);
+    }
+
+    if (stPower == ALERT_NORMALIZED) {
+      enviarDadosMqtt("ENERGIA_RESTABELECIDA", false);
+      notificarUsuario("ENERGIA OK", 4000);
+    }
+
+    // 3. Bateria Baixa
+    AlertStatus stBat = alertBatLow.check(
+        storage.data.chkBat && (tBateria < storage.data.batMinLimit));
+    if (stBat == ALERT_STARTED) {
+      enviarDadosMqtt("ALERTA_BATERIA_BAIXA", false);
+      notificarUsuario("BATERIA FRACA", 6000);
+    } else if (stBat == ALERT_REPEATED && !alertasSilenciados) {
+      enviarDadosMqtt("ALERTA_BATERIA_BAIXA", true);
+    }
+
+    if (stBat == ALERT_NORMALIZED) {
+      enviarDadosMqtt("BATERIA_NORMALIZADA", false);
+      notificarUsuario("BATERIA OK", 4000);
+    }
+
+    // 4. Porta
+    AlertStatus stDoor = alertDoor.check(storage.data.chkDoor && isDoorOpen);
+
+    // Registro Único no DB
+    if (stDoor == ALERT_STARTED) {
+      enviarDadosMqtt("ALERTA_PORTA_ABERTA", false);
+      notificarUsuario("PORTA ABERTA", 6000);
+    }
+
+    // Envio de repetições locais removidos. Som acontece na central do loop.
+    if (!alertasSilenciados && stDoor == ALERT_REPEATED) {
+      enviarDadosMqtt("ALERTA_PORTA_ABERTA", true);
+    }
+
+    if (stDoor == ALERT_NORMALIZED) {
+      enviarDadosMqtt("PORTA_FECHADA", false);
+      notificarUsuario("PORTA FECHADA", 4000);
+    }
+
+    // 5. Tensão da Rede
+    bool activeVoltMonitoring =
+        storage.data.chkVolt && (tVoltagem > VOLT_OUTAGE_THR);
+    AlertStatus stVoltMax = alertVoltMax.check(
+        activeVoltMonitoring && (tVoltagem > storage.data.voltMax));
+    AlertStatus stVoltMin = alertVoltMin.check(
+        activeVoltMonitoring && (tVoltagem < storage.data.voltMin));
+
+    if (stVoltMax == ALERT_STARTED) {
+      enviarDadosMqtt("ALERTA_TENSAO_ALTA", false);
+      notificarUsuario("TENSAO ALTA", 6000);
+    } else if (stVoltMax == ALERT_REPEATED && !alertasSilenciados) {
+      enviarDadosMqtt("ALERTA_TENSAO_ALTA", true);
+    }
+    if (stVoltMax == ALERT_NORMALIZED) {
+      enviarDadosMqtt("TENSAO_NORMALIZADA", false);
+      notificarUsuario("TENSAO OK", 4000);
+    }
+
+    if (stVoltMin == ALERT_STARTED) {
+      enviarDadosMqtt("ALERTA_TENSAO_BAIXA", false);
+      notificarUsuario("TENSAO BAIXA", 6000);
+    } else if (stVoltMin == ALERT_REPEATED && !alertasSilenciados) {
+      enviarDadosMqtt("ALERTA_TENSAO_BAIXA", true);
+    }
+    if (stVoltMin == ALERT_NORMALIZED) {
+      enviarDadosMqtt("TENSAO_NORMALIZADA", false);
+      notificarUsuario("TENSAO OK", 4000);
+    }
+
+    // 6. Temperatura Alerts
+    if (stMax == ALERT_STARTED) {
+      statusSeguranca = "QUENTE!";
+      enviarDadosMqtt("ALERTA_TEMP_ALTA", false);
+      notificarUsuario("TEMP. ALTA!", 8000);
+    } else if (stMax == ALERT_REPEATED && !alertasSilenciados) {
+      enviarDadosMqtt("ALERTA_TEMP_ALTA", true);
+    }
+
+    if (stMin == ALERT_STARTED) {
+      statusSeguranca = "FRIO!";
+      enviarDadosMqtt("ALERTA_TEMP_BAIXA", false);
+      notificarUsuario("TEMP. BAIXA!", 8000);
+    } else if (stMin == ALERT_REPEATED && !alertasSilenciados) {
+      enviarDadosMqtt("ALERTA_TEMP_BAIXA", true);
+    }
+
+    // Verifica Normalização Temperatura
+    if (stMax == ALERT_NORMALIZED || stMin == ALERT_NORMALIZED) {
+      statusSeguranca = "OK";
+      enviarDadosMqtt("TEMP_NORMALIZADA", false);
+      notificarUsuario("TEMP. NORMAL", 4000);
+    }
+  }
+
+  // 3. Reset Diário 06:00 e 16:00
+  struct tm t;
+  if (getLocalTime(&t)) {
+    // Check if hour changed to avoid multiple triggers within the same hour
+    static int lastReportHour = -1;
+    if ((t.tm_hour == 8 || t.tm_hour == 16) && t.tm_hour != lastReportHour) {
+      lastReportHour = t.tm_hour;
+      enviarDadosMqtt("relatorio_diario", false);
+      storage.resetMinMax(temperaturaAtual);
+      display.showMessage("Reset Diario", 5000);
+    }
+    // Update tracking variable when hour changes (to allow re-trigger next
+    // day)
+    if (t.tm_hour != 8 && t.tm_hour != 16) {
+      lastReportHour = -1;
+    }
+  }
+
+  // 3.1. Relatório Periódico de Telemetria (hora cheia para log histórico
+  // no Firestore)
+  if (!modoManual) {
+    static int lastProcessedHour = -1;
+    if (t.tm_hour != lastProcessedHour) {
+      lastProcessedHour = t.tm_hour;
+      // Se já enviou relatorio_diario nesta hora (8 ou 16), o periodico é
+      // redundante por que o relatorio_diario já contém todos os campos e é
+      // salvo pelo n8n.
+      if (t.tm_hour != 8 && t.tm_hour != 16) {
+        enviarDadosMqtt("periodico", false);
+      }
+    }
+  }
+
+  // 3.2. Relatorio de suporte (hora em hora)
+  if (!modoManual && (now - lastSupportReport >= 3600000UL)) {
+    lastSupportReport = now;
+    enviarDadosMqtt("periodico_suporte", false);
+  }
+
+  // 3.3. Verifica se qualquer alarme crítico está ativo para gerenciar o
+  // silenciamento
+  bool foraDaFaixa = alertTempMax.isActive() || alertTempMin.isActive() ||
+                     alertVoltMax.isActive() || alertVoltMin.isActive() ||
+                     alertBatLow.isActive() || alertPower.isActive() ||
+                     alertDoor.isActive();
+
+  // Sincroniza o silêncio na borda (garante que NOVO alerta soe, mesmo se antes
+  // foi silenciado)
+  static bool prevForaDaFaixa = false;
+  if (foraDaFaixa && !prevForaDaFaixa) {
+    alertasSilenciados = false;
+  }
+  prevForaDaFaixa = foraDaFaixa;
+
+  // Auto-reset do silêncio se tudo voltar ao normal
+  if (!foraDaFaixa) {
+    alertasSilenciados = false;
+  } else if (alertasSilenciados &&
+             (millis() - startSilenciamento >= 300000UL)) {
+    // Timeout de 5 minutos
+    alertasSilenciados = false;
+    Serial.println("[TIMER] Silenciamento expirado (5 min), reativando...");
+    enviarDadosMqtt("ALARME_REATIVADO_TIMEOUT", false);
+  }
+
+  // 3.4. Feedback Sonoro Local Contínuo
+  if (!alertasSilenciados) {
+    if (alertTempMax.isActive() || alertTempMin.isActive() ||
+        alertDoor.isActive()) {
+      emitirBipeAlertaCritico(1);
+    } else if (alertVoltMax.isActive() || alertVoltMin.isActive() ||
+               alertBatLow.isActive() || alertPower.isActive()) {
+      emitirBipe(300, 1, 100);
+    }
+  }
+
+  // 4. Atualizar Display
+  display.update(temperaturaAtual, storage.data.tempMinRec,
+                 storage.data.tempMaxRec, mqtt.isWifiConnected(), modoManual,
+                 releEstado[0], (SensorType)storage.data.sensorType,
+                 mqtt.getCurrentTime(),
+                 (alertTempMax.isActive() || alertTempMin.isActive() ||
+                  alertVoltMax.isActive() || alertVoltMin.isActive() ||
+                  alertBatLow.isActive() || alertPower.isActive() ||
+                  alertDoor.isActive()));
 }
 
 // ---------- SETUP ----------
@@ -532,9 +615,23 @@ void handleCommand(String intent, JsonObject params) {
         mqtt.publishOtaError(ota.getLastError());
       }
     } else {
-      mqtt.publishOtaError("URL ausente");
+      mqtt.publishOtaError("URL de update ausente");
       Serial.println("[OTA] Erro: URL ausente no comando.");
     }
+    return;
+  }
+
+  // 1.1 Comando de Tipo de Sensor (DS18B20 vs PT100)
+  if (intent == "set_sensor_type") {
+    String type = params["sensor_type"] | "DS18B20";
+    if (type == "PT100") {
+      modoPT100 = true;
+      notificarUsuario("MODO PT100 ATIVO", 3000);
+    } else {
+      modoPT100 = false;
+      notificarUsuario("MODO DS18B20 ATIVO", 3000);
+    }
+    enviarDadosMqtt("feedback_sensor_type", false);
     return;
   }
 
@@ -633,6 +730,7 @@ void handleCommand(String intent, JsonObject params) {
   } else if (intent == "silenciar_alarme") {
     alertasSilenciados =
         true; // Impede novos alertas persistentes até normalizar
+    startSilenciamento = millis(); // Conta 5 minutos a partir de agora
     notificarUsuario("Alarme Silenciado", 3000);
     enviarDadosMqtt("ALARME_SILENCIADO", false);
   } else if (intent == "reativar_alarme") {
