@@ -2,10 +2,10 @@
 #define APP_NETWORK_MANAGER_H
 
 #include "../config/Config.h"
-#include <WiFi.h>
-#include <WiFiManager.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
+#include <WiFi.h>
+#include <WiFiManager.h>
 #include <functional>
 
 // Define callback type
@@ -16,7 +16,10 @@ private:
   WiFiClient espClient;
   PubSubClient client;
   unsigned long lastMqttReconnectAttempt;
+  unsigned long lastWifiReconnectAttempt;
   bool wifiConnected;
+  bool _ntpConfigured;
+  bool _portalActive;
   MqttCallback messageHandler;
 
   static AppNetworkManager *instance;
@@ -24,13 +27,15 @@ private:
 
   void verifyWifi();
   void verifyMqtt();
+  void _startConfigPortal();
+  void _onWifiConnected();
   String getIdDispositivo();
 
 public:
   AppNetworkManager();
   void begin(MqttCallback handler);
   void update();
-  void resetWifi(); // Novo: reseta as configurações do WiFiManager
+  void resetWifi();
   void publish(const char *topic, String payload);
   bool isConnected();
   bool isWifiConnected();

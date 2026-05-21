@@ -20,9 +20,11 @@ interface Device {
 }
 
 interface OtaPanelProps {
-    devices: Device[];
+    devices: any[];
+    firmwareVersions?: FirmwareVersion[];
+    onSendOta: (deviceIds: string[], url: string, version?: string, hash?: string) => void;
+    onRefreshFirmwares?: () => void;
     progressMap: OtaProgressMap;
-    onSendOta: (deviceIds: string[], url: string, hash?: string) => void;
     onClearProgress: (deviceId: string) => void;
     onNavigate: (screen: any) => void;
     isMqttConnected: boolean;
@@ -30,16 +32,17 @@ interface OtaPanelProps {
 
 type SelectionMode = 'all' | 'individual';
 
-const OtaPanel: React.FC<OtaPanelProps> = ({
+export const OtaPanel: React.FC<OtaPanelProps> = ({
     devices,
-    progressMap,
     onSendOta,
+    progressMap,
     onClearProgress,
     onNavigate,
     isMqttConnected,
 }) => {
     const [firmwareFilename, setFirmwareFilename] = useState('');
     const [firmwareHash, setFirmwareHash] = useState('');
+    const [firmwareVersion, setFirmwareVersion] = useState('');
     const [selectionMode, setSelectionMode] = useState<SelectionMode>('all');
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [confirming, setConfirming] = useState(false);
@@ -69,6 +72,7 @@ const OtaPanel: React.FC<OtaPanelProps> = ({
     const handleSelectVersion = (v: FirmwareVersion) => {
         setFirmwareFilename(v.filename);
         setFirmwareHash(v.hash || '');
+        setFirmwareVersion(v.version); // Adicionado para rastrear a versão alvo
         setConfirming(false);
         setUrlError('');
     };
@@ -129,10 +133,11 @@ const OtaPanel: React.FC<OtaPanelProps> = ({
         if (!confirming) { setConfirming(true); return; }
 
         const fullUrl = FIRMWARE_BASE_URL + firmwareFilename.trim();
-        onSendOta(effectiveDeviceIds, fullUrl, firmwareHash || undefined);
+        onSendOta(effectiveDeviceIds, fullUrl, firmwareVersion || undefined, firmwareHash || undefined);
         setConfirming(false);
         setFirmwareFilename('');
         setFirmwareHash('');
+        setFirmwareVersion('');
     };
 
     const hasActiveOta = Object.values(progressMap).some(

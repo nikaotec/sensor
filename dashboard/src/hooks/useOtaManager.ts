@@ -14,7 +14,7 @@ interface UseOtaManagerOptions {
 
 interface UseOtaManagerReturn {
     progressMap: OtaProgressMap;
-    sendOta: (deviceIds: string[], url: string, hash?: string) => void;
+    sendOta: (deviceIds: string[], url: string, version?: string, hash?: string) => void;
     clearProgress: (deviceId: string) => void;
 }
 
@@ -40,14 +40,17 @@ export const useOtaManager = ({
                 const status: OtaStatus | null = service.parseOtaProgress(raw);
                 if (!status) return;
 
-                setProgressMap((prev) => ({
-                    ...prev,
-                    [raw.ID_DISPOSITIVO]: {
-                        ...status,
-                        // Preservar a versão se ela já existir no estado anterior (versão alvo)
-                        version: status.version || prev[raw.ID_DISPOSITIVO]?.version
-                    },
-                }));
+                setProgressMap((prev) => {
+                    const current = prev[raw.ID_DISPOSITIVO];
+                    return {
+                        ...prev,
+                        [raw.ID_DISPOSITIVO]: {
+                            ...status,
+                            targetVersion: current?.targetVersion,
+                            version: status.version || current?.targetVersion
+                        },
+                    };
+                });
             } catch {
                 // ignore malformed messages
             }
@@ -67,13 +70,19 @@ export const useOtaManager = ({
                 return;
             }
 
-            service.publishOtaCommand(mqttClient, deviceIds, url, hash);
+            service.publishOtaCommand(mqttClient, deviceIds, url, version, hash);
 
             // Mark all selected devices as 'pending' immediately
             setProgressMap((prev) => {
                 const next = { ...prev };
                 deviceIds.forEach((id) => {
-                    next[id] = { phase: 'pending', progress: 0, updatedAt: Date.now(), version };
+                    next[id] = {
+                        phase: 'pending',
+                        progress: 0,
+                        updatedAt: Date.now(),
+                        version, // Versão exibida
+                        targetVersion: version // Versão de backup
+                    };
                 });
                 return next;
             });

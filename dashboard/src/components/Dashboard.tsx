@@ -29,6 +29,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
     const {
         supabaseDevices,
         displayDevices,
+        onlineDevices,
         mqttConnected,
         mqttClient
     } = useTelemetryData(currentTenant, availableTenants, currentUser);
@@ -125,15 +126,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                                 <h2 className="text-xl font-bold text-white mb-2">Acesso Pendente</h2>
                                 <p className="text-slate-400 text-center max-w-xs">Sua conta ainda não foi vinculada a nenhuma empresa. Entre em contato com o administrador.</p>
                             </div>
-                        ) : displayDevices.length === 0 ? (
+                        ) : onlineDevices.length === 0 ? (
                             <div className="col-span-1 md:col-span-2 xl:col-span-3 py-12 flex flex-col items-center justify-center text-slate-500 bg-[#1A1D17] rounded-2xl border border-[#2A2E24]">
                                 <ServerCrash size={48} className="mb-4 opacity-50" />
-                                <p className="text-lg">Nenhum dispositivo encontrado para esta empresa.</p>
+                                <p className="text-lg">Nenhum dispositivo online encontrado para esta empresa.</p>
                             </div>
                         ) : (
                             <div className="space-y-12">
                                 <section>
-                                    {renderDeviceList(displayDevices)}
+                                    {renderDeviceList(onlineDevices)}
                                 </section>
                             </div>
                         )}

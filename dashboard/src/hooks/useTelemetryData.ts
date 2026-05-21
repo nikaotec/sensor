@@ -61,10 +61,15 @@ export const useTelemetryData = (
         });
     }, [tenantDevices, currentTenant, availableTenants, isManager, isAdmin]);
 
+    const onlineDevices = useMemo(() => {
+        return displayDevices.filter(d => d.status === 'online');
+    }, [displayDevices]);
+
     return {
         supabaseDevices,
         tenantDevices,
         displayDevices,
+        onlineDevices,
         mqttConnected,
         mqttClient
     };

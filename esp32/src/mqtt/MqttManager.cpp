@@ -13,8 +13,12 @@ MqttManager::MqttManager() : _client(_espClient), _lastReconnectAttempt(0) {
   _deviceId = String(idUnico);
 }
 
-void MqttManager::begin(CommandCallback handler) {
+void MqttManager::begin(CommandCallback handler, String version) {
   _commandHandler = handler;
+  if (version != "")
+    _currentVersion = version;
+  else
+    _currentVersion = FIRMWARE_VERSION;
 
   WiFiManager wm;
   wm.setConnectTimeout(60);
@@ -33,7 +37,7 @@ void MqttManager::begin(CommandCallback handler) {
   _client.setBufferSize(2048);
   _client.setCallback(MqttManager::staticCallback);
 
-  connect();
+  connect(_currentVersion);
 }
 
 void MqttManager::staticCallback(char *topic, byte *payload,
@@ -52,7 +56,10 @@ void MqttManager::staticCallback(char *topic, byte *payload,
   }
 }
 
-void MqttManager::connect() {
+void MqttManager::connect(String version) {
+  if (version != "")
+    _currentVersion = version;
+
   if (!_client.connected()) {
     String clientId = "ESP32_" + _deviceId;
     Serial.println("[MQTT] Conectando como " + clientId + "...");
@@ -61,7 +68,7 @@ void MqttManager::connect() {
     String statusTopic = "devices/" + _deviceId + "/status";
     StaticJsonDocument<128> lwtDoc;
     lwtDoc["status"] = "offline";
-    lwtDoc["version"] = FIRMWARE_VERSION;
+    lwtDoc["version"] = _currentVersion;
     String lwtPayload;
     serializeJson(lwtDoc, lwtPayload);
 
@@ -69,7 +76,7 @@ void MqttManager::connect() {
                         statusTopic.c_str(), 1, true, lwtPayload.c_str())) {
       Serial.println("[MQTT] Conectado!");
       setupTopics();
-      publishStatus(FIRMWARE_VERSION, "online");
+      publishStatus(_currentVersion, "online");
     }
   }
 }
@@ -89,7 +96,7 @@ void MqttManager::update() {
       unsigned long now = millis();
       if (now - _lastReconnectAttempt > 10000) {
         _lastReconnectAttempt = now;
-        connect();
+        connect(_currentVersion);
       }
     }
     _client.loop();

@@ -14,6 +14,7 @@ export interface OtaStatus {
     phase: OtaPhase;
     progress: number;       // 0–100
     version?: string;       // versão recebida no OTA_SUCCESS
+    targetVersion?: string; // versão que se espera instalar
     errorMsg?: string;
     updatedAt: number;      // timestamp ms
 }

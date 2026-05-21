@@ -24,19 +24,25 @@ void StorageManager::load() {
   EEPROM.get(ADDR_DEVICE_NAME, data.deviceName);
   EEPROM.get(ADDR_COMPANY_NAME, data.companyName);
   EEPROM.get(ADDR_DEVICE_LOCATION, data.deviceLocation);
+  EEPROM.get(ADDR_PT100_OFFSET, data.pt100Offset);
+  EEPROM.get(ADDR_SENSOR_TYPE, data.sensorType);
+  EEPROM.get(ADDR_LIGHT_ENABLED, data.lightEnabled);
+  EEPROM.get(ADDR_SENSOR_PIN_IDX, data.sensorPinIdx);
+  EEPROM.get(ADDR_VERSION, data.version);
 
   // Carregar relés (cada relé usa 32 bytes para evitar sobreposição)
   Serial.println("STORAGE: Carregando relés...");
   for (int i = 0; i < RELAY_COUNT; i++) {
     int addr = ADDR_RELAY_0 + (i * 32);
-    
+
     // Ler valor atual da EEPROM
     RelayConfig tempRelay;
     EEPROM.get(addr, tempRelay);
-    
+
     // Verificar se é válido (nome não pode ser FF ou vazio)
-    bool nomeValido = tempRelay.name[0] != 0 && (uint8_t)tempRelay.name[0] != 0xFF;
-    
+    bool nomeValido =
+        tempRelay.name[0] != 0 && (uint8_t)tempRelay.name[0] != 0xFF;
+
     Serial.print("STORAGE R");
     Serial.print(i);
     Serial.print(" addr:");
@@ -45,7 +51,7 @@ void StorageManager::load() {
     Serial.print((int)tempRelay.name[0]);
     Serial.print(" valido:");
     Serial.println(nomeValido ? "SIM" : "NAO");
-    
+
     if (nomeValido) {
       // Carregar valores válidos
       data.relays[i] = tempRelay;
@@ -63,7 +69,7 @@ void StorageManager::load() {
       data.relays[i].manualState = false;
       strncpy(data.relays[i].name, i == 0 ? "Rele 1" : "Rele X", 16);
       data.relays[i].name[16] = '\0';
-      
+
       EEPROM.put(addr, data.relays[i]);
       Serial.print("  -> Inicializado para: ON=0 OFF=0 F=0");
     }
@@ -146,6 +152,27 @@ void StorageManager::load() {
     data.deviceLocation[31] = '\0';
   }
 
+  // Validação novos campos
+  if (isnan(data.pt100Offset) || data.pt100Offset < -20.0 ||
+      data.pt100Offset > 20.0) {
+    data.pt100Offset = 0.0;
+    EEPROM.put(ADDR_PT100_OFFSET, data.pt100Offset);
+  }
+  if (data.sensorType > 1) {
+    data.sensorType = SENSOR_DS18B20;
+    EEPROM.put(ADDR_SENSOR_TYPE, data.sensorType);
+  }
+  if (data.sensorPinIdx > 1) {
+    data.sensorPinIdx = 0; // IN-1
+    EEPROM.put(ADDR_SENSOR_PIN_IDX, data.sensorPinIdx);
+  }
+  // lightEnabled não precisa de validação complexa (bool)
+  if (data.version[0] == 0 || (uint8_t)data.version[0] == 0xFF) {
+    strncpy(data.version, FIRMWARE_VERSION, 15);
+    data.version[15] = '\0';
+    EEPROM.put(ADDR_VERSION, data.version);
+  }
+
   // Padrões para relés (somente para nomes inválidos)
   for (int i = 0; i < RELAY_COUNT; i++) {
     if (data.relays[i].name[0] == 0 ||
@@ -169,7 +196,7 @@ void StorageManager::load() {
       EEPROM.put(addr, data.relays[i]);
     }
   }
-  EEPROM.commit();  // Commit único após todos os relés
+  EEPROM.commit(); // Commit único após todos os relés
 }
 
 void StorageManager::save() {
@@ -190,10 +217,15 @@ void StorageManager::save() {
   EEPROM.put(ADDR_DEVICE_NAME, data.deviceName);
   EEPROM.put(ADDR_COMPANY_NAME, data.companyName);
   EEPROM.put(ADDR_DEVICE_LOCATION, data.deviceLocation);
+  EEPROM.put(ADDR_PT100_OFFSET, data.pt100Offset);
+  EEPROM.put(ADDR_SENSOR_TYPE, data.sensorType);
+  EEPROM.put(ADDR_LIGHT_ENABLED, data.lightEnabled);
+  EEPROM.put(ADDR_SENSOR_PIN_IDX, data.sensorPinIdx);
+  EEPROM.put(ADDR_VERSION, data.version);
 
   // Salvar relés (cada relé usa 32 bytes para evitar sobreposição)
   for (int i = 0; i < RELAY_COUNT; i++) {
-    int addr = ADDR_RELAY_0 + (i * 32);  // 32 bytes por relé
+    int addr = ADDR_RELAY_0 + (i * 32); // 32 bytes por relé
     Serial.print("STORAGE: Salvando R");
     Serial.print(i);
     Serial.print(" no addr ");

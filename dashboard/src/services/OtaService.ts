@@ -14,6 +14,7 @@ export interface IOtaService {
         client: MqttClient,
         deviceIds: string[],
         url: string,
+        version?: string, // Adicionado
         hash?: string
     ): void;
     parseOtaProgress(payload: OtaMqttProgressPayload): OtaStatus | null;
@@ -28,6 +29,7 @@ export class OtaService implements IOtaService {
         client: MqttClient,
         deviceIds: string[],
         url: string,
+        version?: string,
         hash = ''
     ): void {
         if (!client || !client.connected) {
@@ -45,6 +47,7 @@ export class OtaService implements IOtaService {
             is_admin: true,
             url,
             hash,
+            version,
         };
 
         deviceIds.forEach((id) => {

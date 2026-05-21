@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 // ---------- VERSÃO ----------
-#define FIRMWARE_VERSION "1.1.13"
+#define FIRMWARE_VERSION "1.1.15"
 
 // ---------- DEFAULTS ----------
 #define DEFAULT_DEVICE_NAME "ESP32 Sensor"
@@ -31,7 +31,9 @@
 #define MSG_TOPIC_DASHBOARD "esp32c3/dashboard"
 
 // ---------- PINOS ----------
-#define DS18B20_PIN 13 // ou pin 04
+#define DS18B20_PIN_1 13
+#define DS18B20_PIN_2 17
+#define DS18B20_PIN DS18B20_PIN_1 // Default para compatibilidade
 #define RELAY_PIN_0 23
 #define RELAY_PIN_1 19
 #define RELAY_PIN_2 18
@@ -42,6 +44,7 @@
 #define PIN_DHT11 0
 #define PIN_BUZZER 14
 #define PIN_PT100 36
+#define LUZ_PIN 2
 
 #define SDA_PIN 21
 #define SCL_PIN 22
@@ -91,6 +94,8 @@ enum SensorType { SENSOR_DS18B20 = 0, SENSOR_PT100 = 1 };
 #define ADDR_PT100_OFFSET 272
 #define ADDR_SENSOR_TYPE 276
 #define ADDR_LIGHT_ENABLED 280
+#define ADDR_SENSOR_PIN_IDX 281
+#define ADDR_VERSION 282 // Novo: Campo de versão dinâmica (16 bytes)
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0
@@ -149,6 +154,8 @@ struct SystemSettings {
   float pt100Offset;
   uint8_t sensorType;
   bool lightEnabled;
+  uint8_t sensorPinIdx; // 0=IN-1 (13), 1=IN-2 (17)
+  char version[16];     // Armazenamento da versão atualizada via OTA
 };
 
 #endif

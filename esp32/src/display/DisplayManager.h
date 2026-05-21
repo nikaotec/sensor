@@ -56,6 +56,9 @@ private:
 
   void drawWifiSignal(bool connected);
   void drawHomeStatusBar(bool connected, String datetime);
+  void drawHome(float temp, float observedMin, float observedMax,
+                bool wifiConnected, bool linked, String datetime,
+                bool alertActive, bool manual, bool relay);
   void drawPasswordScreen();
   void drawMainMenuPaged();
   void drawMenu();
@@ -67,8 +70,8 @@ public:
   DisplayManager();
   void begin();
   void update(float temp, float observedMin, float observedMax,
-              bool wifiConnected, bool manual, bool relay,
-              SensorType sensorType, String datetime, bool resetDone);
+              bool wifiConnected, bool linked, bool manual, bool relay,
+              SensorType sensorType, String datetime, bool alertActive);
   void showMessage(String msg, int duracaoMs);
 
   // Controle do Menu

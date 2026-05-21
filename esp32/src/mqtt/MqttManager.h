@@ -18,16 +18,17 @@ private:
   unsigned long _lastReconnectAttempt;
   CommandCallback _commandHandler;
   String _deviceId;
+  String _currentVersion; // Armazena a versão dinâmica atual
 
   static MqttManager *_instance;
   static void staticCallback(char *topic, byte *payload, unsigned int length);
 
-  void connect();
+  void connect(String version = "");
   void setupTopics();
 
 public:
   MqttManager();
-  void begin(CommandCallback handler);
+  void begin(CommandCallback handler, String version = "");
   void update();
 
   void publishStatus(String version, String status = "online");

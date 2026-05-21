@@ -24,11 +24,12 @@ OtaManager ota;
 ButtonManager buttons;
 // RelayService relays foi removido, usamos storage.data.relays diretamente.
 
-OneWire oneWire(DS18B20_PIN);
-DallasTemperature sensors(&oneWire);
+OneWire oneWire1(DS18B20_PIN_1);
+OneWire oneWire2(DS18B20_PIN_2);
+DallasTemperature sensors1(&oneWire1);
+DallasTemperature sensors2(&oneWire2);
+
 VoltageSensor voltSensor(PIN_ZMPT, VOLTAGE_CALIBRATION_DEFAULT);
-// BatterySensor agora é lida dentro da Task do VoltageSensor (evita contenção
-// ADC1) BatterySensor batterySensor(PIN_BATTERY, BATTERY_CALIBRATION_DEFAULT);
 AmbientSensor ambientSensor;
 
 AlertManager alertTempMax("TEMPERATURA_ALTA", ALERT_DEBOUNCE, ALERT_REPEAT);
@@ -190,6 +191,12 @@ void firmware_loop() {
         display.setTempAdjust(storage.data.tempCalOffset);
       else if (newState == DisplayManager::EDIT_PT100_OFFSET)
         display.setTempAdjust(storage.data.pt100Offset);
+      else if (newState == DisplayManager::EDIT_SENSOR_PIN)
+        display.setTempAdjust(storage.data.sensorPinIdx);
+      else if (newState == DisplayManager::EDIT_SENSOR_TYPE)
+        display.setTempAdjust(storage.data.sensorType);
+      else if (newState == DisplayManager::EDIT_LIGHT_ENABLE)
+        display.setTempAdjust(storage.data.lightEnabled);
     }
 
     // Ações de confirmação (ENTER)
@@ -206,6 +213,15 @@ void firmware_loop() {
         salvou = true;
       } else if (oldState == DisplayManager::EDIT_PT100_OFFSET) {
         storage.data.pt100Offset = display.getTempAdjust();
+        salvou = true;
+      } else if (oldState == DisplayManager::EDIT_SENSOR_PIN) {
+        storage.data.sensorPinIdx = (int)display.getTempAdjust();
+        salvou = true;
+      } else if (oldState == DisplayManager::EDIT_SENSOR_TYPE) {
+        storage.data.sensorType = (int)display.getTempAdjust();
+        salvou = true;
+      } else if (oldState == DisplayManager::EDIT_LIGHT_ENABLE) {
+        storage.data.lightEnabled = (bool)display.getTempAdjust();
         salvou = true;
       } else if (oldState == DisplayManager::TEST_RELAY_TOGGLE) {
         // Alterna o relé selecionado no menu anterior
@@ -268,23 +284,35 @@ void firmware_loop() {
   if (storage.data.sensorType == SENSOR_PT100) {
     temperaturaAtual = lerTemperaturaPT100() + storage.data.pt100Offset;
   } else {
-    sensors.requestTemperatures();
-    float tempBruta = sensors.getTempCByIndex(0);
+    // Seleciona o barramento Dallas conforme configuração
+    DallasTemperature *targetSensor =
+        (storage.data.sensorPinIdx == 1) ? &sensors2 : &sensors1;
+    targetSensor->requestTemperatures();
+    float tempBruta = targetSensor->getTempCByIndex(0);
     if (tempBruta > -50 && tempBruta < 85) {
       temperaturaAtual = tempBruta + storage.data.tempCalOffset;
     } else {
       temperaturaAtual = -127.0; // Sensor desconectado
     }
   }
+
   float tVoltagem = voltSensor.getVoltage();
   float tBateria = voltSensor.getBatteryVoltage();
   ambientSensor.read();
+
   bool isDoorOpen = digitalRead(PIN_DOOR) == HIGH;
   if (isDoorOpen) {
     if (doorOpenStart == 0)
       doorOpenStart = now;
   } else {
     doorOpenStart = 0;
+  }
+
+  // 2.1 Controle de Luz Interna (Sincronizada com Porta)
+  if (storage.data.lightEnabled) {
+    digitalWrite(LUZ_PIN, isDoorOpen ? HIGH : LOW);
+  } else {
+    digitalWrite(LUZ_PIN, LOW);
   }
 
   // 2.1 Envio Periódico de Alerta (Sincronização de timers)
@@ -523,14 +551,10 @@ void firmware_loop() {
   }
 
   // 4. Atualizar Display
-  display.update(temperaturaAtual, storage.data.tempMinRec,
-                 storage.data.tempMaxRec, mqtt.isWifiConnected(), modoManual,
-                 releEstado[0], (SensorType)storage.data.sensorType,
-                 mqtt.getCurrentTime(),
-                 (alertTempMax.isActive() || alertTempMin.isActive() ||
-                  alertVoltMax.isActive() || alertVoltMin.isActive() ||
-                  alertBatLow.isActive() || alertPower.isActive() ||
-                  alertDoor.isActive()));
+  display.update(
+      temperaturaAtual, storage.data.tempMinRec, storage.data.tempMaxRec,
+      mqtt.isWifiConnected(), isDeviceLinked(), modoManual, releEstado[0],
+      (SensorType)storage.data.sensorType, mqtt.getCurrentTime(), foraDaFaixa);
 }
 
 // ---------- SETUP ----------
@@ -544,6 +568,8 @@ void firmware_setup() {
   }
   pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(PIN_BUZZER, LOW);
+  pinMode(LUZ_PIN, OUTPUT);
+  digitalWrite(LUZ_PIN, LOW);
 
   emitirBipe(200, 2); // Feedback de inicialização
 
@@ -555,7 +581,7 @@ void firmware_setup() {
   // Managers
   storage.begin();
   display.begin();
-  mqtt.begin(handleCommand);
+  mqtt.begin(handleCommand, String(storage.data.version));
   ota.begin([](int p) {
     mqtt.publishProgress(p);
     mqtt.update(); // Keep MQTT alive during blocking OTA
@@ -567,9 +593,12 @@ void firmware_setup() {
   alertDoor.setDebounce(storage.data.doorMaxTime * 1000);
 
   // Sensores
-  sensors.begin();
-  sensors.setWaitForConversion(false);
-  qtdSensoresDs18b20 = sensors.getDeviceCount();
+  sensors1.begin();
+  sensors1.setWaitForConversion(false);
+  sensors2.begin();
+  sensors2.setWaitForConversion(false);
+
+  qtdSensoresDs18b20 = sensors1.getDeviceCount() + sensors2.getDeviceCount();
   Serial.println("Sensores DS18B20 encontrados: " + String(qtdSensoresDs18b20));
 
   ambientSensor.begin();
@@ -580,7 +609,9 @@ void firmware_setup() {
   voltSensor.begin();
 
   configTime(-3 * 3600, 0, "pool.ntp.org");
-  Serial.printf("Sistema Iniciado (Modular) - Versao: %s\n", FIRMWARE_VERSION);
+  Serial.printf(
+      "Sistema Iniciado (Modular) - Versao Compilada: %s | Versao EEPROM: %s\n",
+      FIRMWARE_VERSION, storage.data.version);
 }
 
 // ---------- CALLBACK MQTT ----------
@@ -600,14 +631,21 @@ void handleCommand(String intent, JsonObject params) {
   if (intent == "otaupdate") {
     String url = params["url"] | "";
     String hash = params["hash"] | "";
+    String targetVersion =
+        params["version"] | params["versao"] | FIRMWARE_VERSION;
 
     Serial.printf("[OTA] Debug - Intent: %s, URL: %s, Hash: %s\n",
                   intent.c_str(), url.c_str(), hash.c_str());
 
     if (url != "") {
       Serial.println("[OTA] Comando recebido. Iniciando update...");
-      if (ota.startOTA(url, FIRMWARE_VERSION, hash)) {
-        mqtt.publishOtaSuccess(FIRMWARE_VERSION);
+      if (ota.startOTA(url, String(storage.data.version), hash)) {
+        // Atualiza versão dinâmica na EEPROM antes de reiniciar
+        strncpy(storage.data.version, targetVersion.c_str(), 15);
+        storage.data.version[15] = '\0';
+        storage.save();
+
+        mqtt.publishOtaSuccess(targetVersion);
         mqtt.update(); // Flush MQTT
         delay(2000);
         ota.rebootDevice();
@@ -1086,6 +1124,12 @@ void enviarDadosWeb() {
   doc["TEMP_EXTERNA"] = serialized(String(ambientSensor.getTemperature(), 1));
   doc["UMIDADE"] = serialized(String(ambientSensor.getHumidity(), 1));
 
+  // Novos campos de configuração
+  doc["SENSOR_TYPE"] = storage.data.sensorType;
+  doc["SENSOR_PIN_IDX"] = storage.data.sensorPinIdx;
+  doc["LIGHT_ENABLED"] = storage.data.lightEnabled;
+  doc["PT100_OFFSET"] = serialized(String(storage.data.pt100Offset, 1));
+
   JsonObject relays = doc.createNestedObject("RELES");
   for (int i = 0; i < RELAY_COUNT; i++) {
     String key = "R" + String(i);
@@ -1152,7 +1196,7 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
   doc["EMPRESA"] = storage.data.companyName;
   doc["ALA"] = storage.data.deviceLocation;
   doc["TIPO"] = evento;
-  doc["VERSION"] = FIRMWARE_VERSION;
+  doc["VERSION"] = storage.data.version;
   doc["IS_REPEAT"] = isRepeat;
 
   // Feedback local removido daqui e transferido para o loop principal.
@@ -1193,6 +1237,10 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
   doc["CHK_TEMP"] = storage.data.chkTemp;
   doc["CHK_DOOR"] = storage.data.chkDoor;
   doc["TEMP_CAL_OFFSET"] = storage.data.tempCalOffset;
+  doc["SENSOR_TYPE"] = storage.data.sensorType;
+  doc["SENSOR_PIN_IDX"] = storage.data.sensorPinIdx;
+  doc["LIGHT_ENABLED"] = storage.data.lightEnabled;
+  doc["PT100_OFFSET"] = storage.data.pt100Offset;
 
   // Sensor Ambiente (DHT11)
   if (evento == "STATUS_SOLICITADO" || evento == "periodico_suporte") {

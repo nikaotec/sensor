@@ -5,36 +5,68 @@ AppNetworkManager *AppNetworkManager::instance = nullptr;
 AppNetworkManager::AppNetworkManager() : client(espClient) {
   instance = this;
   lastMqttReconnectAttempt = 0;
+  lastWifiReconnectAttempt = 0;
   wifiConnected = false;
+  _ntpConfigured = false;
+  _portalActive = false;
 }
 
 void AppNetworkManager::begin(MqttCallback handler) {
   messageHandler = handler;
 
-  WiFiManager wm;
-
-  // Configurações do portal
-  wm.setConnectTimeout(60);       // Timeout para tentar conectar ao WiFi salvo
-  wm.setConfigPortalTimeout(180); // Timeout para o AP de configuração (3 min)
-
-  String apName = "Sensor-" + getIdDispositivo();
-  Serial.println("[NET] Iniciando WiFiManager. AP: " + apName);
-
-  // autoConnect tenta conectar ao WiFi salvo.
-  // Se falhar, abre o AP chamando apName.
-  if (!wm.autoConnect(apName.c_str())) {
-    Serial.println(
-        "[NET] Falha ao conectar e timeout do portal. Reiniciando...");
-    delay(3000);
-    ESP.restart();
-  }
-
-  Serial.println("\n[NET] WiFi CONECTADO - IP: " + WiFi.localIP().toString());
-
+  // Configura cliente MQTT imediatamente (não depende de WiFi)
   client.setServer(MQTT_SERVER, MQTT_PORT);
   client.setBufferSize(1024);
   client.setCallback(AppNetworkManager::staticCallback);
-  configTime(-3 * 3600, 0, "pool.ntp.org");
+
+  // Inicia WiFi em modo estação
+  WiFi.mode(WIFI_STA);
+
+  // Verifica se há credenciais salvas pelo WiFiManager (NVS)
+  // Se houver, tenta conectar imediatamente de forma não bloqueante
+  String savedSSID = WiFi.SSID();
+  if (savedSSID.length() > 0) {
+    Serial.println("[NET] Credenciais encontradas. Conectando a: " + savedSSID);
+    WiFi.begin(); // Usa credenciais salvas sem bloquear
+  } else {
+    // Sem credenciais: abre portal de configuração não bloqueante
+    _startConfigPortal();
+  }
+
+  Serial.println("[NET] WiFi iniciado em background. Dispositivo operacional.");
+}
+
+void AppNetworkManager::_startConfigPortal() {
+  if (_portalActive)
+    return;
+
+  String apName = "Sensor-" + getIdDispositivo();
+  Serial.println("[NET] Sem credenciais salvas. Abrindo portal: " + apName);
+
+  WiFiManager wm;
+  wm.setConfigPortalBlocking(false); // Portal não bloqueante
+  wm.setConfigPortalTimeout(180);    // Fecha após 3 min sem configuração
+
+  if (wm.autoConnect(apName.c_str())) {
+    // Conectou durante o autoConnect (credenciais já existiam)
+    _onWifiConnected();
+  } else {
+    // Portal aberto em background. O usuario pode conectar via AP pelo app.
+    _portalActive = true;
+  }
+}
+
+void AppNetworkManager::_onWifiConnected() {
+  wifiConnected = true;
+  _portalActive = false;
+  Serial.println("[NET] WiFi CONECTADO - IP: " + WiFi.localIP().toString() +
+                 " RSSI: " + String(WiFi.RSSI()) + "dBm");
+
+  if (!_ntpConfigured) {
+    configTime(-3 * 3600, 0, "pool.ntp.org");
+    _ntpConfigured = true;
+    Serial.println("[NET] NTP configurado.");
+  }
 }
 
 void AppNetworkManager::staticCallback(char *topic, byte *payload,
@@ -50,16 +82,31 @@ void AppNetworkManager::staticCallback(char *topic, byte *payload,
 
 void AppNetworkManager::verifyWifi() {
   bool wasConnected = wifiConnected;
+
   if (WiFi.status() == WL_CONNECTED) {
-    wifiConnected = true;
     if (!wasConnected) {
-      Serial.println("[NET] WiFi CONECTADO - IP: " + WiFi.localIP().toString() +
-                     " RSSI: " + String(WiFi.RSSI()) + "dBm");
+      _onWifiConnected();
     }
+    wifiConnected = true;
   } else {
-    wifiConnected = false;
     if (wasConnected) {
-      Serial.println("[NET] WiFi DESCONECTADO");
+      wifiConnected = false;
+      Serial.println("[NET] WiFi DESCONECTADO. Tentará reconectar...");
+    }
+
+    // Tenta reconectar a cada 30 segundos sem bloquear o loop
+    if (millis() - lastWifiReconnectAttempt > 30000) {
+      lastWifiReconnectAttempt = millis();
+      String savedSSID = WiFi.SSID();
+      if (savedSSID.length() > 0) {
+        Serial.println("[NET] Tentando reconectar a: " + savedSSID);
+        WiFi.reconnect();
+      } else {
+        // Sem credenciais: reabre portal se não estiver ativo
+        if (!_portalActive) {
+          _startConfigPortal();
+        }
+      }
     }
   }
 }
@@ -96,7 +143,7 @@ void AppNetworkManager::resetWifi() {
   WiFiManager wm;
   wm.resetSettings();
   delay(500);
-  ESP.restart();
+  ESP.restart(); // Único restart intencional: reset pelo usuário via menu
 }
 
 void AppNetworkManager::publish(const char *topic, String payload) {

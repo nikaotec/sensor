@@ -29,8 +29,7 @@ int calculatePages(String msg) {
 
 void DisplayManager::showMessage(String msg, int duracaoMs) {
   mensagemRodape = msg;
-  currentMessage = msg; // Store needed for paging logic if needed, though we
-                        // use mensagemRodape
+  currentMessage = msg;
   currentMsgPage = 0;
   lastPageChange = millis();
   totalPages = calculatePages(msg);
@@ -40,6 +39,99 @@ void DisplayManager::showMessage(String msg, int duracaoMs) {
   } else {
     tempoMensagemRodape = 0; // Fixa
   }
+}
+
+void DisplayManager::drawHome(float temp, float observedMin, float observedMax,
+                              bool wifiConnected, bool linked, String datetime,
+                              bool alertActive, bool manual, bool relay) {
+  display.clearBuffer();
+
+  // Status Bar & Datetime
+  display.setFont(u8g2_font_6x12_tr);
+  display.drawStr(0, 10, datetime.c_str());
+  drawWifiSignal(wifiConnected);
+  display.drawHLine(0, 15, 128);
+
+  // Temp Grande
+  display.setFont(u8g2_font_logisoso26_tr);
+  char tB[10];
+  dtostrf(temp, 4, 1, tB);
+  display.drawStr(0, 50, tB);
+
+  display.setFont(u8g2_font_9x15_tr);
+  display.drawStr(65, 38, "C");
+
+  // Min/Max (Coluna Direita)
+  display.setFont(u8g2_font_6x12_tr);
+  char mB[10];
+  String minTxt = "MIN:";
+  if (observedMin < 90.0 && observedMin > -90.0) {
+    dtostrf(observedMin, 4, 1, mB);
+    minTxt += mB;
+  } else
+    minTxt += "--.-";
+
+  String maxTxt = "MAX:";
+  if (observedMax < 90.0 && observedMax > -90.0) {
+    dtostrf(observedMax, 4, 1, mB);
+    maxTxt += mB;
+  } else
+    maxTxt += "--.-";
+
+  display.drawStr(80, 35, minTxt.c_str());
+  display.drawStr(80, 50, maxTxt.c_str());
+
+  // Verifica se a mensagem atual expirou
+  unsigned long now = millis();
+  if (tempoMensagemRodape > 0 && now > tempoMensagemRodape) {
+    tempoMensagemRodape = 0;
+    currentMsgPage = 0;
+    mensagemRodape = "";
+  }
+
+  // --- RODAPÉ ---
+  if (tempoMensagemRodape > 0) {
+    // Modo de Mensagem Ativa (Paging)
+    if (totalPages > 1) {
+      if (now - lastPageChange > 3000) {
+        lastPageChange = now;
+        currentMsgPage++;
+        if (currentMsgPage >= totalPages)
+          currentMsgPage = 0;
+      }
+    } else {
+      currentMsgPage = 0;
+    }
+
+    int pageSize = 16; // Deixamos menor para nao sobrepor o canto direito
+    int startIndex = currentMsgPage * pageSize;
+    String pageText =
+        mensagemRodape.substring(startIndex, startIndex + pageSize);
+
+    // Center in the available 100 pixels
+    int width = display.getStrWidth(pageText.c_str());
+    int xPos = (100 - width) / 2;
+    if (xPos < 0)
+      xPos = 0;
+
+    display.drawStr(xPos, 64, pageText.c_str());
+
+  } else {
+    // Modo Padrão (Sem mensagem ativa - resgatando funcionalidade antiga)
+    display.drawStr(0, 64, manual ? "MANU" : "AUTO");
+    display.drawStr(40, 64, relay ? "GELANDO" : "MOTOR OFF");
+  }
+
+  // Status de Vínculo/Alarme sempre fixos na direita
+  if (alertActive) {
+    display.drawStr(105, 64, "!!!");
+  } else if (linked) {
+    display.drawStr(110, 64, "OK");
+  } else {
+    display.drawStr(105, 64, "OFF");
+  }
+
+  display.sendBuffer();
 }
 
 void DisplayManager::drawWifiSignal(bool connected) {
@@ -69,9 +161,9 @@ void DisplayManager::drawWifiSignal(bool connected) {
 }
 
 void DisplayManager::update(float temp, float observedMin, float observedMax,
-                            bool wifiConnected, bool manual, bool relay,
-                            SensorType sensorType, String datetime,
-                            bool resetDone) {
+                            bool wifiConnected, bool linked, bool manual,
+                            bool relay, SensorType sensorType, String datetime,
+                            bool alertActive) {
   unsigned long now = millis();
 
   if (now - lastDisplayUpdate > 250) {
@@ -82,51 +174,8 @@ void DisplayManager::update(float temp, float observedMin, float observedMax,
       return;
     }
 
-    display.clearBuffer();
-
-    // Status Bar & Datetime
-    display.setFont(u8g2_font_6x12_tr);
-    display.drawStr(0, 10, datetime.c_str());
-    drawWifiSignal(wifiConnected);
-    display.drawHLine(0, 15, 128);
-
-    // Temp Grande
-    display.setFont(u8g2_font_logisoso26_tr);
-    char tB[10];
-    dtostrf(temp, 4, 1, tB);
-    display.drawStr(0, 50, tB);
-
-    display.setFont(u8g2_font_9x15_tr);
-    display.drawStr(65, 38, "C");
-
-    // Min/Max (Coluna Direita)
-    display.setFont(u8g2_font_6x12_tr);
-    char mB[10];
-    String minTxt = "MIN:";
-    if (observedMin < 9000.0) {
-      dtostrf(observedMin, 4, 1, mB);
-      minTxt += mB;
-    } else
-      minTxt += "--.-";
-
-    String maxTxt = "MAX:";
-    if (observedMax > -9000.0) {
-      dtostrf(observedMax, 4, 1, mB);
-      maxTxt += mB;
-    } else
-      maxTxt += "--.-";
-
-    display.drawStr(80, 35, minTxt.c_str());
-    display.drawStr(80, 50, maxTxt.c_str());
-
-    // Linha inferior informativa
-    display.drawStr(0, 64, "OPERACIONAL");
-
-    if (resetDone) {
-      display.drawStr(110, 64, "OK");
-    }
-
-    display.sendBuffer();
+    drawHome(temp, observedMin, observedMax, wifiConnected, linked, datetime,
+             alertActive, manual, relay);
   }
 }
 
@@ -282,8 +331,27 @@ void DisplayManager::drawMenu() {
   case EDIT_PT100_OFFSET:
     drawEditValue("OFFSET PT100", _tempAdjust, "C");
     break;
-  // ... logic for other edit screens would go here or handled by generic
-  // drawEditValue
+  case EDIT_OUTPUT_ASSIGN: {
+    const char *names[] = {"MOTOR", "LUZ INTERNA", "BATERIA", "COOLER"};
+    if (_subMenuIndex < 4) {
+      drawEditValue(names[_subMenuIndex], _tempAdjust, "RELE");
+    }
+  } break;
+  case EDIT_SENSOR_PIN: {
+    const char *pins[] = {"IN-1 (13)", "IN-2 (17)"};
+    drawSubMenu("PINO DS18B20", pins, 2, _subMenuIndex);
+  } break;
+  case EDIT_SENSOR_TYPE: {
+    const char *types[] = {"DS18B20", "PT100"};
+    drawSubMenu("TIPO SENSOR", types, 2, _subMenuIndex);
+  } break;
+  case EDIT_LIGHT_ENABLE: {
+    const char *status[] = {"OFF", "ON"};
+    drawSubMenu("FUNCAO LUZ", status, 2, _tempAdjust > 0.5f ? 1 : 0);
+  } break;
+  case TEST_RELAY_TOGGLE:
+    drawTestRelayToggle(_subMenuIndex, _tempAdjust > 0.5f);
+    break;
   default:
     break;
   }
@@ -376,6 +444,18 @@ void DisplayManager::menuAction(ButtonEvent ev) {
     case EDIT_TEMP_MAX:
       _currentMenu = MENU_CONTROLE;
       break;
+    case EDIT_OUTPUT_ASSIGN:
+      _currentMenu = MENU_SAIDAS;
+      break;
+    case EDIT_SENSOR_PIN:
+      _currentMenu = MENU_ENTRADAS;
+      break;
+    case EDIT_SENSOR_TYPE:
+      _currentMenu = MENU_SENSOR;
+      break;
+    case EDIT_LIGHT_ENABLE:
+      _currentMenu = MENU_LUZ;
+      break;
     case TEST_RELAY_TOGGLE:
       _currentMenu = MENU_TESTAR_SAIDAS;
       break;
@@ -420,6 +500,18 @@ void DisplayManager::menuAction(ButtonEvent ev) {
     case EDIT_DS18B20_OFFSET:
     case EDIT_PT100_OFFSET:
       _tempAdjust += dir * 0.1f;
+      break;
+    case EDIT_OUTPUT_ASSIGN:
+    case EDIT_SENSOR_PIN:
+    case EDIT_SENSOR_TYPE:
+    case EDIT_LIGHT_ENABLE:
+    case TEST_RELAY_TOGGLE:
+      // Alternadores binários ou múltiplos
+      if (_currentMenu == EDIT_OUTPUT_ASSIGN) {
+        _tempAdjust = (int(_tempAdjust) + dir + 4) % 4; // 4 relés
+      } else {
+        _tempAdjust = _tempAdjust > 0.5f ? 0.0f : 1.0f;
+      }
       break;
     default:
       break;
@@ -475,19 +567,42 @@ void DisplayManager::menuAction(ButtonEvent ev) {
       }
       break;
 
-    case MENU_CONTROLE:
-      if (_subMenuIndex == 0)
-        _currentMenu = EDIT_TEMP_MIN;
-      else if (_subMenuIndex == 1)
-        _currentMenu = EDIT_TEMP_MAX;
-      else
+    case MENU_SAIDAS:
+      if (_subMenuIndex < 4) {
+        _currentMenu = EDIT_OUTPUT_ASSIGN;
+      } else {
         _currentMenu = MENU_MAIN;
+      }
       break;
 
     case MENU_TESTAR_SAIDAS:
       if (_subMenuIndex < 4) {
         _currentMenu = TEST_RELAY_TOGGLE;
-        // relay Index = _subMenuIndex
+        _tempAdjust = 0.0f; // OFF inicial para teste
+      } else {
+        _currentMenu = MENU_MAIN;
+      }
+      break;
+
+    case MENU_ENTRADAS:
+      if (_subMenuIndex == 0) {
+        _currentMenu = EDIT_SENSOR_PIN;
+      } else {
+        _currentMenu = MENU_MAIN;
+      }
+      break;
+
+    case MENU_SENSOR:
+      if (_subMenuIndex == 0) {
+        _currentMenu = EDIT_SENSOR_TYPE;
+      } else {
+        _currentMenu = MENU_MAIN;
+      }
+      break;
+
+    case MENU_LUZ:
+      if (_subMenuIndex == 0) {
+        _currentMenu = EDIT_LIGHT_ENABLE;
       } else {
         _currentMenu = MENU_MAIN;
       }
@@ -497,9 +612,13 @@ void DisplayManager::menuAction(ButtonEvent ev) {
     case EDIT_TEMP_MAX:
     case EDIT_DS18B20_OFFSET:
     case EDIT_PT100_OFFSET:
+    case EDIT_OUTPUT_ASSIGN:
+    case EDIT_SENSOR_PIN:
+    case EDIT_SENSOR_TYPE:
+    case EDIT_LIGHT_ENABLE:
       // O valor alterado deve ser capturado pelo main.cpp antes de voltar
-      // ou definimos um mecanismo de "save dirty"
-      _currentMenu = MENU_MAIN; // Volta ao principal ou sub após salvar
+      // mudando apenas o estado aqui
+      _currentMenu = MENU_MAIN;
       break;
 
     default:
