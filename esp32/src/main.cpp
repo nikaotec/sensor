@@ -666,17 +666,18 @@ void handleCommand(String intent, JsonObject params) {
     if (url != "") {
       Serial.println("[OTA] Comando recebido. Iniciando update...");
       if (ota.startOTA(url, String(storage.data.version), hash)) {
-        // Atualiza versão dinâmica na EEPROM antes de reiniciar
         strncpy(storage.data.version, targetVersion.c_str(), 15);
         storage.data.version[15] = '\0';
         storage.save();
 
         mqtt.publishOtaSuccess(targetVersion);
-        mqtt.update(); // Flush MQTT
+        mqtt.update();
         delay(2000);
         ota.rebootDevice();
       } else {
         mqtt.publishOtaError(ota.getLastError());
+        mqtt.update();
+        Serial.println("[OTA] Falha: " + ota.getLastError());
       }
     } else {
       mqtt.publishOtaError("URL de update ausente");

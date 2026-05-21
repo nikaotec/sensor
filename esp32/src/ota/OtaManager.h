@@ -3,10 +3,11 @@
 
 #include "../config/Config.h"
 #include <Arduino.h>
-#include <HTTPUpdate.h>
+#include <HTTPClient.h>
+#include <Update.h>
 #include <WiFiClientSecure.h>
+#include <functional>
 
-// Define callback type para progresso
 typedef std::function<void(int)> OtaProgressCallback;
 
 class OtaManager {
@@ -18,8 +19,6 @@ private:
 
   static OtaManager *_instance;
   static void handleProgress(int cur, int total);
-
-  void setUpdating(bool state) { _isUpdating = state; }
 
 public:
   OtaManager();

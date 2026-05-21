@@ -52,6 +52,7 @@ private:
   void _checkConnection();
   void _startPortal();
   void _stopPortal();
+  bool _hasSavedCredentials();
   void _handleRoot();
   void _handleScan();
   void _handleConnect();

@@ -1,5 +1,7 @@
 #include "WifiManager.h"
 #include "../config/Config.h"
+#include <esp_wifi.h>
+#include <esp_task_wdt.h>
 
 WifiManager::WifiManager()
     : _state(WIFI_STATE_IDLE),
@@ -10,8 +12,10 @@ WifiManager::WifiManager()
 void WifiManager::begin() {
   WiFi.mode(WIFI_STA);
   WiFi.setAutoReconnect(true);
+  WiFi.persistent(true);
 
   Serial.println("[WIFI] Iniciando...");
+  delay(10);
   _tryConnectSaved();
 }
 
@@ -40,11 +44,12 @@ void WifiManager::resetCredentials() {
   Serial.println("[WIFI] Limpando credenciais...");
   _stopPortal();
   WiFi.disconnect(true, true);
+  delay(100);
+  WiFi.mode(WIFI_STA);
+  delay(100);
   _state = WIFI_STATE_NO_CREDENTIALS;
   _stateStart = millis();
   _connectCbFired = false;
-
-  WiFi.mode(WIFI_STA);
   _startPortal();
 }
 
@@ -83,12 +88,22 @@ int WifiManager::getRSSI() const {
 void WifiManager::onConnect(std::function<void()> cb) { _onConnectCb = cb; }
 void WifiManager::onDisconnect(std::function<void()> cb) { _onDisconnectCb = cb; }
 
-void WifiManager::_tryConnectSaved() {
-  String ssid = WiFi.SSID();
-  Serial.println("[WIFI] SSID salvo: '" + ssid + "' (len=" + String(ssid.length()) + ")");
+bool WifiManager::_hasSavedCredentials() {
+  wifi_config_t conf;
+  memset(&conf, 0, sizeof(conf));
+  esp_err_t err = esp_wifi_get_config(WIFI_IF_STA, &conf);
+  if (err != ESP_OK) {
+    Serial.printf("[WIFI] esp_wifi_get_config failed: %d\n", err);
+    return false;
+  }
+  bool hasSsid = (conf.sta.ssid[0] != 0);
+  Serial.printf("[WIFI] NVS SSID: '%s' (len=%d)\n", conf.sta.ssid, strlen((char*)conf.sta.ssid));
+  return hasSsid;
+}
 
-  if (ssid.length() > 0) {
-    Serial.println("[WIFI] Conectando a: " + ssid);
+void WifiManager::_tryConnectSaved() {
+  if (_hasSavedCredentials()) {
+    Serial.println("[WIFI] Credenciais salvas encontradas. Conectando...");
     WiFi.begin();
     _state = WIFI_STATE_CONNECTING;
     _stateStart = millis();
@@ -111,7 +126,6 @@ void WifiManager::_checkConnection() {
 
   if (status == WL_CONNECTED) {
     _state = WIFI_STATE_CONNECTED;
-    _connectedSSID = WiFi.SSID();
     Serial.println("[WIFI] Conectado - IP: " + WiFi.localIP().toString() +
                    " RSSI: " + String(WiFi.RSSI()) + "dBm SSID: " + WiFi.SSID());
     if (_onConnectCb && !_connectCbFired) {
@@ -121,7 +135,7 @@ void WifiManager::_checkConnection() {
     return;
   }
 
-  if (elapsed > 2000 && elapsed % 5000 < 2000) {
+  if (elapsed > 2000 && (elapsed / 5000) != ((elapsed - 2000) / 5000)) {
     Serial.printf("[WIFI] Tentando conectar... status=%d elapsed=%lus\n",
                   status, elapsed / 1000);
   }
@@ -143,14 +157,28 @@ void WifiManager::_startPortal() {
   apName.toUpperCase();
   if (apName.length() > 32) apName = apName.substring(0, 32);
 
-  Serial.println("[WIFI] AP: " + apName + " em 192.168.4.1");
+  Serial.println("[WIFI] Preparando AP: " + apName);
 
   WiFi.mode(WIFI_AP_STA);
-  WiFi.softAPConfig(IPAddress(192, 168, 4, 1), IPAddress(192, 168, 4, 1),
-                    IPAddress(255, 255, 255, 0));
-  WiFi.softAP(apName.c_str(), PORTAL_PASSWORD);
+  delay(100);
 
-  _dnsServer.start(53, "*", IPAddress(192, 168, 4, 1));
+  bool apOk = WiFi.softAP(apName.c_str(), PORTAL_PASSWORD, 1, 0, 4);
+  if (!apOk) {
+    Serial.println("[WIFI] ERRO: softAP falhou!");
+    _state = WIFI_STATE_IDLE;
+    return;
+  }
+  delay(100);
+
+  IPAddress ip(192, 168, 4, 1);
+  IPAddress gateway(192, 168, 4, 1);
+  IPAddress subnet(255, 255, 255, 0);
+  WiFi.softAPConfig(ip, gateway, subnet);
+  delay(100);
+
+  Serial.printf("[WIFI] AP ativo - IP: %s\n", WiFi.softAPIP().toString().c_str());
+
+  _dnsServer.start(53, "*", ip);
 
   _webServer.on("/", HTTP_GET, [this]() { _handleRoot(); });
   _webServer.on("/scan", HTTP_GET, [this]() { _handleScan(); });
@@ -194,7 +222,7 @@ void WifiManager::_handleConnect() {
     return;
   }
 
-  Serial.println("[WIFI] Conectando a: '" + ssid + "' via portal...");
+  Serial.println("[WIFI] Salvando credenciais: '" + ssid + "'...");
 
   _webServer.stop();
   _dnsServer.stop();
@@ -202,7 +230,9 @@ void WifiManager::_handleConnect() {
   _portalActive = false;
   _connectCbFired = false;
 
+  WiFi.persistent(true);
   WiFi.mode(WIFI_STA);
+  delay(100);
   WiFi.begin(ssid.c_str(), password.c_str());
 
   _state = WIFI_STATE_CONNECTING;
@@ -212,8 +242,7 @@ void WifiManager::_handleConnect() {
                 "<meta http-equiv='refresh' content='2'>"
                 "<style>body{font-family:sans-serif;text-align:center;"
                 "padding:40px;background:#1a1a2e;color:#eee;}"
-                ".ok{color:#4ecca3;font-size:24px;}"
-                ".err{color:#ff6b6b;font-size:18px;}</style></head><body>"
+                ".ok{color:#4ecca3;font-size:24px;}</style></head><body>"
                 "<h2>Conectando a: " + _htmlEscape(ssid) + "</h2>"
                 "<p id='status'>Aguarde...</p>"
                 "<script>"
