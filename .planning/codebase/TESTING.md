@@ -1,194 +1,272 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-05-10
+**Analysis Date:** 2026-05-20
 
 ## Test Framework
 
-**Runner:** Vitest 4.1.5
+**Runner:**
+- Vitest 4.1.5
+- Config: `dashboard/vite.config.ts` (inline `test` block)
+- Environment: `jsdom`
+- Setup file: `dashboard/src/tests/setup.ts` (imports `@testing-library/jest-dom`)
 
-**Configuration** (`dashboard/vite.config.ts`):
-```typescript
-test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/tests/setup.ts',
-}
-```
+**Assertion Library:**
+- Vitest built-in `expect` (Jest-compatible)
 
-**Supporting Libraries:**
-- `@testing-library/jest-dom` 6.9.1 — DOM assertions
-- `@testing-library/react` 16.3.2 — React component testing
-- `@testing-library/user-event` 14.6.1 — User interaction simulation
-- `jsdom` 29.1.1 — DOM environment
+**Testing Library:**
+- `@testing-library/react` 16.3.2 for component testing
+- `@testing-library/user-event` 14.6.1 for user interaction simulation
+- `@testing-library/jest-dom` 6.9.1 for DOM assertions (`toBeInTheDocument()`, etc.)
 
 **Run Commands:**
 ```bash
-npm test              # Run all tests (vitest run)
-npm run dev           # Vite dev server with watch mode
-npm run build         # TypeScript check + Vite build (no test in build)
+npm run test              # Run all tests (vitest run)
+npx vitest                # Watch mode
+npx vitest --coverage     # Coverage (not configured)
 ```
 
 ## Test File Organization
 
-**Location:** Co-located with source files
+**Location:**
+- Two patterns coexist:
+  1. Co-located `__tests__/` directories: `dashboard/src/services/__tests__/TelemetryService.test.ts`
+  2. Centralized `tests/` directory: `dashboard/src/tests/OtaService.test.ts`
 
-**Patterns:**
-1. `__tests__/` subdirectory within service directories:
-   - `dashboard/src/services/__tests__/TelemetryService.test.ts`
-   - `dashboard/src/services/__tests__/TelemetryService.test.ts`
+**Naming:**
+- `*.test.ts` for service/unit tests
+- `*.test.tsx` for component tests
+- Test files mirror source file names: `TelemetryService.ts` → `TelemetryService.test.ts`
 
-2. `src/tests/` directory for shared test utilities:
-   - `dashboard/src/tests/setup.ts`
-   - `dashboard/src/tests/SupabaseMapper.test.ts`
+**Structure:**
+```
+dashboard/src/
+├── services/
+│   ├── TelemetryService.ts
+│   └── __tests__/
+│       ├── TelemetryService.test.ts
+│       └── VersionService.test.ts
+├── tests/
+│   ├── setup.ts
+│   ├── OtaService.test.ts
+│   ├── SupabaseMapper.test.ts
+│   ├── useMqttData.test.ts
+│   └── CalibrationControl.test.tsx
+└── utils/
+    └── reportValidation.test.ts
+```
 
-**Naming:** `*.test.ts` extension (not `*.spec.ts`)
+**Total test files:** 8 (6 in dashboard, 2 standalone JS scripts at repo root)
 
 ## Test Structure
 
-**Standard suite:**
+**Service Tests (describe/it pattern):**
 ```typescript
 import { describe, it, expect } from 'vitest';
 import { TelemetryService } from '../TelemetryService';
 
 describe('TelemetryService', () => {
     it('should normalize telemetry from legacy firmware (uppercase keys)', () => {
-        const payload = { ... };
+        const payload = { ID_DISPOSITIVO: 'ESP32_MAC', ... };
         const result = TelemetryService.normalizePayload(payload);
         expect(result.id).toBe('ESP32_MAC');
+        expect(result.temp).toBe(25.5);
     });
 });
 ```
 
-**Assertions used:**
-- `expect(value).toBe(expected)` — equality
-- `expect(value).not.toHaveProperty(key)` — property absence
-- `expect(result).toBeUndefined()` — undefined check
-- `expect(result).toBe(true)` — boolean check
-
-**Setup file** (`dashboard/src/tests/setup.ts`):
+**Component Tests (test function pattern):**
 ```typescript
-import '@testing-library/jest-dom';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { expect, test, vi } from 'vitest';
+import CalibrationControl from '../components/device/CalibrationControl';
+
+test('renders sensor selection buttons and allows selecting PT100', () => {
+    const handleSensorChange = vi.fn();
+    const props = { ... };
+    render(<CalibrationControl {...props} />);
+    const ptButton = screen.getByText(/PT100/i);
+    fireEvent.click(ptButton);
+    expect(handleSensorChange).toHaveBeenCalledWith('PT100');
+});
 ```
+
+**Patterns:**
+- No explicit teardown — Vitest handles cleanup
+- No `beforeAll`/`afterAll` in current tests
+- `beforeEach` used for service instantiation: `service = new OtaService()`
+- `vi.clearAllMocks()` in `beforeEach` blocks
 
 ## Mocking
 
-**Framework:** No explicit mocking library configured
+**Framework:** Vitest `vi` module
 
-**Approach:** Direct instantiation in tests (no mocks visible in codebase tests)
+**Patterns:**
 
-**Mock data:** `dashboard/src/data/mockData.ts` provides typed fixtures:
+**Mock functions (vi.fn()):**
 ```typescript
-const row: SupabaseDeviceRow = {
-    id: 'dev_123',
-    name: 'Sensor Geladeira',
-    tenant_id: 'tenant_abc',
-    status: 'online',
-    // ...
-};
+const handleSensorChange = vi.fn();
+const handleCalibration = vi.fn();
 ```
 
-**Mock patterns observed:**
-- Direct object creation for test inputs
-- No mocking of `supabase` client (tests target mappers/services)
-- No React component snapshot testing
+**Mock object factories:**
+```typescript
+const makeMockClient = (connected = true) => ({
+    connected,
+    publish: vi.fn(),
+});
+```
+
+**Type assertion for mocks:**
+```typescript
+const client = makeMockClient() as any;
+```
+
+**Mock inspection:**
+```typescript
+expect(client.publish).toHaveBeenCalledTimes(2);
+expect(client.publish).toHaveBeenCalledWith(
+    'devices/device-1/commands',
+    expect.stringContaining('"otaupdate"'),
+    expect.any(Object)
+);
+```
+
+**What to Mock:**
+- MQTT client (`publish` method)
+- Event handlers passed as props
+- External service calls (Supabase not yet mocked in tests)
+
+**What NOT to Mock:**
+- `TelemetryService.normalizePayload()` — tested directly with real logic
+- Component rendering — uses real React render
 
 ## Fixtures and Factories
 
-**Test data location:** `dashboard/src/data/mockData.ts` (shared with development)
+**Test Data:**
+- Inline test data in each test — no shared fixture files
+- Payload objects constructed per-test with relevant fields only
+- `SupabaseDeviceRow` type used for type-safe test data:
+  ```typescript
+  const row: SupabaseDeviceRow = {
+      id: 'dev_123',
+      name: 'Sensor Geladeira',
+      tenant_id: 'tenant_abc',
+      ...
+  };
+  ```
 
-**Types for fixtures:**
-```typescript
-export interface SupabaseDeviceRow {
-    id: string;
-    name?: string;
-    tenant_id: string;
-    status?: 'online' | 'offline' | 'warning' | 'error';
-    [key: string]: any;
-}
-```
-
-**Fixture usage in tests:**
-```typescript
-const row: SupabaseDeviceRow = { ... };
-const result = mapRowToDevice(row);
-expect(result.telemetry.temp).toBe(5.5);
-```
+**Location:**
+- No centralized fixtures directory
+- `dashboard/src/data/mockData.ts` exists but contains type definitions, not test fixtures
 
 ## Coverage
 
-**Requirements:** No coverage enforcement
+**Requirements:** None enforced
+- No coverage threshold configured in `vite.config.ts`
+- No `@vitest/coverage-*` package installed
 
-**Threshold:** Not configured
-
-**View coverage:** Not set up (`vitest run` without `--coverage` flag)
+**View Coverage:**
+```bash
+npx vitest run --coverage  # Would fail — coverage not installed
+```
 
 ## Test Types
 
 **Unit Tests:**
-- Service/mapper tests targeting pure functions
-- Input/output validation for data transformations
-- Focus on `TelemetryService.normalizePayload()` and `mapRowToDevice()`
+- Service logic: `TelemetryService`, `OtaService`, `VersionService`, `SupabaseMapper`
+- Utility functions: `reportValidation`
+- Scope: Pure functions with input/output assertions
+- 6 test files, ~20+ individual test cases
+
+**Component Tests:**
+- `CalibrationControl.test.tsx` — renders component, fires events, verifies callbacks
+- Only 1 component test file currently
 
 **Integration Tests:**
-- No explicit integration tests detected
-- Supabase queries tested via hooks but not mocked
+- Not used — no Supabase mocking, no MQTT broker integration tests
+- `useMqttData.test.ts` exists but content not analyzed
 
 **E2E Tests:**
-- Not configured
+- Not used — no Playwright, no Cypress
+- Standalone JS scripts (`test_user_flow.js`, `test_number.js`) are manual smoke tests, not E2E
 
 ## Common Patterns
 
-### Async Testing
+**Async Testing:**
+- Not heavily used — most services are synchronous
+- Supabase calls in components use `async/await` but are not tested async
 
-Not heavily used — current tests are synchronous mappers.
-
-### Error Testing
-
+**Error Testing:**
 ```typescript
-it('should NOT include keys with undefined values for partial payloads', () => {
-    const partialPayload = { id: 'ESP32_PARTIAL', temp: 25.5 };
-    const result = TelemetryService.normalizePayload(partialPayload);
-    expect(result).not.toHaveProperty('batteryVoltage');
+it('throws when client is not connected', () => {
+    const client = makeMockClient(false) as any;
+    expect(() =>
+        service.publishOtaCommand(client, ['d1'], 'https://cdn.com/fw.bin')
+    ).toThrow('[OtaService] MQTT client not connected');
+});
+
+it('throws for invalid URL', () => {
+    const client = makeMockClient() as any;
+    expect(() =>
+        service.publishOtaCommand(client, ['d1'], 'ftp://bad.url')
+    ).toThrow('[OtaService] Invalid firmware URL');
 });
 ```
 
-### Boundary Conditions
+**Parameterized Testing:**
+- Manual iteration pattern in standalone scripts:
+  ```javascript
+  testCases.forEach(tc => {
+      const result = formatPhone(tc.input);
+      const status = result === tc.expected ? 'PASS' : 'FAIL';
+      if (status === 'FAIL') process.exit(1);
+  });
+  ```
+- Vitest `it.each` not used
 
-Tests cover:
-- Legacy firmware payloads (uppercase keys)
-- Modern firmware payloads (lowercase keys)
-- Partial payloads (only some fields)
-- Null/undefined handling
-- Relay object format (`RELES.R0`)
-- Supabase database row format (snake_case)
+**Edge Case Testing:**
+- Partial payloads: `it('should NOT include keys with undefined values for partial payloads')`
+- Null/undefined handling: `it('deve usar valores padrão quando campos opcionais estão ausentes')`
+- Fallback chains: `it('deve priorizar daily_stats se temp_max/min forem nulos')`
 
-## Test Naming
+## Standalone Test Scripts
 
-**Pattern:** Descriptive Portuguese and English mixed
+**`test_user_flow.js`** (repo root):
+- Tests phone number formatting function
+- Manual assertion with `process.exit(1)` on failure
+- Run with: `node test_user_flow.js`
 
-**Examples:**
-```typescript
-it('should normalize telemetry from legacy firmware (uppercase keys)')
-it('deve mapear uma linha completa do Supabase para um objeto Device corretamente')
-it('should NOT include keys with undefined values for partial payloads')
-```
+**`test_number.js`** (repo root):
+- Similar pattern — manual test execution
+- No framework dependency
 
-## Known Test Gaps
+**`dashboard/test_*.js`** files:
+- `test_supabase.js`, `test_supabase2.js`, `test_mqtt_ws.js`, `test_dates.js`, `test_firebase.js`
+- Ad-hoc connectivity/debug scripts, not structured tests
+- Run manually for debugging, not part of CI
 
-**Not tested:**
-- React hook behavior (`useSupabaseData`, `useMqttData`)
-- Supabase client interactions
-- MQTT subscription handling
-- React component rendering
-- User interactions
-- Error boundary behavior
+## C++ (ESP32) Testing
 
-**Recommendations:**
-1. Add React Testing Library tests for components
-2. Mock Supabase client for hook testing
-3. Add integration tests for data flow
-4. Consider snapshot testing for report output
+**No automated tests** for ESP32 firmware.
+- Testing done via Serial output verification
+- No Unity, PlatformIO test framework, or hardware-in-the-loop tests
+- `main.cpp` (1357 lines) has no test coverage
+
+## Test Gaps
+
+| Area | Coverage | Notes |
+|------|----------|-------|
+| Services | Good | `TelemetryService`, `OtaService`, `VersionService`, `SupabaseMapper` tested |
+| Hooks | Partial | `useMqttData.test.ts` exists but not verified |
+| Components | Minimal | Only `CalibrationControl` has tests |
+| Utils | Partial | `reportValidation.test.ts` exists |
+| ESP32 firmware | None | No C++ tests |
+| n8n workflows | None | JSON workflows not tested |
+| SQL migrations | None | No migration tests |
+| Python scripts | None | No Python tests |
+| Integration | None | No Supabase/MQTT integration tests |
+| E2E | None | No browser automation |
 
 ---
 
-*Testing analysis: 2026-05-10*
+*Testing analysis: 2026-05-20*

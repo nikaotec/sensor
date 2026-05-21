@@ -1,216 +1,196 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-05-10
+**Analysis Date:** 2026-05-20
 
-## Language
+## Languages & Runtimes
 
-**Primary:** TypeScript 5.9.3 with React 19.2
+**C++ (Arduino/ESP32):**
+- Firmware in `esp32/src/` — PlatformIO-style project
+- Uses Arduino framework, `ArduinoJson`, `PubSubClient`, `WiFiManager`
+- No formal C++ standard enforced; mixes C-style macros with C++ classes
 
-**Target:** Browser (ES2020), React SPA with Vite build
+**TypeScript/React (Dashboard):**
+- React 19 + Vite 7 + TypeScript 5.9
+- Strict mode enabled via `tsconfig.app.json`
+- ESM modules (`"type": "module"` in `package.json`)
 
-## Formatting
+**Python (Utility Scripts):**
+- Ad-hoc scripts at repo root (`edit_dashboard.py`, `revert.py`, `patch_n8n_telemetry.py`)
+- No virtualenv conventions enforced; `.venv/` directory exists but unused by scripts
+- No type hints, no linting
 
-**Tool:** Prettier
+**JavaScript (Test Scripts):**
+- Standalone Node.js scripts (`test_user_flow.js`, `test_number.js`) run with `node`
+- No test framework; manual `console.log` + `process.exit(1)` pattern
 
-**Configuration** (`dashboard/.prettierrc.js`, `evolution-api-main/.prettierrc.js`):
-```javascript
-{
-  semi: true,
-  trailingComma: 'all',
-  singleQuote: true,
-  printWidth: 120,
-  arrowParens: 'always',
-  tabWidth: 2,
-  useTabs: false,
-  bracketSameLine: false,
-  bracketSpacing: true
-}
-```
+## Naming Patterns
 
-**Key rules:**
-- Semicolons required
-- Single quotes for strings
-- 120 character line width
-- Trailing commas on all arguments
-- Always wrap arrow function arguments in parentheses
+**Files:**
+- C++: `PascalCase.cpp` / `PascalCase.h` — e.g., `MqttManager.cpp`, `AlertManager.h`
+- TypeScript: `PascalCase.tsx` for components, `camelCase.ts` for services/hooks/utils
+  - Components: `CalibrationControl.tsx`, `DeviceCard.tsx`
+  - Services: `TelemetryService.ts`, `OtaService.ts`, `SupabaseMapper.ts`
+  - Hooks: `useMqttData.ts`, `useTelemetryData.ts`, `useOtaManager.ts`
+  - Utils: `reportValidation.ts`, `statusUtils.ts`
+- SQL: `snake_case.sql` — e.g., `supabase_schema.sql`, `add_alarm_columns.sql`
+- Python: `snake_case.py` — e.g., `edit_dashboard.py`
+- n8n workflows: `kebab-case.json` — e.g., `mqtt receive.json`, `n8n_events_logger.json`
 
-## Linting
+**Functions:**
+- C++: `camelCase` — e.g., `firmware_setup()`, `enviarDadosMqtt()`, `lerTemperaturaPT100()`
+  - Portuguese names used extensively: `enviarDadosWeb`, `notificarUsuario`, `getIdDispositivo`
+- TypeScript: `camelCase` — e.g., `normalizePayload()`, `mapRowToDevice()`, `validateReportSelection()`
+- Python: `snake_case` — standard Python convention
 
-**Tool:** ESLint 9 flat config
+**Variables:**
+- C++: `camelCase` for locals, `UPPER_SNAKE_CASE` for macros/constants
+  - Globals at top of `main.cpp`: `temperaturaAtual`, `releEstado`, `modoManual` (Portuguese)
+  - Config constants: `FIRMWARE_VERSION`, `MSG_TOPIC_DATA`, `DS18B20_PIN_1`
+- TypeScript: `camelCase` — e.g., `mqttClient`, `displayDevices`, `currentTenant`
+  - Type aliases: `PascalCase` — `DeviceTelemetry`, `SupabaseDeviceRow`
+  - Interfaces: `PascalCase` — `CalibrationControlProps`, `ReportValidationResult`
 
-**Configuration** (`dashboard/eslint.config.js`):
-```javascript
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
-  },
-])
-```
+**Types/Interfaces:**
+- TypeScript interfaces end with descriptive nouns: `SupabaseDeviceRow`, `OtaMqttProgressPayload`
+- Type aliases use `PascalCase`: `TempSensorType`, `DeviceTelemetry`
+- Enums in C++: `PascalCase` — `SensorType`, `RelayFunc`, `AlertStatus`
 
-**Plugins:** `@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`
+## Code Style
 
-## Naming Conventions
+**Formatting:**
+- No Prettier configured
+- ESLint flat config at `dashboard/eslint.config.js` with:
+  - `@eslint/js` recommended
+  - `typescript-eslint` recommended
+  - `eslint-plugin-react-hooks` recommended
+  - `eslint-plugin-react-refresh` Vite plugin
+- 2-space indentation in TypeScript/JSX files
+- Semicolons used consistently in TypeScript
+- Single quotes for strings in TypeScript, double quotes in JSX attributes
 
-### Files
-
-- **Components:** PascalCase (`DeviceList.tsx`, `ErrorBoundary.tsx`)
-- **Hooks:** camelCase with `use` prefix (`useSupabaseData.ts`, `useMqttData.ts`)
-- **Services:** PascalCase with descriptive names (`TelemetryService.ts`, `SupabaseMapper.ts`)
-- **Utilities:** camelCase (`statusUtils.ts`, `format.js`)
-- **Tests:** `*.test.ts` co-located or in `__tests__/` subdirectory
-- **Config:** camelCase or kebab-case (`tsconfig.json`, `vite.config.ts`)
-
-### Components & Classes
-
-- React functional components: PascalCase + `React.FC` type wrapper (`const DeviceList: React.FC<Props> = ...`)
-- Class components: PascalCase with `default` export (`class ErrorBoundary extends Component`)
-- Service classes: PascalCase with static methods (`TelemetryService.normalizePayload()`)
-
-### Variables & Functions
-
-- **Variables:** camelCase (`searchTerm`, `supabaseDevices`)
-- **Functions:** camelCase (`fetchDevices`, `mapRowToDevice`)
-- **Private helpers:** camelCase with optional underscore prefix (`_e`, `_parseNumber`)
-- **Booleans:** prefix with `is`, `has`, `should`, `can` (`isManager`, `isLoading`, `hasError`)
-
-### Types & Interfaces
-
-- **Interfaces:** PascalCase with descriptive names (`SupabaseDeviceRow`, `DeviceEvent`)
-- **Type aliases:** PascalCase (`DeviceTelemetry`)
-- **Enum-like unions:** kebab-case string literals in type (`'online' | 'offline' | 'warning' | 'error'`)
-- **Props interfaces:** PascalCase named `Props` or `ComponentNameProps`
-
-```typescript
-interface SupabaseDeviceRow {
-    id: string;
-    name?: string;
-    tenant_id: string;
-    status?: 'online' | 'offline' | 'warning' | 'error';
-}
-
-export interface DeviceEvent {
-    id: string;
-    deviceId: string;
-    type: string;
-}
-```
+**Linting:**
+- `npm run lint` → `eslint .` — runs flat config
+- No custom rules beyond recommended presets
+- No ESLint overrides or per-file rules
 
 ## Import Organization
 
-**Order:**
-1. React/core imports (`import React, { useState } from 'react'`)
-2. Third-party libraries (`import { Search, AlertTriangle } from 'lucide-react'`)
-3. Internal services/hooks (`import { useSupabaseData } from '../hooks/useSupabaseData'`)
-4. Contexts (`import { useTenant } from '../contexts/TenantContext'`)
-5. Type imports (`import type { Device } from '../data/mockData'`)
-6. Relative path imports
+**Order (TypeScript):**
+1. External libraries (React, mqtt, lucide-react, @supabase)
+2. Internal absolute/relative imports (services, hooks, components, contexts)
+3. Type imports use `import type` syntax
 
-**Path aliases:** Not configured — relative paths used throughout (`../`, `../../`)
+**Path Aliases:**
+- No path aliases configured — all imports use relative paths (`../services/TelemetryService`)
+- `tsconfig.app.json` uses default module resolution
+
+**Example pattern** (`dashboard/src/App.tsx`):
+```typescript
+import { useState, useEffect, useRef } from 'react'
+import Login from './components/Login'
+import { TenantProvider, useTenant } from './contexts/TenantContext'
+import { useMqttData } from './hooks/useMqttData'
+import { X, AlertOctagon } from 'lucide-react'
+```
 
 ## Error Handling
 
-**Frontend React:**
-- ErrorBoundary class component for component tree errors (`dashboard/src/components/ErrorBoundary.tsx`)
-- Try-catch blocks for async operations in hooks
-- Console logging with descriptive messages: `console.error("Supabase Error (devices):", error)`
-- Conditional rendering for null states: `if (!currentTenant) return <Loading />`
+**C++ (ESP32):**
+- Serial logging for debugging: `Serial.println("[MQTT RX] ...")`
+- No exceptions — uses return values and guards
+- Connection failures trigger `ESP.restart()` (e.g., WiFiManager timeout)
+- MQTT publish guards: `if (!mqtt.isConnected()) return;`
+- JSON deserialization checked: `if (error) { Serial.println(...); return; }`
 
-**Pattern:**
-```typescript
-try {
-    const { data, error } = await supabase.from('devices_status').select('*');
-    if (error) {
-        console.error("Supabase Error (devices):", error);
-        return;
-    }
-} catch (e) {
-    console.error("Error in fetch:", e);
-}
-```
+**TypeScript (Dashboard):**
+- Try/catch blocks with `console.error` / `console.warn`
+- Supabase errors handled inline: `const { error } = await supabase...; if (error) console.error(...)`
+- MQTT message parsing wrapped in try/catch
+- Error boundary component at `dashboard/src/components/ErrorBoundary.tsx`
+- No custom error classes — uses string messages and console output
+
+**Python Scripts:**
+- No error handling — scripts assume file paths exist
+- `edit_dashboard.py` has a fallback print but no try/catch
+
+**JavaScript Test Scripts:**
+- Manual assertion: `if (status === 'FAIL') process.exit(1)`
+- No try/catch — failures crash the process
 
 ## Logging
 
-**Framework:** `console` (no external logging library)
+**C++:**
+- `Serial.println()` / `Serial.printf()` with bracketed prefixes:
+  - `[NET]`, `[MQTT]`, `[OTA]`, `[RELE]`, `[TIMER]`, `[DATA]`, `[SILENCIO]`
+- `F()` macro for string literals in flash: `Serial.print(F("[ENVIAR_WEB] ..."))`
 
-**Patterns:**
-- `console.error()` for errors
-- `console.log()` for development diagnostics
-- Descriptive prefixes: `console.log('✅ Telemetria recebida...')`
+**TypeScript:**
+- `console.log()` for info, `console.warn()` for warnings, `console.error()` for errors
+- Tagged prefixes: `[MQTT]`, `[Nome Alterado]`, `[OtaService]`
+- No structured logging framework
 
 ## Comments
 
-**JSDoc:**
-- Used on public methods (`TelemetryService.ts`):
-```typescript
-/**
- * Normaliza o payload recebido via MQTT para o formato padrão do sistema.
- * Suporta múltiplas versões de firmware (campos em maiúsculas e minúsculas).
- */
-static normalizePayload(payload: any): Partial<DeviceTelemetry> & { id?: string } {
-```
+**C++:**
+- Section dividers: `// ---------- OBJETO GLOBAIS ----------`
+- Inline comments in Portuguese explaining logic
+- JSDoc-style not used
 
-**Inline comments:** Portuguese, descriptive, explain "why" not "what":
-```typescript
-// Garantir que chaves não enviadas não existem no objeto (nem como undefined)
-// Garantir que chaves não enviadas não existem no objeto (nem como undefined)
-expect(result).not.toHaveProperty('batteryVoltage');
-```
+**TypeScript:**
+- JSDoc comments on public service methods:
+  ```typescript
+  /**
+   * Normaliza o payload recebido via MQTT para o formato padrão do sistema.
+   * Suporta múltiplas versões de firmware (campos em maiúsculas e minúsculas).
+   */
+  ```
+- Inline comments in Portuguese for complex logic
+- Test files use separator comments: `// ──────────────────────────────────────────────`
 
 ## Function Design
 
-**Size:** Small, focused functions; complex logic isolated to services
+**C++:**
+- `main.cpp` is 1357 lines — large monolithic file
+- `handleCommand()` is ~400 lines with deeply nested if/else chains
+- Helper functions extracted: `emitirBipe()`, `notificarUsuario()`, `getIdDispositivo()`
+- Forward declarations used for mutual references
 
-**Parameters:**
-- Typed parameters with TypeScript interfaces
-- Optional parameters marked with `?`
-- Generic `any` used sparingly for flexible payload handling
-
-**Return values:**
-- Typed return types on service methods
-- `Partial<T>` for flexible payloads
-- Union types for variant returns
+**TypeScript:**
+- Services use static methods: `TelemetryService.normalizePayload()`
+- Hooks return objects with state + actions: `{ devices, isConnected, publish, updateDeviceLocal, mqttClient }`
+- Components use functional style with explicit prop interfaces
+- Props drilling common — no context for device state (uses hooks + state lifting)
 
 ## Module Design
 
-**Exports:**
-- Named exports for utilities and hooks (`export const useSupabaseData = ...`)
-- Default exports for React components (`export default DeviceList`)
-- Re-exports not used
+**C++:**
+- Manager pattern: `MqttManager`, `StorageManager`, `DisplayManager`, `OtaManager`
+- Each manager has `.h` declaration + `.cpp` implementation
+- Singleton pattern for `MqttManager` (static `_instance` for static callback)
+- Header guards: `#ifndef MQTT_MANAGER_H / #define ... / #endif`
 
-**Barrel files:** Not used — direct imports throughout
+**TypeScript:**
+- Barrel files not used — direct imports from file paths
+- Services are class-based with static methods or instance methods
+- Hooks are composable: `useMqttData` used inside `useTelemetryData`
+- Context providers for cross-cutting concerns: `AuthProvider`, `TenantProvider`, `NotificationProvider`
 
-**Service pattern:**
-```typescript
-export class TelemetryService {
-    static normalizePayload(payload: any): Partial<DeviceTelemetry> { ... }
-    private static parseNumber(val: any): number | undefined { ... }
-}
-```
+## SQL Conventions
 
-**Hook pattern:**
-```typescript
-export const useSupabaseData = (tenantId: string, deviceId?: string) => {
-    const [devices, setDevices] = useState<Device[]>([]);
-    useEffect(() => { ... }, [tenantId]);
-    return { devices };
-};
-```
+**Schema files:**
+- Section dividers: `-- ============================================`
+- Table names: `snake_case` — `devices_status`, `telemetry`, `events`
+- Column names: `snake_case` — `tenant_id`, `last_seen`, `temp_max`
+- Primary keys: `TEXT` (MAC address) or `UUID DEFAULT gen_random_uuid()`
+- Timestamps: `TIMESTAMPTZ DEFAULT NOW()`
+- Indexes named: `idx_<table>_<columns>` — `idx_telemetry_device_time`
+- RLS policies enabled but permissive: `CREATE POLICY "Allow all for ..." ON ... FOR ALL USING (true)`
 
-## React Patterns
-
-**State management:** React hooks (`useState`, `useEffect`, `useMemo`)
-
-**Context usage:** Separate context files (`AuthContext.tsx`, `TenantContext.tsx`, `NotificationContext.tsx`)
-
-**Component composition:** Props drilling for callbacks + context for global state
+**Migration files:**
+- Ad-hoc `ALTER TABLE ADD COLUMN` scripts at repo root
+- Named by purpose: `add_alarm_columns.sql`, `fix_telemetry_types.sql`
+- No migration framework (no Prisma, no flyway) — manual execution
 
 ---
 
-*Convention analysis: 2026-05-10*
+*Convention analysis: 2026-05-20*
