@@ -1,0 +1,71 @@
+{
+    "name": "IoT Sensor - Update Device Firmware Version",
+    "nodes": [
+        {
+            "parameters": {
+                "topics": "esp32c3/data",
+                "jsonParse": true
+            },
+            "id": "mqtt-trigger-fw",
+            "name": "MQTT Trigger",
+            "type": "n8n-nodes-base.mqttTrigger",
+            "typeVersion": 1,
+            "position": [200, 300],
+            "credentials": {
+                "mqtt": {
+                    "id": "36pFyToAdHdyHdEW",
+                    "name": "MQTT account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "mode": "runOnceForEachItem",
+                "jsCode": "const raw = $input.item.json;\nconst data = (raw.message && typeof raw.message === 'object') ? raw.message : raw;\n\nconst deviceId = data.ID_DISPOSITIVO || data.dispositivo || data.device_id || null;\nconst firmwareVersion = data.VERSION || data.version || data.firmware_version || null;\n\nif (!deviceId || !firmwareVersion) {\n  return [];\n}\n\nreturn {\n  json: {\n    device_id: deviceId,\n    firmware_version: firmwareVersion,\n    firmware_updated_at: new Date().toISOString()\n  }\n};"
+            },
+            "id": "extract-fw-version",
+            "name": "Extract FW Version",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [400, 300]
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "tableId": "devices_status",
+                "queryName": "",
+                "queryValue": "",
+                "fieldsUi": {
+                    "fieldValues": [
+                        {
+                            "fieldId": "firmware_version",
+                            "fieldValue": "={{ $json.firmware_version }}"
+                        },
+                        {
+                            "fieldId": "firmware_updated_at",
+                            "fieldValue": "={{ $json.firmware_updated_at }}"
+                        }
+                    ]
+                },
+                "matchColumn": "id",
+                "matchValue": "={{ $json.device_id }}"
+            },
+            "id": "update-fw-supabase",
+            "name": "Update Supabase",
+            "type": "n8n-nodes-base.supabase",
+            "typeVersion": 1,
+            "position": [600, 300]
+        }
+    ],
+    "connections": {
+        "MQTT Trigger": {
+            "main": [[{"node": "Extract FW Version", "type": "main", "index": 0}]]
+        },
+        "Extract FW Version": {
+            "main": [[{"node": "Update Supabase", "type": "main", "index": 0}]]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

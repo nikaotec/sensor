@@ -156,14 +156,15 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
                                                             <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
                                                                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
                                                                 {device.location}
-                                                                {device.telemetry?.version && (() => {
+                                                                {(device.firmwareVersion || device.telemetry?.version) && (() => {
+                                                                    const fwVersion = device.firmwareVersion || device.telemetry.version;
                                                                     const latestFw = firmwareRegistryService.getLatestVersion();
                                                                     const latestVersion = latestFw?.version;
-                                                                    const isUpToDate = latestVersion ? VersionService.isUpToDate(device.telemetry.version, latestVersion) : true;
+                                                                    const isUpToDate = latestVersion ? VersionService.isUpToDate(fwVersion, latestVersion) : true;
                                                                     return (
                                                                         <div className="flex items-center gap-1.5 ml-2">
                                                                             <span className="text-[8px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded-full border border-slate-700 font-bold uppercase tracking-tighter">
-                                                                                FW {device.telemetry.version}
+                                                                                FW {fwVersion}
                                                                             </span>
                                                                             {isUpToDate ? (
                                                                                 <span className="text-[8px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter flex items-center gap-1 text-[7px] sm:text-[8px]">

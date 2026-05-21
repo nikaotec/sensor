@@ -67,6 +67,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                     availableTenants={availableTenants}
                     otaStatus={progressMap[device.id]}
                     onClearOtaProgress={clearProgress}
+                    mqttClient={mqttClient}
                 />
             ))}
         </div>

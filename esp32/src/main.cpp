@@ -2,7 +2,7 @@
 #include "AlertManager.h"
 #include "config/Config.h"
 #include "display/DisplayManager.h"
-#include "mqtt/MqttManager.h"
+#include "mqtt/AppNetworkManager.h"
 #include "ota/OtaManager.h"
 #include "sensors/AmbientSensor.h"
 #include "sensors/BatterySensor.h"
@@ -19,7 +19,7 @@
 // ---------- OBJETOS GLOBAIS ----------
 StorageManager storage;
 DisplayManager display;
-MqttManager mqtt;
+AppNetworkManager mqtt;
 OtaManager ota;
 ButtonManager buttons;
 // RelayService relays foi removido, usamos storage.data.relays diretamente.
@@ -224,14 +224,16 @@ void firmware_loop() {
         storage.data.lightEnabled = (bool)display.getTempAdjust();
         salvou = true;
       } else if (oldState == DisplayManager::TEST_RELAY_TOGGLE) {
-        // Alterna o relé selecionado no menu anterior
         int idx = display.getSubMenuIndex();
         if (idx >= 0 && idx < RELAY_COUNT) {
           releEstado[idx] = !releEstado[idx];
           digitalWrite(RELAY_PINS[idx], releEstado[idx] ? HIGH : LOW);
-          modoManual = true; // Força manual durante teste
+          modoManual = true;
           manualTimeout = millis();
         }
+      } else if (oldState == DisplayManager::MENU_RESET_WIFI) {
+        display.showMessage("Reset WiFi...", 2000);
+        mqtt.resetWifi();
       }
 
       if (salvou) {
@@ -553,7 +555,7 @@ void firmware_loop() {
   // 4. Atualizar Display
   display.update(
       temperaturaAtual, storage.data.tempMinRec, storage.data.tempMaxRec,
-      mqtt.isWifiConnected(), isDeviceLinked(), modoManual, releEstado[0],
+      mqtt.isWifiConnected(), mqtt.getRSSI(), isDeviceLinked(), modoManual, releEstado[0],
       (SensorType)storage.data.sensorType, mqtt.getCurrentTime(), foraDaFaixa);
 }
 
@@ -575,8 +577,22 @@ void firmware_setup() {
 
   // I2C
   Wire.begin(SDA_PIN, SCL_PIN);
-  Wire.setClock(4000000);
+  Wire.setClock(400000);
   Wire.setTimeOut(1000);
+
+  // I2C Scanner - encontra todos dispositivos
+  Serial.println("[I2C] Scanning bus...");
+  for (uint8_t addr = 1; addr < 127; addr++) {
+    Wire.beginTransmission(addr);
+    uint8_t err = Wire.endTransmission();
+    if (err == 0) {
+      Serial.printf("[I2C] Device found at 0x%02X", addr);
+      if (addr == 0x20) Serial.print(" (PCF8574 - Buttons)");
+      else if (addr == 0x3C || addr == 0x3D) Serial.print(" (OLED Display)");
+      else if (addr == 0x38) Serial.print(" (AHT10)");
+      Serial.println();
+    }
+  }
 
   // Managers
   storage.begin();
@@ -608,14 +624,24 @@ void firmware_setup() {
   voltSensor.setBatteryConfig(PIN_BATTERY, storage.data.batCalFactor);
   voltSensor.begin();
 
-  configTime(-3 * 3600, 0, "pool.ntp.org");
   Serial.printf(
-      "Sistema Iniciado (Modular) - Versao Compilada: %s | Versao EEPROM: %s\n",
-      FIRMWARE_VERSION, storage.data.version);
+      "Sistema Iniciado (Modular) - Versao: %s\n",
+      storage.data.version);
 }
 
 // ---------- CALLBACK MQTT ----------
 void handleCommand(String intent, JsonObject params) {
+  // Verifica se o comando é para este dispositivo
+  if (params.containsKey("id")) {
+    String targetId = params["id"].as<String>();
+    String myId = getIdDispositivo();
+    if (targetId != "" && targetId != myId) {
+      Serial.println("[MQTT RX] IGNORADO: Comando para dispositivo " + targetId +
+                     " (meu ID: " + myId + ")");
+      return;
+    }
+  }
+
   bool isAdmin = params["is_admin"] | false;
 
   // Salva remoteJid para incluir nas respostas
@@ -675,7 +701,7 @@ void handleCommand(String intent, JsonObject params) {
 
   // --- VERIFICAÇÃO DE AUTORIZAÇÃO ---
   if (intent != "" && intent != "obter_status_atual" &&
-      intent != "obter_ambiente") {
+      intent != "obter_ambiente" && intent != "reset_wifi") {
     if (!isAdmin) {
       Serial.println("[MQTT RX] BLOQUEADO - Usuario nao autorizado");
       enviarDadosMqtt("ERRO_NAO_AUTORIZADO", false);
@@ -685,7 +711,7 @@ void handleCommand(String intent, JsonObject params) {
 
   // --- MODO MANUTENÇÃO ---
   if (modoManual && intent != "modo_manutencao" &&
-      intent != "modo_operacional") {
+      intent != "modo_operacional" && intent != "reset_wifi") {
     Serial.println("[MQTT RX] BLOQUEADO - Dispositivo em manutenção");
     enviarDadosMqtt("EM_MANUTENCAO", false);
     return;
@@ -1068,6 +1094,12 @@ void handleCommand(String intent, JsonObject params) {
     storage.resetMinMax(temperaturaAtual);
     notificarUsuario("Reset Max/Min", 5000);
     enviarDadosMqtt("RESET_MAX_MIN_MANUAL", false);
+  } else if (intent == "reset_wifi") {
+    notificarUsuario("Reset WiFi...", 3000);
+    enviarDadosMqtt("feedback_reset_wifi", false);
+    mqtt.update();
+    delay(1000);
+    mqtt.resetWifi();
   } else if (intent == "alterar_nome") {
     if (params.containsKey("novo_nome")) {
       String novoNome = params["novo_nome"].as<String>();
@@ -1150,7 +1182,7 @@ void enviarDadosWeb() {
   doc["MODO"] = modoManual ? "MANUAL" : "AUTO";
   doc["SILENCIADO"] = alertasSilenciados;
   doc["RSSI"] = mqtt.getRSSI();
-  doc["IP_LOCAL"] = WiFi.localIP().toString();
+  doc["IP_LOCAL"] = mqtt.getWifiManager().getLocalIP();
   doc["UPTIME"] = millis() / 1000;
   doc["PROTOCOLO"] = "MQTT/WSS";
 

@@ -13,11 +13,9 @@
 #define DEFAULT_COMPANY_NAME "Nikaotec"
 #define DEFAULT_DEVICE_LOCATION "Nao Definida"
 
-// ---------- REDE (OBSOLETO: Usando WiFiManager) ----------
-// As credenciais abaixo são usadas apenas como fallback em caso de falha TOTAL
-#define WIFI_SSID "VENANCIO"
-#define WIFI_PASS "liza1980"
-// #define MQTT_SERVER "173.249.10.19"
+// ---------- REDE (WiFiManager - credenciais salvas no NVS) ----------
+// Portal WiFi: senha para acessar a rede de configuracao
+#define PORTAL_PASSWORD "1234567890"
 #define MQTT_SERVER "109.123.240.215"
 #define MQTT_PORT 1883
 #define MQTT_USER ""

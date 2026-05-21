@@ -1,14 +1,22 @@
 #include "DisplayManager.h"
 
 DisplayManager::DisplayManager() : display(U8G2_R0, U8X8_PIN_NONE) {
+  // Default: mostra "OPERACIONAL" permanentemente no rodape
   mensagemRodape = "OPERACIONAL";
-  tempoMensagemRodape = 0;
-  // scrollOffset = 0; // REMOVED
+  tempoMensagemRodape = -1; // Permanente
   currentMsgPage = 0;
   totalPages = 1;
   lastPageChange = 0;
-  currentMessage = "";
+  currentMessage = "OPERACIONAL";
   lastDisplayUpdate = 0;
+
+  // Menu state - CRITICAL: must start at MENU_OFF
+  _currentMenu = MENU_OFF;
+  _menuIndex = 0;
+  _subMenuIndex = 0;
+  _tempAdjust = 0.0f;
+  _passwordIndex = 0;
+  for (int i = 0; i < 4; i++) _password[i] = 0;
 }
 
 void DisplayManager::begin() {
@@ -37,19 +45,19 @@ void DisplayManager::showMessage(String msg, int duracaoMs) {
   if (duracaoMs > 0) {
     tempoMensagemRodape = millis() + duracaoMs;
   } else {
-    tempoMensagemRodape = 0; // Fixa
+    tempoMensagemRodape = -1; // Permanente (valor negativo)
   }
 }
 
 void DisplayManager::drawHome(float temp, float observedMin, float observedMax,
-                              bool wifiConnected, bool linked, String datetime,
+                              bool wifiConnected, int rssi, bool linked, String datetime,
                               bool alertActive, bool manual, bool relay) {
   display.clearBuffer();
 
   // Status Bar & Datetime
   display.setFont(u8g2_font_6x12_tr);
   display.drawStr(0, 10, datetime.c_str());
-  drawWifiSignal(wifiConnected);
+  drawWifiSignal(wifiConnected, rssi);
   display.drawHLine(0, 15, 128);
 
   // Temp Grande
@@ -81,16 +89,18 @@ void DisplayManager::drawHome(float temp, float observedMin, float observedMax,
   display.drawStr(80, 35, minTxt.c_str());
   display.drawStr(80, 50, maxTxt.c_str());
 
-  // Verifica se a mensagem atual expirou
+  // Verifica se a mensagem atual expirou (mas nao se e permanente)
   unsigned long now = millis();
   if (tempoMensagemRodape > 0 && now > tempoMensagemRodape) {
-    tempoMensagemRodape = 0;
+    tempoMensagemRodape = -1; // Volta para "OPERACIONAL" permanente
     currentMsgPage = 0;
-    mensagemRodape = "";
+    mensagemRodape = "OPERACIONAL";
+    currentMessage = "OPERACIONAL";
+    totalPages = 1;
   }
 
   // --- RODAPÉ ---
-  if (tempoMensagemRodape > 0) {
+  if (tempoMensagemRodape != 0) {
     // Modo de Mensagem Ativa (Paging)
     if (totalPages > 1) {
       if (now - lastPageChange > 3000) {
@@ -134,13 +144,12 @@ void DisplayManager::drawHome(float temp, float observedMin, float observedMax,
   display.sendBuffer();
 }
 
-void DisplayManager::drawWifiSignal(bool connected) {
+void DisplayManager::drawWifiSignal(bool connected, int rssi) {
   if (!connected) {
     display.drawStr(90, 10, "OFF");
     return;
   }
 
-  int rssi = WiFi.RSSI();
   int bars = 0;
   if (rssi > -55)
     bars = 4;
@@ -161,7 +170,7 @@ void DisplayManager::drawWifiSignal(bool connected) {
 }
 
 void DisplayManager::update(float temp, float observedMin, float observedMax,
-                            bool wifiConnected, bool linked, bool manual,
+                            bool wifiConnected, int rssi, bool linked, bool manual,
                             bool relay, SensorType sensorType, String datetime,
                             bool alertActive) {
   unsigned long now = millis();
@@ -174,7 +183,7 @@ void DisplayManager::update(float temp, float observedMin, float observedMax,
       return;
     }
 
-    drawHome(temp, observedMin, observedMax, wifiConnected, linked, datetime,
+    drawHome(temp, observedMin, observedMax, wifiConnected, rssi, linked, datetime,
              alertActive, manual, relay);
   }
 }
@@ -200,10 +209,11 @@ void DisplayManager::drawMainMenuPaged() {
   display.clearBuffer();
   display.setFont(u8g2_font_6x12_tr);
 
-  const int totalItems = 8;
+  const int totalItems = 9;
   const char *mainMenuNames[] = {
       "CONTROLE", "SAIDAS",          "TESTAR SAIDAS", "ENTRADAS",
-      "SENSOR",   "OFF SET DS18B20", "LUZ INTERNA",   "OFF SET PT100"};
+      "SENSOR",   "OFF SET DS18B20", "LUZ INTERNA",   "OFF SET PT100",
+      "RESET WIFI"};
 
   const int itemsPerPage = 4;
   int totalPages = (totalItems + itemsPerPage - 1) / itemsPerPage;
@@ -319,6 +329,16 @@ void DisplayManager::drawMenu() {
     const char *items[] = {"FUNCAO", "VOLTAR"};
     drawSubMenu("LUZ INTERNA", items, 2, _subMenuIndex);
   } break;
+  case MENU_RESET_WIFI:
+    display.clearBuffer();
+    display.setFont(u8g2_font_6x12_tr);
+    display.drawStr(0, 10, "RESET WiFi");
+    display.drawHLine(0, 13, 128);
+    display.drawStr(0, 28, "Apaga credenciais");
+    display.drawStr(0, 40, "salvas e reinicia.");
+    display.drawStr(0, 56, "ENTER = confirmar");
+    display.sendBuffer();
+    break;
   case EDIT_TEMP_MIN:
     drawEditValue("TEMP MIN", _tempAdjust, "C");
     break;
@@ -436,6 +456,7 @@ void DisplayManager::menuAction(ButtonEvent ev) {
     case MENU_ENTRADAS:
     case MENU_SENSOR:
     case MENU_LUZ:
+    case MENU_RESET_WIFI:
     case EDIT_DS18B20_OFFSET:
     case EDIT_PT100_OFFSET:
       _currentMenu = MENU_MAIN;
@@ -475,7 +496,7 @@ void DisplayManager::menuAction(ButtonEvent ev) {
       _password[_passwordIndex] = (_password[_passwordIndex] + dir + 10) % 10;
       break;
     case MENU_MAIN:
-      _menuIndex = (_menuIndex + dir + 8) % 8; // 8 itens no menu principal
+      _menuIndex = (_menuIndex + dir + 9) % 9; // 9 itens no menu principal
       break;
     case MENU_CONTROLE:
       _subMenuIndex = (_subMenuIndex + dir + 3) % 3;
@@ -564,6 +585,9 @@ void DisplayManager::menuAction(ButtonEvent ev) {
       case 7:
         _currentMenu = EDIT_PT100_OFFSET;
         break;
+      case 8:
+        _currentMenu = MENU_RESET_WIFI;
+        break;
       }
       break;
 
@@ -606,6 +630,10 @@ void DisplayManager::menuAction(ButtonEvent ev) {
       } else {
         _currentMenu = MENU_MAIN;
       }
+      break;
+
+    case MENU_RESET_WIFI:
+      _currentMenu = MENU_MAIN;
       break;
 
     case EDIT_TEMP_MIN:

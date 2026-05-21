@@ -12,7 +12,8 @@ import {
     Zap,
     BellOff,
     Bell,
-    CheckCircle2
+    CheckCircle2,
+    RotateCcw
 } from 'lucide-react';
 import type { OtaStatus } from '../../types/ota';
 import OtaProgressBadge from '../ota/OtaProgressBadge';
@@ -27,6 +28,7 @@ interface DeviceCardProps {
     availableTenants: any[];
     otaStatus?: OtaStatus;
     onClearOtaProgress?: (deviceId: string) => void;
+    mqttClient?: any;
 }
 
 const DeviceCard: React.FC<DeviceCardProps> = ({
@@ -36,17 +38,31 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     currentTenantId,
     availableTenants,
     otaStatus,
-    onClearOtaProgress
+    onClearOtaProgress,
+    mqttClient
 }) => {
     const [isOfflinePaused, setIsOfflinePaused] = React.useState<boolean>(() => {
         return localStorage.getItem(`offline_alerts_paused_${device.id}`) === 'true';
     });
+    const [wifiResetting, setWifiResetting] = React.useState(false);
 
     const handleTogglePause = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Evitar abrir detalhes ao clicar no botão
+        e.stopPropagation();
         const newValue = !isOfflinePaused;
         setIsOfflinePaused(newValue);
         localStorage.setItem(`offline_alerts_paused_${device.id}`, newValue ? 'true' : 'false');
+    };
+
+    const handleWifiReset = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!mqttClient || wifiResetting) return;
+
+        setWifiResetting(true);
+        const cmdPayload = JSON.stringify({ intent: "reset_wifi", is_admin: true });
+        const cmdTopic = `devices/${device.id}/cmd`;
+        mqttClient.publish(cmdTopic, cmdPayload);
+
+        setTimeout(() => setWifiResetting(false), 5000);
     };
 
     const getStatusLabel = (status: string) => {
@@ -101,14 +117,15 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                                 <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
                                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
                                     {device.location}
-                                    {device.telemetry?.version && (() => {
+                                    {(device.firmwareVersion || device.telemetry?.version) && (() => {
+                                        const fwVersion = device.firmwareVersion || device.telemetry.version;
                                         const latestFw = firmwareRegistryService.getLatestVersion();
                                         const latestVersion = latestFw?.version;
-                                        const isUpToDate = latestVersion ? VersionService.isUpToDate(device.telemetry.version, latestVersion) : true;
+                                        const isUpToDate = latestVersion ? VersionService.isUpToDate(fwVersion, latestVersion) : true;
                                         return (
                                             <div className="flex items-center gap-1.5 ml-2">
                                                 <span className="text-[8px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded-full border border-slate-700 font-bold uppercase tracking-tighter">
-                                                    FW {device.telemetry.version}
+                                                    FW {fwVersion}
                                                 </span>
                                                 {isUpToDate ? (
                                                     <span className="text-[8px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter flex items-center gap-1">
@@ -292,9 +309,24 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                     <Wifi size={14} className={device.telemetry.signal && device.telemetry.signal > -75 ? 'text-primary' : 'text-amber-500'} />
                     <span className="text-xs font-medium">Sinal RSSI: {device.telemetry.signal !== undefined ? `${device.telemetry.signal} dBm` : '--'}</span>
                 </div>
-                <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md bg-[#0F110D] border border-[#2A2E24] ${device.telemetry.signal && device.telemetry.signal > -75 ? 'text-emerald-400' : 'text-amber-500'}`}>
-                    {getSignalQuality(device.telemetry.signal)}
-                </span>
+                <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md bg-[#0F110D] border border-[#2A2E24] ${device.telemetry.signal && device.telemetry.signal > -75 ? 'text-emerald-400' : 'text-amber-500'}`}>
+                        {getSignalQuality(device.telemetry.signal)}
+                    </span>
+                    {isManager && (
+                        <button
+                            onClick={handleWifiReset}
+                            disabled={wifiResetting}
+                            className={`p-1.5 rounded-lg border transition-all duration-300 ${wifiResetting
+                                ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 animate-pulse'
+                                : 'bg-[#0F110D] border-[#2A2E24] text-slate-500 hover:text-primary hover:border-primary/50'
+                                }`}
+                            title="Resetar WiFi do Dispositivo"
+                        >
+                            <RotateCcw size={14} className={wifiResetting ? 'animate-spin' : ''} />
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -13,7 +13,7 @@ private:
 
   // Controle de Mensagem
   String mensagemRodape;
-  unsigned long tempoMensagemRodape;
+  long tempoMensagemRodape; // signed: -1 = permanente, 0 = nenhuma, >0 = expira em millis()
   // int scrollOffset; // REPLACED WITH STATIC PAGING
 
   // Paging Variables
@@ -35,6 +35,7 @@ public:
     MENU_ENTRADAS,
     MENU_SENSOR,
     MENU_LUZ,
+    MENU_RESET_WIFI,
     EDIT_TEMP_MIN,
     EDIT_TEMP_MAX,
     EDIT_DS18B20_OFFSET,
@@ -54,10 +55,10 @@ private:
   uint8_t _password[4];
   uint8_t _passwordIndex;
 
-  void drawWifiSignal(bool connected);
+  void drawWifiSignal(bool connected, int rssi);
   void drawHomeStatusBar(bool connected, String datetime);
   void drawHome(float temp, float observedMin, float observedMax,
-                bool wifiConnected, bool linked, String datetime,
+                bool wifiConnected, int rssi, bool linked, String datetime,
                 bool alertActive, bool manual, bool relay);
   void drawPasswordScreen();
   void drawMainMenuPaged();
@@ -70,7 +71,7 @@ public:
   DisplayManager();
   void begin();
   void update(float temp, float observedMin, float observedMax,
-              bool wifiConnected, bool linked, bool manual, bool relay,
+              bool wifiConnected, int rssi, bool linked, bool manual, bool relay,
               SensorType sensorType, String datetime, bool alertActive);
   void showMessage(String msg, int duracaoMs);
 

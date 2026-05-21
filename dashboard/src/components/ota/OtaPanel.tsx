@@ -77,9 +77,9 @@ export const OtaPanel: React.FC<OtaPanelProps> = ({
         setUrlError('');
     };
 
-    const handleAddVersion = () => {
+    const handleAddVersion = async () => {
         if (!newVersionInput.version || !newVersionInput.filename) return;
-        firmwareRegistryService.addVersion({
+        await firmwareRegistryService.addVersion({
             id: `v${newVersionInput.version}-${Date.now()}`,
             version: newVersionInput.version,
             filename: newVersionInput.filename,
@@ -90,15 +90,15 @@ export const OtaPanel: React.FC<OtaPanelProps> = ({
         setNewVersionInput({ version: '', filename: '', hash: '' });
     };
 
-    const handleSetLatest = (id: string, e: React.MouseEvent) => {
+    const handleSetLatest = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        firmwareRegistryService.setLatest(id);
+        await firmwareRegistryService.setLatest(id);
         setVersions(firmwareRegistryService.getVersions());
     };
 
-    const handleRemoveVersion = (id: string, e: React.MouseEvent) => {
+    const handleRemoveVersion = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        firmwareRegistryService.removeVersion(id);
+        await firmwareRegistryService.removeVersion(id);
         setVersions(firmwareRegistryService.getVersions());
     };
 

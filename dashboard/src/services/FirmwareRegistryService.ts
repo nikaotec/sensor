@@ -1,7 +1,9 @@
 // ============================================================
 // FirmwareRegistryService — SRP: Manage the firmware library.
-// Persists known firmware versions in localStorage.
+// Persists firmware versions in Supabase (primary) with localStorage fallback.
 // ============================================================
+
+import { supabase } from '../supabase/config';
 
 export interface FirmwareVersion {
     id: string;
@@ -22,13 +24,44 @@ export class FirmwareRegistryService {
         this.load();
     }
 
-    private load(): void {
+    private async load(): Promise<void> {
+        try {
+            // Try Supabase first
+            const { data, error } = await supabase
+                .from('firmware_versions')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                this.versions = data.map(row => ({
+                    id: row.id,
+                    version: row.version,
+                    filename: row.filename,
+                    hash: row.hash || undefined,
+                    description: row.description || undefined,
+                    isLatest: row.is_latest,
+                    createdAt: new Date(row.created_at).getTime()
+                }));
+                this.syncLocalStorage();
+                return;
+            }
+        } catch (e) {
+            console.warn('[FirmwareRegistryService] Supabase unavailable, using localStorage:', e);
+        }
+
+        // Fallback to localStorage
+        this.loadFromLocalStorage();
+    }
+
+    private loadFromLocalStorage(): void {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
             try {
                 this.versions = JSON.parse(stored);
             } catch (e) {
-                console.error('[FirmwareRegistryService] Error parsing storage:', e);
+                console.error('[FirmwareRegistryService] Error parsing localStorage:', e);
                 this.versions = [];
             }
         } else {
@@ -42,11 +75,11 @@ export class FirmwareRegistryService {
                     createdAt: Date.now()
                 }
             ];
-            this.save();
+            this.syncLocalStorage();
         }
     }
 
-    private save(): void {
+    private syncLocalStorage(): void {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this.versions));
     }
 
@@ -58,27 +91,91 @@ export class FirmwareRegistryService {
         return this.versions.find(v => v.isLatest);
     }
 
-    addVersion(version: Omit<FirmwareVersion, 'createdAt' | 'isLatest'>): void {
+    async addVersion(version: Omit<FirmwareVersion, 'createdAt' | 'isLatest'>): Promise<void> {
         const newVersion: FirmwareVersion = {
             ...version,
             createdAt: Date.now(),
             isLatest: false
         };
-        this.versions.push(newVersion);
-        this.save();
+
+        try {
+            // Try Supabase first
+            const { data, error } = await supabase
+                .from('firmware_versions')
+                .insert({
+                    version: newVersion.version,
+                    filename: newVersion.filename,
+                    hash: newVersion.hash || null,
+                    description: newVersion.description || null,
+                    is_latest: false
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            this.versions.push({
+                id: data.id,
+                version: data.version,
+                filename: data.filename,
+                hash: data.hash || undefined,
+                description: data.description || undefined,
+                isLatest: data.is_latest,
+                createdAt: new Date(data.created_at).getTime()
+            });
+        } catch (e) {
+            console.warn('[FirmwareRegistryService] Supabase write failed, using localStorage:', e);
+            // Fallback to localStorage
+            this.versions.push(newVersion);
+        }
+
+        this.syncLocalStorage();
     }
 
-    removeVersion(id: string): void {
+    async removeVersion(id: string): Promise<void> {
+        try {
+            // Try Supabase first
+            const { error } = await supabase
+                .from('firmware_versions')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+        } catch (e) {
+            console.warn('[FirmwareRegistryService] Supabase delete failed:', e);
+        }
+
+        // Always update local state
         this.versions = this.versions.filter(v => v.id !== id);
-        this.save();
+        this.syncLocalStorage();
     }
 
-    setLatest(id: string): void {
+    async setLatest(id: string): Promise<void> {
+        try {
+            // Try Supabase first
+            // Set all to false
+            await supabase
+                .from('firmware_versions')
+                .update({ is_latest: false })
+                .neq('id', id);
+
+            // Set target to true
+            const { error } = await supabase
+                .from('firmware_versions')
+                .update({ is_latest: true })
+                .eq('id', id);
+
+            if (error) throw error;
+        } catch (e) {
+            console.warn('[FirmwareRegistryService] Supabase update failed:', e);
+        }
+
+        // Always update local state
         this.versions = this.versions.map(v => ({
             ...v,
             isLatest: v.id === id
         }));
-        this.save();
+        this.syncLocalStorage();
     }
 }
 

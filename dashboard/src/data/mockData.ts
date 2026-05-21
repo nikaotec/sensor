@@ -27,6 +27,7 @@ export interface Device {
     location: string;
     lastSeen: string;
     tenantId: string;
+    firmwareVersion?: string;
     telemetry: {
         temp?: number;
         tempMax?: number;
