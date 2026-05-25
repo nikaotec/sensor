@@ -150,6 +150,8 @@ void DisplayManager::drawWifiSignal(bool connected, int rssi) {
     return;
   }
 
+  display.drawStr(90, 10, "ON");
+
   int bars = 0;
   if (rssi > -55)
     bars = 4;
