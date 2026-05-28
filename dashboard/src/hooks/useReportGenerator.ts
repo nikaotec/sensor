@@ -39,6 +39,7 @@ export interface ReportForm {
     mensage_tipo: string[];
     selected_variables: string[];
     detailed_hour_start: string;
+    daily_date: string;
 }
 
 export const getDefaultReportDates = () => {
@@ -81,7 +82,8 @@ export const useReportGenerator = (
         use_all_hours: true,
         mensage_tipo: ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'],
         selected_variables: ['temperature', 'humidity', 'voltage'],
-        detailed_hour_start: '08:00'
+        detailed_hour_start: '08:00',
+        daily_date: getDefaultReportDates().start_date
     });
 
     const [generatingReport, setGeneratingReport] = useState(false);
@@ -104,7 +106,8 @@ export const useReportGenerator = (
             use_all_hours: true,
             mensage_tipo: ['periodico', 'relatorio_diario', 'ALERTA_TEMP_ALTA', 'ALERTA_TEMP_BAIXA', 'TEMP_NORMALIZADA'],
             selected_variables: ['temperature', 'humidity', 'voltage'],
-            detailed_hour_start: '08:00'
+            detailed_hour_start: '08:00',
+            daily_date: dates.end_date // Hoje por padrão
         });
         setShowReportModal(true);
     };
@@ -153,8 +156,8 @@ export const useReportGenerator = (
 
             // Lógica por Tipo de Relatório
             if (reportForm.report_type === 'daily') {
-                startDate = today;
-                endDate = today;
+                startDate = reportForm.daily_date || today;
+                endDate = reportForm.daily_date || today;
                 // Usa os horários editados pelo usuário; fallback para 08h/16h se nenhum selecionado
                 selectedHoursAtJS = reportForm.selected_hours?.length > 0
                     ? reportForm.selected_hours

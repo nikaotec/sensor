@@ -28,7 +28,7 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
     const [history, setHistory] = useState<{ time: string, value: number, timestamp?: string }[]>([]);
     const [events, setEvents] = useState<DeviceEvent[]>([]);
 
-    const isManager = userRole === 'manager' || userRole === 'gestor' || userRole === 'admin';
+    const isManager = userRole === 'manager' || userRole === 'gestor';
 
     // Fetch devices
     useEffect(() => {
@@ -44,6 +44,9 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
             } else if (!isManager && availableTenants.length > 0) {
                 const userTenantIds = availableTenants.map(t => t.id);
                 query = query.in('tenant_id', userTenantIds);
+            } else if (!isManager) {
+                setDevices([]);
+                return;
             }
 
             const { data, error } = await query;
@@ -93,9 +96,15 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
                 query = query.eq('device_id', deviceId);
             } else if (tenantId && tenantId !== 'all' && devices.length > 0) {
                 const deviceIds = devices.map(d => d.id);
-                if (deviceIds.length > 0) {
-                    query = query.in('device_id', deviceIds);
-                }
+                query = query.in('device_id', deviceIds);
+            } else if (isManager && tenantId === 'all') {
+                // Gestor vê de tudo
+            } else if (!isManager && tenantId === 'all' && devices.length > 0) {
+                const deviceIds = devices.map(d => d.id);
+                query = query.in('device_id', deviceIds);
+            } else if (!isManager) {
+                setHistory([]);
+                return;
             }
 
             const { data, error } = await query;
@@ -155,7 +164,7 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
             } else if (tenantId && tenantId !== 'all') {
                 query = query.eq('tenant_id', tenantId);
             } else if (isManager && tenantId === 'all') {
-                // Gestor vê tudo
+                // Gestor vê tudo - mantém a query base sem filtros extras
             } else if (!isManager && availableTenants.length > 0) {
                 const userTenantIds = availableTenants.map(t => t.id);
                 query = query.in('tenant_id', userTenantIds);
@@ -218,6 +227,9 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
         } else if (!isManager && availableTenants.length > 0) {
             const userTenantIds = availableTenants.map(t => t.id);
             query = query.in('tenant_id', userTenantIds);
+        } else {
+            setEvents([]);
+            return;
         }
 
         const { data } = await query;

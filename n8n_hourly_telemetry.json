@@ -87,6 +87,10 @@
                             "fieldValue": "={{parseFloat($json.UMIDADE || 0)}}"
                         },
                         {
+                            "fieldId": "temp_ext",
+                            "fieldValue": "={{parseFloat($json.TEMP_EXTERNA || 0)}}"
+                        },
+                        {
                             "fieldId": "battery",
                             "fieldValue": "={{parseFloat($json.BATERIA || 0)}}"
                         },

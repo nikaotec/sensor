@@ -9,22 +9,96 @@ import {
     RotateCw,
     Wifi,
     CheckCircle2,
-    Cpu
+    Cpu,
+    Bell,
+    BellOff
 } from 'lucide-react';
 import type { Device } from '../../data/mockData';
 import { getStatusStyle, getStatusLabel } from '../../utils/statusUtils';
 import { firmwareRegistryService } from '../../services/FirmwareRegistryService';
 import { VersionService } from '../../services/VersionService';
+import { supabase } from '../../supabase/config';
 
 interface DeviceTelemetryCardProps {
     device: Device;
     isManager: boolean;
+    /** Role do usuário para controle fino de permissões */
+    userRole?: string;
+    handleAction?: (action: string, extraPayload: any, logMsg: string) => void;
+    isUpdating?: boolean;
+    isConnected?: boolean;
 }
 
-const DeviceTelemetryCard: React.FC<DeviceTelemetryCardProps> = ({ device, isManager }) => {
+const DeviceTelemetryCard: React.FC<DeviceTelemetryCardProps> = ({ device, isManager, userRole, handleAction, isUpdating, isConnected }) => {
+    const [isOfflinePaused, setIsOfflinePaused] = React.useState<boolean>((device as any)?.alerts_paused || false);
+
+    React.useEffect(() => {
+        setIsOfflinePaused((device as any)?.alerts_paused || false);
+    }, [(device as any)?.alerts_paused]);
+
+    // Admin e manager podem silenciar definitivamente
+    const canSilencePermanently = userRole === 'admin' || isManager;
+
+    const handleTogglePause = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newValue = !isOfflinePaused;
+        setIsOfflinePaused(newValue);
+
+        try {
+            const { error } = await supabase
+                .from('devices_status')
+                .update({ alerts_paused: newValue })
+                .eq('id', device.id);
+
+            if (error) throw error;
+        } catch (err) {
+            console.error('Erro ao atualizar silenciamento no Supabase:', err);
+            // Reverter em caso de erro
+            setIsOfflinePaused(!newValue);
+        }
+    };
+
     return (
-        <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg">
-            <h3 className="text-xs font-medium text-slate-400 uppercase mb-3 tracking-wider font-heading">Monitoramento em Tempo Real</h3>
+        <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg relative">
+            <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider font-heading">Monitoramento em Tempo Real</h3>
+                <div className="flex items-center gap-2">
+                    {/* Botão de Silenciar Alertas Offline (visível para admin e manager) */}
+                    {canSilencePermanently && (
+                        <button
+                            onClick={handleTogglePause}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all duration-300 z-30 cursor-pointer ${isOfflinePaused
+                                ? 'bg-rose-500/20 border-rose-500/40 text-rose-400'
+                                : 'bg-[#0F110D] border-[#2A2E24] text-slate-500 hover:text-slate-300 hover:border-slate-600'
+                                }`}
+                            title={isOfflinePaused ? 'Alertas Silenciados — clique para reativar' : 'Silenciar Alertas (apenas para você)'}
+                        >
+                            {isOfflinePaused ? (
+                                <>
+                                    <BellOff size={14} />
+                                    <span className="text-[9px] font-bold uppercase tracking-tighter">Silenciado</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Bell size={14} />
+                                    <span className="text-[9px] font-bold uppercase tracking-tighter">Silenciar</span>
+                                </>
+                            )}
+                        </button>
+                    )}
+                    {/* Botão RESETAR MÍN/MÁX: visível para admin, manager e user */}
+                    {(isManager || userRole === 'admin' || userRole === 'user') && handleAction && (
+                        <button
+                            onClick={() => handleAction('reset_manual', {}, 'Reset de registros de temperatura')}
+                            disabled={isUpdating || !isConnected}
+                            title="Zerar os registros de temperatura máxima e mínima do período"
+                            className="text-[9px] px-2 py-1 rounded bg-[#0F110D] border border-[#2A2E24] hover:bg-primary/20 hover:text-primary hover:border-primary/30 transition-all font-bold tracking-widest text-slate-400 disabled:opacity-50"
+                        >
+                            RESETAR MÍN/MÁX
+                        </button>
+                    )}
+                </div>
+            </div>
 
             {/* Badge de Versão de Firmware */}
             {(device?.telemetry as any)?.version && (() => {

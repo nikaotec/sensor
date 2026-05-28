@@ -83,6 +83,7 @@ export interface Device {
         };
     };
     localUpdateTimestamp?: number;
+    alerts_paused?: boolean;
 }
 
 export interface Alert {

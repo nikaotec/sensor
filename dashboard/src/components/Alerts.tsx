@@ -14,7 +14,13 @@ interface AlertsProps {
 const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
     const { currentTenant } = useTenant();
     const { currentUser } = useAuth();
-    const { events, refreshEvents } = useSupabaseData(currentTenant?.id || 'all', undefined, currentUser?.role);
+
+    // Gestores e não-gestores usam o tenant selecionado ou 'all' como padrão.
+    // O hook useSupabaseData já se encarrega de restringir os eventos por tenant_id
+    // para usuários não-gestores.
+    const safeTenantId = currentTenant?.id || 'all';
+
+    const { events, refreshEvents } = useSupabaseData(safeTenantId, undefined, currentUser?.role);
     const [pendingConfirmations, setPendingConfirmations] = useState<Set<string>>(new Set());
     const [confirmedAlerts, setConfirmedAlerts] = useState<Set<string>>(new Set());
 

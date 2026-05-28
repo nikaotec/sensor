@@ -119,20 +119,33 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     // Estado para silenciar alertas de offline (localStorage)
     const [pausedDevices, setPausedDevices] = useState<{ [key: string]: boolean }>({});
 
-    // Inicializar estado de pausa do localStorage
+    // Inicializar estado de pausa a partir dos dispositivos
     useEffect(() => {
         const stored: { [key: string]: boolean } = {};
         mqttDevices.forEach(d => {
-            stored[d.id] = localStorage.getItem(`offline_alerts_paused_${d.id}`) === 'true';
+            stored[d.id] = d.alerts_paused === true;
         });
         setPausedDevices(stored);
-    }, [mqttDevices.length]);
+    }, [mqttDevices]);
 
-    const handleToggleOfflinePause = (deviceId: string) => {
-        const isCurrentlyPaused = localStorage.getItem(`offline_alerts_paused_${deviceId}`) === 'true';
-        const newValue = !isCurrentlyPaused;
-        localStorage.setItem(`offline_alerts_paused_${deviceId}`, newValue ? 'true' : 'false');
+    const handleToggleOfflinePause = async (deviceId: string) => {
+        const dev = mqttDevices.find(d => d.id === deviceId);
+        const currentStatus = dev?.alerts_paused || false;
+        const newValue = !currentStatus;
+
         setPausedDevices(prev => ({ ...prev, [deviceId]: newValue }));
+
+        try {
+            const { error } = await supabase
+                .from('devices_status')
+                .update({ alerts_paused: newValue })
+                .eq('id', deviceId);
+
+            if (error) throw error;
+        } catch (err) {
+            console.error('Erro ao atualizar silenciamento no Supabase:', err);
+            setPausedDevices(prev => ({ ...prev, [deviceId]: currentStatus }));
+        }
     };
 
     // Modal de edição de usuário
@@ -143,6 +156,22 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const [editUserReceiveWhatsapp, setEditUserReceiveWhatsapp] = useState(false);
     const [editUserRole, setEditUserRole] = useState<'manager' | 'admin' | 'user'>('user');
     const [editUserTenants, setEditUserTenants] = useState<string[]>([]);
+
+    // Forçar desativação de notificações WhatsApp se a role for 'user' na criação
+    useEffect(() => {
+        if (newUserRole === 'user') {
+            setNewUserReceiveWhatsapp(false);
+            setNewUserWhatsapp('');
+        }
+    }, [newUserRole]);
+
+    // Forçar desativação de notificações WhatsApp se a role for 'user' na edição
+    useEffect(() => {
+        if (editUserRole === 'user') {
+            setEditUserReceiveWhatsapp(false);
+            setEditUserWhatsapp('');
+        }
+    }, [editUserRole]);
 
     // Dispositivos pendentes = dispositivos ATIVOS no MQTT sem empresa válida
     // + dispositivos do Supabase com tenant_id=null que podem estar offline
@@ -221,10 +250,10 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                 id: uid,
                 name: newUserName,
                 email: newUserEmail.toLowerCase(),
-                phone: newUserWhatsapp || null,
-                receive_notifications: newUserReceiveWhatsapp,
+                phone: newUserRole === 'user' ? null : (newUserWhatsapp || null),
+                receive_notifications: newUserRole === 'user' ? false : newUserReceiveWhatsapp,
                 role: newUserRole,
-                tenant_ids: newUserTenants,
+                tenant_ids: newUserRole === 'manager' ? [] : newUserTenants,
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
                 provisioned_by: currentUser?.email
@@ -233,7 +262,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
             if (error) throw error;
 
             // 3. Sincronizar telefone na tabela users_devices (para alertas WhatsApp via n8n)
-            await syncPhoneToUsersDevices(uid, newUserWhatsapp || null, newUserReceiveWhatsapp);
+            await syncPhoneToUsersDevices(uid, newUserRole === 'user' ? null : (newUserWhatsapp || null), newUserRole === 'user' ? false : newUserReceiveWhatsapp);
 
             setGeneratedCredentials({ email: newUserEmail.toLowerCase(), pass: randomPass });
             showMessage('success', `Usuário ${newUserName} provisionado com sucesso!`);
@@ -313,8 +342,19 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         }
 
         try {
-            const { error } = await supabase.from('users').update({ role: newRole }).eq('id', userId);
+            const updatePayload: any = { role: newRole };
+            if (newRole === 'manager') {
+                updatePayload.tenant_ids = [];
+            } else if (newRole === 'user') {
+                updatePayload.receive_notifications = false;
+                updatePayload.phone = null;
+            }
+            const { error } = await supabase.from('users').update(updatePayload).eq('id', userId);
             if (error) throw error;
+
+            if (newRole === 'user') {
+                await syncPhoneToUsersDevices(userId, null, false);
+            }
             showMessage('success', `Cargo atualizado com sucesso!`);
         } catch (err: any) {
             showMessage('error', `Erro ao atualizar cargo: ${err.message}`);
@@ -360,17 +400,17 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
             const { error } = await supabase.from('users').update({
                 name: editUserName,
                 email: editUserEmail.toLowerCase(),
-                phone: editUserWhatsapp || null,
-                receive_notifications: editUserReceiveWhatsapp,
+                phone: editUserRole === 'user' ? null : (editUserWhatsapp || null),
+                receive_notifications: editUserRole === 'user' ? false : editUserReceiveWhatsapp,
                 role: editUserRole,
-                tenant_ids: editUserTenants,
+                tenant_ids: editUserRole === 'manager' ? [] : editUserTenants,
                 updated_at: new Date().toISOString()
             }).eq('id', editingUser.id);
 
             if (error) throw error;
 
             // Sincronizar telefone na tabela users_devices (para alertas WhatsApp via n8n)
-            await syncPhoneToUsersDevices(editingUser.id, editUserWhatsapp || null, editUserReceiveWhatsapp);
+            await syncPhoneToUsersDevices(editingUser.id, editUserRole === 'user' ? null : (editUserWhatsapp || null), editUserRole === 'user' ? false : editUserReceiveWhatsapp);
 
             showMessage('success', `Usuário ${editUserName} atualizado com sucesso!`);
             setEditingUser(null);
@@ -735,7 +775,8 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                 label="WhatsApp (para alertas)"
                                                 value={newUserWhatsapp}
                                                 onChange={(val: string) => setNewUserWhatsapp(formatPhone(val))}
-                                                placeholder="+55 81 99999-9999"
+                                                placeholder={newUserRole === 'user' ? "Indisponível para Usuário" : "+55 81 99999-9999"}
+                                                disabled={newUserRole === 'user'}
                                             />
 
                                             <div className="flex items-center justify-between p-4 rounded-2xl bg-black/20 border border-white/5">
@@ -745,8 +786,9 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                 </div>
                                                 <button
                                                     type="button"
+                                                    disabled={newUserRole === 'user'}
                                                     onClick={() => setNewUserReceiveWhatsapp(!newUserReceiveWhatsapp)}
-                                                    className={`relative inline-flex h-6 w-12 rounded-full border-2 transition-colors ${newUserReceiveWhatsapp ? 'bg-primary border-transparent' : 'bg-[#0F110D] border-white/10'}`}
+                                                    className={`relative inline-flex h-6 w-12 rounded-full border-2 transition-colors ${newUserRole === 'user' ? 'opacity-30 cursor-not-allowed bg-[#0F110D] border-white/10' : (newUserReceiveWhatsapp ? 'bg-primary border-transparent' : 'bg-[#0F110D] border-white/10')}`}
                                                 >
                                                     <span className={`h-5 w-5 transform rounded-full bg-white transition duration-200 ${newUserReceiveWhatsapp ? 'translate-x-6' : 'translate-x-0'}`}></span>
                                                 </button>
@@ -1050,15 +1092,16 @@ const RecentItem = ({ icon, title, detail, time }: { icon: React.ReactNode, titl
     </div>
 );
 
-const FormInput = ({ label, value, onChange, placeholder, type = 'text', required = false }: any) => (
+const FormInput = ({ label, value, onChange, placeholder, type = 'text', required = false, disabled = false }: any) => (
     <div>
         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">{label}</label>
         <input
             type={type}
             required={required}
             value={value}
+            disabled={disabled}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-700"
+            className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
             placeholder={placeholder}
         />
     </div>
@@ -1124,9 +1167,10 @@ const EditUserModal = ({
                         <input
                             type="tel"
                             value={whatsapp}
+                            disabled={role === 'user'}
                             onChange={(e) => setWhatsapp(formatPhone(e.target.value))}
-                            className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-700"
-                            placeholder="+55 81 99999-9999"
+                            className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-3.5 text-sm text-white focus:outline-none focus:border-primary/50 transition-all placeholder:text-slate-700 disabled:opacity-30 disabled:cursor-not-allowed"
+                            placeholder={role === 'user' ? "Indisponível para Usuário" : "+55 81 99999-9999"}
                         />
                     </div>
 
@@ -1136,8 +1180,10 @@ const EditUserModal = ({
                             <p className="text-[10px] text-slate-500">O usuário receberá alertas via WhatsApp</p>
                         </div>
                         <button
+                            type="button"
+                            disabled={role === 'user'}
                             onClick={() => setReceiveWhatsapp(!receiveWhatsapp)}
-                            className={`relative inline-flex h-6 w-12 rounded-full border-2 transition-colors ${receiveWhatsapp ? 'bg-primary border-transparent' : 'bg-[#0F110D] border-white/10'}`}
+                            className={`relative inline-flex h-6 w-12 rounded-full border-2 transition-colors ${role === 'user' ? 'opacity-30 cursor-not-allowed bg-[#0F110D] border-white/10' : (receiveWhatsapp ? 'bg-primary border-transparent' : 'bg-[#0F110D] border-white/10')}`}
                         >
                             <span className={`h-5 w-5 transform rounded-full bg-white transition duration-200 ${receiveWhatsapp ? 'translate-x-6' : 'translate-x-0'}`}></span>
                         </button>

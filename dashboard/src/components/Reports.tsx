@@ -56,7 +56,7 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
             use_all_hours: true
         };
     };
-    const [generateForm, setGenerateForm] = useState<{
+    interface GenerateFormState {
         type: string;
         tenant_id: string;
         device_id: string;
@@ -67,7 +67,11 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
         selected_hours: string[];
         use_all_hours: boolean;
         report_preset: 'custom' | 'daily_8_16' | 'month_8_16';
-    }>({
+        selected_variables: string[];
+        daily_date: string;
+    }
+
+    const [generateForm, setGenerateForm] = useState<GenerateFormState>({
         type: 'device',
         tenant_id: currentTenant?.id === 'all' ? '' : currentTenant?.id || '',
         device_id: '',
@@ -77,7 +81,9 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
         end_time: '23:59',
         selected_hours: [] as string[],
         use_all_hours: true,
-        report_preset: 'custom'
+        report_preset: 'custom',
+        selected_variables: ['temperature', 'voltage', 'battery', 'humidity', 'temp_ext'],
+        daily_date: getDefaultDates().start_date
     });
     const [generating, setGenerating] = useState(false);
 
@@ -178,15 +184,11 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
 
         // Aplica preset de horários
         let effectiveForm = { ...generateForm };
-        const todaySP = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
 
         if (generateForm.report_preset === 'daily_8_16') {
-            // Relatório com leituras de 8h e 16h do dia ATUAL (ou selecionado)
-            // Se o usuário não mudou a data, força hoje
-            if (effectiveForm.end_date === getDefaultDates().end_date) {
-                effectiveForm.start_date = todaySP;
-                effectiveForm.end_date = todaySP;
-            }
+            // Relatório com leituras de 8h e 16h da data selecionada no seletor diário
+            effectiveForm.start_date = generateForm.daily_date;
+            effectiveForm.end_date = generateForm.daily_date;
             effectiveForm.start_time = '08:00';
             effectiveForm.end_time = '16:00';
             effectiveForm.use_all_hours = false;
@@ -216,7 +218,8 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                 company_name: companyName,
                 selected_hours: effectiveForm.use_all_hours ? [] : effectiveForm.selected_hours,
                 use_all_hours: effectiveForm.use_all_hours,
-                report_preset: effectiveForm.report_preset
+                report_preset: effectiveForm.report_preset,
+                selected_variables: effectiveForm.selected_variables
             };
 
             if (tenantId) {
@@ -728,7 +731,7 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                             </div>
                                         )}
                                         <p className={`text-[11px] font-bold ${generateForm.report_preset === 'daily_8_16' ? 'text-primary' : 'text-slate-300'}`}>📅 Diário</p>
-                                        <p className="text-[10px] text-slate-500 mt-0.5">08h e 16h do período selecionado</p>
+                                        <p className="text-[10px] text-slate-500 mt-0.5">08h e 16h do dia selecionado</p>
                                     </button>
 
                                     <button
@@ -753,6 +756,19 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                         <p className="text-[10px] text-slate-500 mt-0.5">08h e 16h do mês atual</p>
                                     </button>
                                 </div>
+
+                                {/* Seletor de data para o modo Diário */}
+                                {generateForm.report_preset === 'daily_8_16' && (
+                                    <div className="animate-in fade-in slide-in-from-top-1 duration-200 p-3 bg-primary/5 border border-primary/20 rounded-xl">
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Data do Relatório</label>
+                                        <input
+                                            type="date"
+                                            value={generateForm.daily_date}
+                                            onChange={(e) => setGenerateForm({ ...generateForm, daily_date: e.target.value })}
+                                            className="w-full bg-[#0a1323] border border-primary/30 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-primary transition-colors cursor-pointer"
+                                        />
+                                    </div>
+                                )}
 
                                 {/* Aviso quando preset está ativo */}
                                 {(generateForm.report_preset === 'daily_8_16' || generateForm.report_preset === 'month_8_16') && (
@@ -821,6 +837,45 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Variáveis do Relatório */}
+                            <div className="space-y-3">
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Variáveis do Relatório</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {[
+                                        { id: 'temperature', label: 'Temp. Interna' },
+                                        { id: 'temp_ext', label: 'Temp. Ambiente' },
+                                        { id: 'humidity', label: 'Umidade' },
+                                        { id: 'voltage', label: 'Tensão (V)' },
+                                        { id: 'battery', label: 'Bateria (%)' },
+                                        { id: 'door_open', label: 'Status Porta' }
+                                    ].map(variable => {
+                                        const isSelected = generateForm.selected_variables.includes(variable.id);
+                                        return (
+                                            <button
+                                                key={variable.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    const newVars = isSelected
+                                                        ? generateForm.selected_variables.filter((v: string) => v !== variable.id)
+                                                        : [...generateForm.selected_variables, variable.id];
+                                                    setGenerateForm(prev => ({ ...prev, selected_variables: newVars.length > 0 ? newVars : prev.selected_variables }));
+                                                }}
+                                                className={`px-3 py-2 text-[11px] font-medium rounded-xl border transition-all flex items-center gap-2 ${isSelected
+                                                    ? 'bg-primary/10 border-primary/50 text-white shadow-inner shadow-primary/10'
+                                                    : 'bg-[#0d1b2a] border-white/5 text-slate-400 hover:border-white/20'
+                                                    }`}
+                                            >
+                                                <div className={`w-3.5 h-3.5 rounded-md flex items-center justify-center border transition-colors shrink-0 ${isSelected ? 'bg-primary border-primary' : 'border-white/20'}`}>
+                                                    {isSelected && <Check size={10} className="text-white" />}
+                                                </div>
+                                                <span className="truncate">{variable.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
 
                             <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl">
                                 <p className="text-[11px] text-primary font-medium leading-relaxed">

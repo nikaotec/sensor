@@ -15,7 +15,6 @@ import AlarmSettings from './device/AlarmSettings';
 import SensorAlarmToggles from './device/SensorAlarmToggles';
 import CalibrationControl from './device/CalibrationControl';
 import RelayControl from './device/RelayControl';
-import SystemInfo from './device/SystemInfo';
 import DeviceHistoryChart from './device/DeviceHistoryChart';
 import RecentEvents from './device/RecentEvents';
 
@@ -102,7 +101,9 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
         }
     }, [device?.telemetry, remoteSync]);
 
-    const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor' || currentUser?.role === 'admin';
+    const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
+    const isAdmin = currentUser?.role === 'admin';
+    const canAccessControlPanel = isManager || isAdmin;
 
     if (!currentTenant) return <div className="flex h-screen items-center justify-center bg-background-dark text-white">Carregando dados...</div>;
 
@@ -283,31 +284,49 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
 
                 <div className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-10 py-6 pb-24 sm:pb-6 custom-scrollbar 2xl:max-w-[1600px] 2xl:mx-auto w-full">
                     <div className="flex flex-col gap-8">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Coluna 1: Telemetria */}
-                            <DeviceTelemetryCard device={device as any} isManager={isManager} />
+                            <DeviceTelemetryCard
+                                device={device as any}
+                                isManager={isManager}
+                                userRole={currentUser?.role}
+                                handleAction={handleAction}
+                                isUpdating={isUpdating}
+                                isConnected={isConnected}
+                            />
 
-                            {/* Coluna 2: Controle (Apenas Gestores) */}
-                            {isManager && (
+                            {/* Coluna 2: Controle (Gestores vêm tudo; Admin vê apenas temperatura) */}
+                            {canAccessControlPanel && (
                                 <div className="rounded-2xl border border-[#2A2E24] bg-[#1A1D17] p-6 shadow-lg relative overflow-hidden group">
                                     <div className="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-40 transition-opacity">
                                         <SettingsIcon size={40} className="text-primary rotate-12" />
                                     </div>
-                                    <h3 className="text-xs font-medium text-slate-400 uppercase mb-5 tracking-wider font-heading flex items-center gap-2">
-                                        <RefreshCw size={14} className={isUpdating ? 'animate-spin' : ''} />
-                                        Painel de Controle
-                                    </h3>
+                                    <div className="flex items-center justify-between mb-5">
+                                        <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wider font-heading flex items-center gap-2">
+                                            <RefreshCw size={14} className={isUpdating ? 'animate-spin' : ''} />
+                                            Painel de Controle
+                                            {isAdmin && (
+                                                <span className="text-[8px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">
+                                                    Restrito
+                                                </span>
+                                            )}
+                                        </h3>
+                                    </div>
                                     <div className="space-y-4 max-h-[510px] overflow-y-auto pr-1 custom-scrollbar">
-                                        <HysteresisControl
-                                            hysteresisOnInput={hysteresisOnInput}
-                                            setHysteresisOnInput={setHysteresisOnInput}
-                                            hysteresisOffInput={hysteresisOffInput}
-                                            setHysteresisOffInput={setHysteresisOffInput}
-                                            handleSaveHysteresis={handleSaveHysteresis}
-                                            isUpdating={isUpdating}
-                                            isConnected={isConnected}
-                                            setRemoteSync={setRemoteSync}
-                                        />
+                                        {/* Histerese e Calibração: apenas para gestores */}
+                                        {isManager && (
+                                            <HysteresisControl
+                                                hysteresisOnInput={hysteresisOnInput}
+                                                setHysteresisOnInput={setHysteresisOnInput}
+                                                hysteresisOffInput={hysteresisOffInput}
+                                                setHysteresisOffInput={setHysteresisOffInput}
+                                                handleSaveHysteresis={handleSaveHysteresis}
+                                                isUpdating={isUpdating}
+                                                isConnected={isConnected}
+                                                setRemoteSync={setRemoteSync}
+                                            />
+                                        )}
+                                        {/* Limites de Alarme: admin vê apenas temperatura */}
                                         <AlarmSettings
                                             tempMinInput={tempMinInput} setTempMinInput={setTempMinInput}
                                             tempMaxInput={tempMaxInput} setTempMaxInput={setTempMaxInput}
@@ -319,43 +338,40 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                             handleSaveLimits={handleSaveLimits}
                                             isUpdating={isUpdating}
                                             isConnected={isConnected}
+                                            userRole={currentUser?.role}
                                         />
-                                        <SensorAlarmToggles
-                                            chkVolt={chkVolt} chkBat={chkBat} chkTemp={chkTemp} chkDoor={chkDoor}
-                                            isOfflinePaused={isOfflinePaused}
-                                            onToggleOfflinePause={handleToggleOfflinePause}
-                                            handleToggleAlarm={handleToggleAlarm}
-                                            isUpdating={isUpdating}
-                                            isConnected={isConnected}
-                                        />
-                                        <CalibrationControl
-                                            voltCalibration={voltCalibration} setVoltCalibration={setVoltCalibration}
-                                            batCalibration={batCalibration} setBatCalibration={setBatCalibration}
-                                            tempCalibration={tempCalibration} setTempCalibration={setTempCalibration}
-                                            handleCalibration={handleCalibration}
-                                            isUpdating={isUpdating}
-                                            isConnected={isConnected}
-                                            tempSensor={selectedTempSensor}
-                                            handleSensorChange={handleSensorChange}
-                                        />
-                                        <RelayControl
-                                            device={device}
-                                            handleToggleRelay={handleToggleRelay}
-                                            isUpdating={isUpdating}
-                                            isConnected={isConnected}
-                                            handleAction={handleAction}
-                                        />
+                                        {/* Toggles de sensores, Calibração e Relés: apenas para gestores */}
+                                        {isManager && (
+                                            <>
+                                                <SensorAlarmToggles
+                                                    chkVolt={chkVolt} chkBat={chkBat} chkTemp={chkTemp} chkDoor={chkDoor}
+                                                    isOfflinePaused={isOfflinePaused}
+                                                    onToggleOfflinePause={handleToggleOfflinePause}
+                                                    handleToggleAlarm={handleToggleAlarm}
+                                                    isUpdating={isUpdating}
+                                                    isConnected={isConnected}
+                                                />
+                                                <CalibrationControl
+                                                    voltCalibration={voltCalibration} setVoltCalibration={setVoltCalibration}
+                                                    batCalibration={batCalibration} setBatCalibration={setBatCalibration}
+                                                    tempCalibration={tempCalibration} setTempCalibration={setTempCalibration}
+                                                    handleCalibration={handleCalibration}
+                                                    isUpdating={isUpdating}
+                                                    isConnected={isConnected}
+                                                    tempSensor={selectedTempSensor}
+                                                    handleSensorChange={handleSensorChange}
+                                                />
+                                                <RelayControl
+                                                    device={device}
+                                                    handleToggleRelay={handleToggleRelay}
+                                                    isUpdating={isUpdating}
+                                                    isConnected={isConnected}
+                                                    handleAction={handleAction}
+                                                />
+                                            </>
+                                        )}
                                     </div>
                                 </div>
-                            )}
-
-                            {/* Coluna 3: Info do Sistema */}
-                            {isManager && (
-                                <SystemInfo
-                                    device={device}
-                                    remoteSync={remoteSync}
-                                    setRemoteSync={setRemoteSync}
-                                />
                             )}
                         </div>
 

@@ -27,6 +27,7 @@ export const mapRowToDevice = (row: SupabaseDeviceRow): Device => {
         location: row.location || row.location_id || '',
         lastSeen: row.last_seen || row.updated_at || '',
         firmwareVersion: row.firmware_version || normalized.version || undefined,
-        telemetry: normalized as any
+        telemetry: normalized as any,
+        alerts_paused: row.alerts_paused || false
     };
 };

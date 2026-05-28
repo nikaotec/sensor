@@ -74,16 +74,25 @@ bool OtaManager::startOTA(String url, String expectedVersion,
   // Check if OTA partition exists
   const esp_partition_t *partition = esp_ota_get_next_update_partition(NULL);
 
-  bool canUseOta = (partition != NULL);
-
-  if (canUseOta) {
+  if (partition != NULL) {
+    Serial.printf("[OTA] Particao destino: %s (Type: %d, SubType: %d, Offset: 0x%08X, Size: %d bytes)\n",
+                  partition->label, partition->type, partition->subtype,
+                  partition->address, partition->size);
+    if (contentLength > (int)partition->size) {
+      _otaError = "Firmware too large for partition (" + String(contentLength) + " > " + String(partition->size) + ")";
+      Serial.println("[OTA] ERRO: " + _otaError);
+      _isUpdating = false;
+      http.end();
+      return false;
+    }
     Serial.println("[OTA] Usando particao OTA (seguro).");
   } else {
-    Serial.println("[OTA] Sem particao OTA. Usando particao atual (risco de brick se faltar energia).");
+    Serial.println("[OTA] AVISO: esp_ota_get_next_update_partition retornou NULL.");
+    Serial.println("[OTA] Sem particao OTA configurada. O Update.begin tentará encontrar uma particao padrao.");
   }
 
   // Start Update
-  int updateCommand = canUseOta ? U_FLASH : U_FLASH;
+  int updateCommand = U_FLASH;
   if (!Update.begin(contentLength, updateCommand)) {
     _otaError = "Update.begin failed";
     Serial.println("[OTA] " + _otaError);

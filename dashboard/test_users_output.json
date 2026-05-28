@@ -1,0 +1,409 @@
+{
+  "users": [
+    {
+      "id": "DSeV6Vq5lSU5QEz8gDeJBq2ydJg2",
+      "name": "ANTONIO VENANCIO",
+      "email": "antoniovenancio10@gmail.com",
+      "role": "manager",
+      "tenant_ids": [],
+      "avatar_url": null,
+      "created_at": "2026-03-31T00:17:11.612013+00:00",
+      "provisioned_by": null,
+      "phone": "+55 81 99598-1890",
+      "receive_notifications": true,
+      "updated_at": "2026-04-27T01:50:55.427022+00:00"
+    },
+    {
+      "id": "RS5lSJSDdUZTqnb8pMKMN6Hld9C3",
+      "name": "Johnatan Eduardo",
+      "email": "johnataneduardo235@gmail.com",
+      "role": "user",
+      "tenant_ids": [
+        "a68a90d5-f9b5-40f9-b0fe-ac8ff97a1848"
+      ],
+      "avatar_url": null,
+      "created_at": "2026-05-21T14:18:32.618647+00:00",
+      "provisioned_by": null,
+      "phone": null,
+      "receive_notifications": true,
+      "updated_at": "2026-05-21T14:18:32.618647+00:00"
+    },
+    {
+      "id": "CEJ5MflM6OZ5vOCS1l8aDTySCZ33",
+      "name": "Vagner da silva",
+      "email": "vagnermerces08@gmail.com",
+      "role": "admin",
+      "tenant_ids": [
+        "a68a90d5-f9b5-40f9-b0fe-ac8ff97a1848"
+      ],
+      "avatar_url": null,
+      "created_at": "2026-05-21T14:15:17.601+00:00",
+      "provisioned_by": "dougsilvag.1@gmail.com",
+      "phone": "+55 81 99236-3292",
+      "receive_notifications": true,
+      "updated_at": "2026-05-21T14:15:17.601+00:00"
+    },
+    {
+      "id": "6puOiBTnajeGmDKk6XJafILSYO42",
+      "name": "ANTONIO VENANCIO DA JUNIOR",
+      "email": "antoniovenanciodev@gmail.com",
+      "role": "admin",
+      "tenant_ids": [
+        "f22225f4-197d-4572-8dc5-124775b688db"
+      ],
+      "avatar_url": null,
+      "created_at": "2026-03-31T01:06:33.33743+00:00",
+      "provisioned_by": null,
+      "phone": null,
+      "receive_notifications": true,
+      "updated_at": "2026-04-27T01:50:55.427022+00:00"
+    },
+    {
+      "id": "XzzUlLvxEEcKrFkcOh4qrbyry4X2",
+      "name": "Lorenna Virginia",
+      "email": "virginialorenna@gmail.com",
+      "role": "admin",
+      "tenant_ids": [
+        "38f311af-f55a-46dd-92af-33eb29e46c00"
+      ],
+      "avatar_url": null,
+      "created_at": "2026-05-26T17:57:44.2349+00:00",
+      "provisioned_by": null,
+      "phone": null,
+      "receive_notifications": true,
+      "updated_at": "2026-05-26T17:58:01.848+00:00"
+    },
+    {
+      "id": "vvHlWRbkItg0737GbtGmTcsVjNh2",
+      "name": "Antonio Venancio",
+      "email": "nikaotec@gmail.com",
+      "role": "user",
+      "tenant_ids": [
+        "f22225f4-197d-4572-8dc5-124775b688db"
+      ],
+      "avatar_url": null,
+      "created_at": "2026-03-31T00:41:52.629771+00:00",
+      "provisioned_by": null,
+      "phone": null,
+      "receive_notifications": true,
+      "updated_at": "2026-05-28T01:19:08.909+00:00"
+    },
+    {
+      "id": "jE9EVe0SqKQRiM48kwWYHZpaIcf2",
+      "name": "Doug Silva",
+      "email": "dougsilvag.1@gmail.com",
+      "role": "manager",
+      "tenant_ids": [
+        "84bed51b-48a0-4b0d-8495-158712fe1b42"
+      ],
+      "avatar_url": null,
+      "created_at": "2026-03-31T01:16:23.030886+00:00",
+      "provisioned_by": null,
+      "phone": "+55 81 99707-0639",
+      "receive_notifications": true,
+      "updated_at": "2026-05-11T13:15:58.156+00:00"
+    },
+    {
+      "id": "bZYbABSdU6QujRqgGyZFlsdmJ0r2",
+      "name": "pedro",
+      "email": "teste2@teste.com",
+      "role": "user",
+      "tenant_ids": [
+        "f22225f4-197d-4572-8dc5-124775b688db"
+      ],
+      "avatar_url": null,
+      "created_at": "2026-05-12T19:57:00.496+00:00",
+      "provisioned_by": "antoniovenancio10@gmail.com",
+      "phone": "+55 81 99598-1890",
+      "receive_notifications": true,
+      "updated_at": "2026-05-14T01:22:35.885+00:00"
+    },
+    {
+      "id": "UAA2MaxoDhOqISaOijL69tjSdXk2",
+      "name": "inteldx4",
+      "email": "deividcosta_@hotmail.com",
+      "role": "user",
+      "tenant_ids": [
+        "84bed51b-48a0-4b0d-8495-158712fe1b42"
+      ],
+      "avatar_url": null,
+      "created_at": "2026-05-26T00:14:50.891188+00:00",
+      "provisioned_by": null,
+      "phone": null,
+      "receive_notifications": true,
+      "updated_at": "2026-05-26T00:24:06.988+00:00"
+    },
+    {
+      "id": "0Xo4c4JXmGfjy8LX9scrQx0xm5G3",
+      "name": "Novo Usuário",
+      "email": "teste@teste.com",
+      "role": "admin",
+      "tenant_ids": [
+        "f22225f4-197d-4572-8dc5-124775b688db"
+      ],
+      "avatar_url": null,
+      "created_at": "2026-04-29T01:04:18.5844+00:00",
+      "provisioned_by": null,
+      "phone": null,
+      "receive_notifications": true,
+      "updated_at": "2026-04-29T01:04:18.5844+00:00"
+    },
+    {
+      "id": "XGI93mzXyCZQt4fOHaXsAwYF8rw1",
+      "name": "Eduarda Larissa",
+      "email": "eduardalarissa1974@gmail.com",
+      "role": "user",
+      "tenant_ids": [
+        "38f311af-f55a-46dd-92af-33eb29e46c00"
+      ],
+      "avatar_url": null,
+      "created_at": "2026-05-26T00:19:53.370266+00:00",
+      "provisioned_by": null,
+      "phone": null,
+      "receive_notifications": true,
+      "updated_at": "2026-05-26T03:33:17.832+00:00"
+    }
+  ],
+  "userDevices": [
+    {
+      "device_id": "E45715DD2568",
+      "device_name": "SURUBIM",
+      "tenant_id": "ac9c1699-b9cd-432f-82f5-f5de59ca6b35",
+      "user_id": "DSeV6Vq5lSU5QEz8gDeJBq2ydJg2",
+      "user_name": "ANTONIO VENANCIO",
+      "role": "manager",
+      "email": "antoniovenancio10@gmail.com",
+      "phone": "+55 81 99598-1890",
+      "receive_notifications": true
+    },
+    {
+      "device_id": "3005411AD6B8",
+      "device_name": "DOUG 02",
+      "tenant_id": "84bed51b-48a0-4b0d-8495-158712fe1b42",
+      "user_id": "DSeV6Vq5lSU5QEz8gDeJBq2ydJg2",
+      "user_name": "ANTONIO VENANCIO",
+      "role": "manager",
+      "email": "antoniovenancio10@gmail.com",
+      "phone": "+55 81 99598-1890",
+      "receive_notifications": true
+    },
+    {
+      "device_id": "50B9B5F4E9D4",
+      "device_name": "PNI 01",
+      "tenant_id": "38f311af-f55a-46dd-92af-33eb29e46c00",
+      "user_id": "DSeV6Vq5lSU5QEz8gDeJBq2ydJg2",
+      "user_name": "ANTONIO VENANCIO",
+      "role": "manager",
+      "email": "antoniovenancio10@gmail.com",
+      "phone": "+55 81 99598-1890",
+      "receive_notifications": true
+    },
+    {
+      "device_id": "684302E9BFB4",
+      "device_name": "URBANO",
+      "tenant_id": "38f311af-f55a-46dd-92af-33eb29e46c00",
+      "user_id": "DSeV6Vq5lSU5QEz8gDeJBq2ydJg2",
+      "user_name": "ANTONIO VENANCIO",
+      "role": "manager",
+      "email": "antoniovenancio10@gmail.com",
+      "phone": "+55 81 99598-1890",
+      "receive_notifications": true
+    },
+    {
+      "device_id": "BCC0B6F4E9D4",
+      "device_name": "SALGADINHO 01",
+      "tenant_id": "a68a90d5-f9b5-40f9-b0fe-ac8ff97a1848",
+      "user_id": "DSeV6Vq5lSU5QEz8gDeJBq2ydJg2",
+      "user_name": "ANTONIO VENANCIO",
+      "role": "manager",
+      "email": "antoniovenancio10@gmail.com",
+      "phone": "+55 81 99598-1890",
+      "receive_notifications": true
+    },
+    {
+      "device_id": "E067D6D8CBB0",
+      "device_name": "ESP32 - VENANCIO",
+      "tenant_id": "f22225f4-197d-4572-8dc5-124775b688db",
+      "user_id": "DSeV6Vq5lSU5QEz8gDeJBq2ydJg2",
+      "user_name": "ANTONIO VENANCIO",
+      "role": "manager",
+      "email": "antoniovenancio10@gmail.com",
+      "phone": "+55 81 99598-1890",
+      "receive_notifications": true
+    },
+    {
+      "device_id": "BCC0B6F4E9D4",
+      "device_name": "SALGADINHO 01",
+      "tenant_id": "a68a90d5-f9b5-40f9-b0fe-ac8ff97a1848",
+      "user_id": "RS5lSJSDdUZTqnb8pMKMN6Hld9C3",
+      "user_name": "Johnatan Eduardo",
+      "role": "user",
+      "email": "johnataneduardo235@gmail.com",
+      "phone": null,
+      "receive_notifications": true
+    },
+    {
+      "device_id": "BCC0B6F4E9D4",
+      "device_name": "SALGADINHO 01",
+      "tenant_id": "a68a90d5-f9b5-40f9-b0fe-ac8ff97a1848",
+      "user_id": "CEJ5MflM6OZ5vOCS1l8aDTySCZ33",
+      "user_name": "Vagner da silva",
+      "role": "admin",
+      "email": "vagnermerces08@gmail.com",
+      "phone": "+55 81 99236-3292",
+      "receive_notifications": true
+    },
+    {
+      "device_id": "E067D6D8CBB0",
+      "device_name": "ESP32 - VENANCIO",
+      "tenant_id": "f22225f4-197d-4572-8dc5-124775b688db",
+      "user_id": "6puOiBTnajeGmDKk6XJafILSYO42",
+      "user_name": "ANTONIO VENANCIO DA JUNIOR",
+      "role": "admin",
+      "email": "antoniovenanciodev@gmail.com",
+      "phone": null,
+      "receive_notifications": true
+    },
+    {
+      "device_id": "50B9B5F4E9D4",
+      "device_name": "PNI 01",
+      "tenant_id": "38f311af-f55a-46dd-92af-33eb29e46c00",
+      "user_id": "XzzUlLvxEEcKrFkcOh4qrbyry4X2",
+      "user_name": "Lorenna Virginia",
+      "role": "admin",
+      "email": "virginialorenna@gmail.com",
+      "phone": null,
+      "receive_notifications": true
+    },
+    {
+      "device_id": "684302E9BFB4",
+      "device_name": "URBANO",
+      "tenant_id": "38f311af-f55a-46dd-92af-33eb29e46c00",
+      "user_id": "XzzUlLvxEEcKrFkcOh4qrbyry4X2",
+      "user_name": "Lorenna Virginia",
+      "role": "admin",
+      "email": "virginialorenna@gmail.com",
+      "phone": null,
+      "receive_notifications": true
+    },
+    {
+      "device_id": "E067D6D8CBB0",
+      "device_name": "ESP32 - VENANCIO",
+      "tenant_id": "f22225f4-197d-4572-8dc5-124775b688db",
+      "user_id": "vvHlWRbkItg0737GbtGmTcsVjNh2",
+      "user_name": "Antonio Venancio",
+      "role": "user",
+      "email": "nikaotec@gmail.com",
+      "phone": null,
+      "receive_notifications": true
+    },
+    {
+      "device_id": "3005411AD6B8",
+      "device_name": "DOUG 02",
+      "tenant_id": "84bed51b-48a0-4b0d-8495-158712fe1b42",
+      "user_id": "jE9EVe0SqKQRiM48kwWYHZpaIcf2",
+      "user_name": "Doug Silva",
+      "role": "manager",
+      "email": "dougsilvag.1@gmail.com",
+      "phone": "+55 81 99707-0639",
+      "receive_notifications": true
+    },
+    {
+      "device_id": "E067D6D8CBB0",
+      "device_name": "ESP32 - VENANCIO",
+      "tenant_id": "f22225f4-197d-4572-8dc5-124775b688db",
+      "user_id": "bZYbABSdU6QujRqgGyZFlsdmJ0r2",
+      "user_name": "pedro",
+      "role": "user",
+      "email": "teste2@teste.com",
+      "phone": "+55 81 99598-1890",
+      "receive_notifications": true
+    },
+    {
+      "device_id": "3005411AD6B8",
+      "device_name": "DOUG 02",
+      "tenant_id": "84bed51b-48a0-4b0d-8495-158712fe1b42",
+      "user_id": "UAA2MaxoDhOqISaOijL69tjSdXk2",
+      "user_name": "inteldx4",
+      "role": "user",
+      "email": "deividcosta_@hotmail.com",
+      "phone": null,
+      "receive_notifications": true
+    },
+    {
+      "device_id": "E067D6D8CBB0",
+      "device_name": "ESP32 - VENANCIO",
+      "tenant_id": "f22225f4-197d-4572-8dc5-124775b688db",
+      "user_id": "0Xo4c4JXmGfjy8LX9scrQx0xm5G3",
+      "user_name": "Novo Usuário",
+      "role": "admin",
+      "email": "teste@teste.com",
+      "phone": null,
+      "receive_notifications": true
+    },
+    {
+      "device_id": "50B9B5F4E9D4",
+      "device_name": "PNI 01",
+      "tenant_id": "38f311af-f55a-46dd-92af-33eb29e46c00",
+      "user_id": "XGI93mzXyCZQt4fOHaXsAwYF8rw1",
+      "user_name": "Eduarda Larissa",
+      "role": "user",
+      "email": "eduardalarissa1974@gmail.com",
+      "phone": null,
+      "receive_notifications": true
+    },
+    {
+      "device_id": "684302E9BFB4",
+      "device_name": "URBANO",
+      "tenant_id": "38f311af-f55a-46dd-92af-33eb29e46c00",
+      "user_id": "XGI93mzXyCZQt4fOHaXsAwYF8rw1",
+      "user_name": "Eduarda Larissa",
+      "role": "user",
+      "email": "eduardalarissa1974@gmail.com",
+      "phone": null,
+      "receive_notifications": true
+    }
+  ],
+  "tenants": [
+    {
+      "id": "84bed51b-48a0-4b0d-8495-158712fe1b42",
+      "name": "CASA - DOUG",
+      "status": "active",
+      "plan": "pro",
+      "colors": {},
+      "created_at": "2026-04-22T01:41:45.999+00:00"
+    },
+    {
+      "id": "f22225f4-197d-4572-8dc5-124775b688db",
+      "name": "CASA VENANCIO",
+      "status": "active",
+      "plan": "pro",
+      "colors": {},
+      "created_at": "2026-03-31T00:34:47.505+00:00"
+    },
+    {
+      "id": "38f311af-f55a-46dd-92af-33eb29e46c00",
+      "name": "CASINHAS - PE",
+      "status": "active",
+      "plan": "pro",
+      "colors": {},
+      "created_at": "2026-05-12T16:01:08.318+00:00"
+    },
+    {
+      "id": "a68a90d5-f9b5-40f9-b0fe-ac8ff97a1848",
+      "name": "SALGADINHO - PE",
+      "status": "active",
+      "plan": "pro",
+      "colors": {},
+      "created_at": "2026-05-21T03:52:42.445+00:00"
+    },
+    {
+      "id": "ac9c1699-b9cd-432f-82f5-f5de59ca6b35",
+      "name": "SURUBIM-PE",
+      "status": "active",
+      "plan": "pro",
+      "colors": {},
+      "created_at": "2026-05-26T03:23:27.239+00:00"
+    }
+  ]
+}

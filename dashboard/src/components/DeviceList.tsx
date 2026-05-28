@@ -4,9 +4,10 @@ import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import { useMqttData } from '../hooks/useMqttData';
-import { Search, AlertTriangle, BatteryCharging, Zap, Wifi, ServerCrash, Thermometer, Droplets, CheckCircle2 } from 'lucide-react';
+import { Search, AlertTriangle, BatteryCharging, Zap, Wifi, ServerCrash, Thermometer, Droplets, CheckCircle2, Bell, BellOff } from 'lucide-react';
 import { firmwareRegistryService } from '../services/FirmwareRegistryService';
 import { VersionService } from '../services/VersionService';
+import { supabase } from '../supabase/config';
 
 interface DeviceListProps {
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users' | 'ota-panel') => void;
@@ -20,6 +21,24 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
 
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'online' | 'offline' | 'warning'>('all');
+    const [togglingId, setTogglingId] = useState<string | null>(null);
+
+    const handleToggleSilence = async (e: React.MouseEvent, deviceId: string, currentStatus: boolean) => {
+        e.stopPropagation();
+        setTogglingId(deviceId);
+        try {
+            const { error } = await supabase
+                .from('devices_status')
+                .update({ alerts_paused: !currentStatus })
+                .eq('device_id', deviceId);
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Erro ao silenciar dispositivo:', error);
+        } finally {
+            setTogglingId(null);
+        }
+    };
 
     // Dados base do Firebase + sobreposição ao vivo do MQTT
     // Escuta todos os dados para que a lógica lide mesmo quando a aba não estiver em "Todos".
@@ -187,6 +206,19 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
                                                                 {availableTenants.find(t => t.id === device.tenantId)?.name || device.tenantId}
                                                             </span>
                                                         )}
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={(e) => handleToggleSilence(e, device.id, device.alerts_paused || false)}
+                                                            disabled={togglingId === device.id}
+                                                            className={`p-2 rounded-xl transition-all ${device.alerts_paused
+                                                                ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30'
+                                                                : 'bg-slate-800 text-slate-500 border border-slate-700 hover:text-slate-300'
+                                                                }`}
+                                                            title={device.alerts_paused ? "Ativar alertas de offline" : "Silenciar alertas de offline"}
+                                                        >
+                                                            {device.alerts_paused ? <BellOff size={18} /> : <Bell size={18} />}
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>

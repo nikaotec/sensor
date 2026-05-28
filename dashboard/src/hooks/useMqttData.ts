@@ -70,7 +70,8 @@ export const useMqttData = (
                             status: existing.status || initD.status,
                             lastSeen: existing.lastSeen || initD.lastSeen,
                             telemetry: existing.telemetry || initD.telemetry,
-                            mqttUpdated: Object.hasOwn(existing, 'mqttUpdated') ? existing.mqttUpdated : false
+                            mqttUpdated: Object.hasOwn(existing, 'mqttUpdated') ? existing.mqttUpdated : false,
+                            alerts_paused: initD.alerts_paused // Sempre usar o valor mais recente do Supabase
                         };
                     } else {
                         newDevices.push({ ...initD, mqttUpdated: false });
@@ -96,23 +97,15 @@ export const useMqttData = (
                     const lastSeenTime = new Date(device.lastSeen).getTime();
 
                     if (now - lastSeenTime > OFFLINE_TIMEOUT) {
+                        // Apenas dispara na TRANSIÇÃO para offline, não continuamente
                         if (device.status !== 'offline') {
                             devicesToBeMarkedOffline.push(device.id);
-                        }
 
-                        // Check for recurring alert frequency
-                        const lastSentKey = `offline_last_sent_${device.id}`;
-                        const lastSent = localStorage.getItem(lastSentKey);
-                        const lastSentTime = lastSent ? parseInt(lastSent, 10) : 0;
-
-                        // Verifica se o usuário silenciou alertas para este dispositivo
-                        const isPaused = localStorage.getItem(`offline_alerts_paused_${device.id}`) === 'true';
-
-                        if (!isPaused && (now - lastSentTime > OFFLINE_TIMEOUT)) {
-                            alertsToTrigger.push(device);
-                        } else if (isPaused) {
-                            // Se estiver pausado, removemos o registro de envio para resetar o ciclo ao despausar
-                            localStorage.removeItem(lastSentKey);
+                            // Verifica se os alertas estão silenciados
+                            const isPaused = device.alerts_paused === true;
+                            if (!isPaused) {
+                                alertsToTrigger.push(device);
+                            }
                         }
                     }
                 }
@@ -284,8 +277,9 @@ export const useMqttData = (
                     const belongsToCurrentView = tenantId === 'all' || resolvedCompany.toLowerCase() === tenantId?.toLowerCase();
                     if (!belongsToCurrentView) return prevDevices;
 
-                    // Trigger alert callback
-                    if (rawPayload.TIPO?.startsWith('ALERTA_') && onAlert) {
+                    // Trigger alert callback (Apenas se não estiver silenciado)
+                    const deviceIsPaused = existing?.alerts_paused === true;
+                    if (rawPayload.TIPO?.startsWith('ALERTA_') && onAlert && !deviceIsPaused) {
                         onAlert(rawPayload);
                     }
 
@@ -301,7 +295,7 @@ export const useMqttData = (
                                 ...existing.telemetry,
                                 ...payload // Overlay normalized fields
                             },
-                            mqttUpdated: true
+                            mqttUpdated: existing.mqttUpdated || payload.temp !== undefined
                         };
                         return newDevices;
                     } else if (payload.id) {
@@ -314,7 +308,7 @@ export const useMqttData = (
                             location: payload.ala || '',
                             lastSeen: new Date().toISOString(),
                             telemetry: payload,
-                            mqttUpdated: true
+                            mqttUpdated: payload.temp !== undefined
                         };
                         return [...prevDevices, newDevice];
                     }

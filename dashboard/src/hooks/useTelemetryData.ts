@@ -47,8 +47,8 @@ export const useTelemetryData = (
             return assignedDevices.filter(d => d.tenantId === currentTenant.id || d.tenantId === currentTenant.name);
         }
 
-        // If manager and in "All" tab, show all ASSIGNED devices
-        if (isManager || isAdmin) {
+        // Se gestor e na aba "Todos", mostra todos os dispositivos atribuídos
+        if (isManager) {
             return assignedDevices;
         }
 
@@ -62,7 +62,15 @@ export const useTelemetryData = (
     }, [tenantDevices, currentTenant, availableTenants, isManager, isAdmin]);
 
     const onlineDevices = useMemo(() => {
-        return displayDevices.filter(d => d.status === 'online');
+        // Garantir que o dispositivo esteja online E tenha recebido atualização via MQTT nesta sessão com dados reais
+        // Filtramos "zerados" (temp === 0 ou strings "0.0") pois podem indicar sensor ainda não inicializado ou erro
+        return displayDevices.filter(d => {
+            const tempValue = d.telemetry?.temp;
+            const hasData = tempValue !== undefined && tempValue !== null;
+            const isZero = hasData && Number(tempValue) === 0;
+
+            return d.status === 'online' && d.mqttUpdated && hasData && !isZero;
+        });
     }, [displayDevices]);
 
     return {

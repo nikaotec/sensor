@@ -68,27 +68,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, isCollapsed: 
 
     const isAdmin = currentUser?.role === 'admin';
     const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
+    const isCommonUser = currentUser?.role === 'user' || (!isManager && !isAdmin);
 
-    const menuItems: SidebarScreen[] = (['dashboard', 'device-list', 'alerts', 'reports', 'settings'] as SidebarScreen[]).filter(item => {
-        // Apenas Gestores e Admins podem ver Dispositivos
-        if (item === 'device-list') return isManager || isAdmin;
-        // Apenas Gestores podem ver Relatórios
-        if (item === 'reports') return isManager;
-        return true;
-    });
+    const finalMenuItems: SidebarScreen[] = [];
 
-    let finalMenuItems: SidebarScreen[] = [...menuItems];
-
-    if (isManager) {
-        finalMenuItems.push('manager-panel');
-    }
-
-    if (isAdmin) {
-        finalMenuItems.push('admin-users');
-    }
-
-    if (isManager || isAdmin) {
-        finalMenuItems.push('ota-panel');
+    if (isCommonUser) {
+        // Usuário comum vê apenas o Dashboard
+        finalMenuItems.push('dashboard');
+    } else if (isAdmin) {
+        // Admin não vê configurações, administração, firmware e usuários
+        finalMenuItems.push('dashboard', 'device-list', 'alerts', 'reports');
+    } else if (isManager) {
+        // Gestor tem acesso total
+        finalMenuItems.push('dashboard', 'device-list', 'alerts', 'reports', 'manager-panel', 'admin-users', 'ota-panel', 'settings');
     }
 
     return (

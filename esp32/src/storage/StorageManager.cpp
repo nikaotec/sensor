@@ -263,7 +263,5 @@ void StorageManager::resetMinMax(float currentTemp) {
     data.tempMaxRec = currentTemp;
     data.tempMinRec = currentTemp;
   }
-  EEPROM.put(ADDR_MAX_REC, data.tempMaxRec);
-  EEPROM.put(ADDR_MIN_REC, data.tempMinRec);
-  EEPROM.commit();
+  // Não grava na EEPROM/Flash para evitar desgaste físico do chip
 }

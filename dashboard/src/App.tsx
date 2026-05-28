@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react'
 import Login from './components/Login'
 import SignUp from './components/SignUp'
@@ -16,7 +15,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useMqttData } from './hooks/useMqttData'
 import { useTelemetryData } from './hooks/useTelemetryData'
-import { X, AlertOctagon } from 'lucide-react'
+import { X, AlertOctagon, BellOff } from 'lucide-react'
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext'
 import { useOtaManager } from './hooks/useOtaManager'
 import { supabase } from './supabase/config'
@@ -27,9 +26,12 @@ type Screen = 'login' | 'signup' | 'dashboard' | 'device-list' | 'device-details
 const AppContent = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login')
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
-  const { activeAlerts, addAlert, clearAlert } = useNotifications();
+  const { activeAlerts, addAlert, clearAlert, snoozeDevice } = useNotifications();
   const { currentTenant, setTenantId, availableTenants } = useTenant();
   const { currentUser, loading } = useAuth();
+
+  // Admin, gestor e usuário comum podem silenciar por 2 min
+  const canSnooze = currentUser?.role === 'admin' || currentUser?.role === 'manager' || currentUser?.role === 'gestor' || currentUser?.role === 'user';
 
   const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -61,40 +63,46 @@ const AppContent = () => {
   // Função para tocar som de alerta (Padrão Sirene)
   const playAlertSound = () => {
     try {
-      if (!audioCtxRef.current) return;
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
       const ctx = audioCtxRef.current;
 
-      // Forçar resume se necessário
-      if (ctx.state === 'suspended') ctx.resume();
+      const runSound = () => {
+        const startTime = ctx.currentTime;
 
-      const startTime = ctx.currentTime;
+        // Função auxiliar para criar bipes da sirene
+        const createTone = (freq: number, time: number, duration: number) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
 
-      // Função auxiliar para criar bipes da sirene
-      const createTone = (freq: number, time: number, duration: number) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+          osc.type = 'sawtooth'; // Som mais "alerta"
+          osc.frequency.setValueAtTime(freq, time);
 
-        osc.type = 'sawtooth'; // Som mais "alerta"
-        osc.frequency.setValueAtTime(freq, time);
+          // Envelope suave para evitar estalidos
+          gain.gain.setValueAtTime(0, time);
+          gain.gain.linearRampToValueAtTime(0.2, time + 0.05); // Aumentado para 0.2 para maior audibilidade
+          gain.gain.setValueAtTime(0.2, time + duration - 0.05);
+          gain.gain.linearRampToValueAtTime(0, time + duration);
 
-        // Envelope suave para evitar estalidos
-        gain.gain.setValueAtTime(0, time);
-        gain.gain.linearRampToValueAtTime(0.1, time + 0.05);
-        gain.gain.setValueAtTime(0.1, time + duration - 0.05);
-        gain.gain.linearRampToValueAtTime(0, time + duration);
+          osc.start(time);
+          osc.stop(time + duration);
+        };
 
-        osc.start(time);
-        osc.stop(time + duration);
+        // Sirene de dois tons alternados
+        createTone(880, startTime, 0.25);
+        createTone(554, startTime + 0.25, 0.25);
+        createTone(880, startTime + 0.5, 0.25);
+        createTone(554, startTime + 0.75, 0.25);
       };
 
-      // Sirene de dois tons alternados
-      createTone(880, startTime, 0.25);
-      createTone(554, startTime + 0.25, 0.25);
-      createTone(880, startTime + 0.5, 0.25);
-      createTone(554, startTime + 0.75, 0.25);
-
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(runSound).catch(err => console.warn('Erro ao ativar áudio:', err));
+      } else {
+        runSound();
+      }
     } catch (e) {
       console.warn('Erro na reprodução do áudio:', e);
     }
@@ -148,13 +156,38 @@ const AppContent = () => {
 
   // Monitorar Alertas MQTT Globalmente (Side effects apenas)
   useMqttData(
-    currentTenant?.id || 'all',
+    'all',
     currentUser?.role,
     [],
     (alertPayload) => {
-      playAlertSound();
-      addAlert(alertPayload);
-      logAlertToSupabase(alertPayload);
+      // Ignorar alertas sem payload válido
+      if (!alertPayload || !alertPayload.TIPO || (!alertPayload.ID_DISPOSITIVO && !alertPayload.id)) return;
+
+      const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
+
+      // Gestores veem alertas de todos os dispositivos
+      if (isManager) {
+        addAlert(alertPayload, playAlertSound);
+        logAlertToSupabase(alertPayload);
+        return;
+      }
+
+      // Usuários comuns e admins: apenas alertas da(s) empresa(s) vinculada(s)
+      if (availableTenants.length === 0) return;
+
+      const alertCompany = alertPayload.EMPRESA?.toLowerCase();
+      const alertTenantId = alertPayload.TENANT_ID;
+
+      const isFromLinkedTenant = availableTenants.some(t =>
+        (alertCompany && t.name.toLowerCase() === alertCompany) ||
+        (alertTenantId && t.id === alertTenantId)
+      );
+
+      // SÓ dispara se for estritamente do tenant vinculado - caso contrário não mostra nem apita
+      if (isFromLinkedTenant) {
+        addAlert(alertPayload, playAlertSound);
+        logAlertToSupabase(alertPayload);
+      }
     },
     handleDeviceNameChange
   );
@@ -232,9 +265,9 @@ const AppContent = () => {
       <TenantSwitcher />
 
       {/* Floating Alert System */}
-      <div className="fixed top-6 right-6 z-[999] flex flex-col gap-3 w-80 max-w-[90vw]">
+      <div className="fixed bottom-6 right-6 z-[999] flex flex-col-reverse gap-3 w-80 max-w-[90vw]">
         {activeAlerts.map((alert, idx) => (
-          <div key={`${alert.ID_DISPOSITIVO}-${idx}`} className="bg-[#1A1D17] border border-red-500/30 rounded-2xl p-4 shadow-[0_10px_40px_rgba(0,0,0,0.5),0_0_20px_rgba(239,68,68,0.1)] flex gap-4 animate-in slide-in-from-right-10 duration-300 relative group overflow-hidden">
+          <div key={`${alert.ID_DISPOSITIVO}-${idx}`} className="bg-[#1A1D17] border border-red-500/30 rounded-2xl p-4 shadow-[0_10px_40px_rgba(0,0,0,0.5),0_0_20px_rgba(239,68,68,0.1)] flex gap-4 animate-in slide-in-from-bottom-10 duration-300 relative group overflow-hidden">
             <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none"></div>
             <div className="size-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20 shrink-0">
               <AlertOctagon size={20} />
@@ -245,6 +278,17 @@ const AppContent = () => {
               <p className="text-slate-400 text-[10px] leading-snug">
                 {alert.TIPO?.replace('ALERTA_', '').replace('_', ' ')}: <span className="text-red-400 font-bold">{getAlertValue(alert)}</span>
               </p>
+              {/* Botão Snooze 2 min: apenas para admin e gestor */}
+              {canSnooze && (
+                <button
+                  onClick={() => snoozeDevice(alert.ID_DISPOSITIVO || alert.id)}
+                  className="mt-2 flex items-center gap-1 text-[9px] font-bold text-amber-400 hover:text-amber-300 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg transition-colors"
+                  title="Silenciar este alerta por 2 minutos"
+                >
+                  <BellOff size={10} />
+                  Snooze 2 min
+                </button>
+              )}
             </div>
             <button
               onClick={() => clearAlert(idx)}
