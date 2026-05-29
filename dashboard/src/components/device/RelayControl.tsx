@@ -1,13 +1,14 @@
 import React from 'react';
 import type { Device } from '../../data/mockData';
-import { Zap } from 'lucide-react';
-
+import { Zap, RotateCcw } from 'lucide-react';
 interface RelayControlProps {
     device: Device;
     handleToggleRelay: (action: 'ligar_rele' | 'desligar_rele', index?: number, port?: number) => void;
     isUpdating: boolean;
     isConnected: boolean;
     handleAction: (action: string, extraPayload: any, logMsg: string) => void;
+    handleWifiReset?: () => void;
+    wifiResetting?: boolean;
 }
 
 const RelayControl: React.FC<RelayControlProps> = ({
@@ -15,7 +16,9 @@ const RelayControl: React.FC<RelayControlProps> = ({
     handleToggleRelay,
     isUpdating,
     isConnected,
-    handleAction
+    handleAction,
+    handleWifiReset,
+    wifiResetting
 }) => {
     return (
         <div className="pt-3 border-t border-[#2A2E24] space-y-4">
@@ -79,6 +82,18 @@ const RelayControl: React.FC<RelayControlProps> = ({
                             {device?.telemetry?.silenced ? 'ALARMES SILENCIADOS' : 'SILENCIAR ALARME'}
                         </div>
                     </button>
+                    {handleWifiReset && (
+                        <button
+                            onClick={handleWifiReset}
+                            disabled={wifiResetting || !isConnected}
+                            className={`py-2 rounded-lg text-[9px] font-bold uppercase transition-all border ${wifiResetting ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-[#0F110D] border border-[#2A2E24] text-slate-400 hover:text-white'}`}
+                        >
+                            <div className="flex items-center justify-center gap-2">
+                                <RotateCcw size={14} className={wifiResetting ? 'animate-spin' : ''} />
+                                {wifiResetting ? 'RESETANDO WIFI...' : 'RESET WIFI'}
+                            </div>
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

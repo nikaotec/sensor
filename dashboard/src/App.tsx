@@ -15,7 +15,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
 import { useMqttData } from './hooks/useMqttData'
 import { useTelemetryData } from './hooks/useTelemetryData'
-import { X, AlertOctagon, BellOff } from 'lucide-react'
+import { X, AlertOctagon } from 'lucide-react'
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext'
 import { useOtaManager } from './hooks/useOtaManager'
 import { supabase } from './supabase/config'
@@ -26,12 +26,11 @@ type Screen = 'login' | 'signup' | 'dashboard' | 'device-list' | 'device-details
 const AppContent = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login')
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
-  const { activeAlerts, addAlert, clearAlert, snoozeDevice } = useNotifications();
+  const { activeAlerts, addAlert, clearAlert } = useNotifications();
   const { currentTenant, setTenantId, availableTenants } = useTenant();
   const { currentUser, loading } = useAuth();
 
-  // Admin, gestor e usuário comum podem silenciar por 2 min
-  const canSnooze = currentUser?.role === 'admin' || currentUser?.role === 'manager' || currentUser?.role === 'gestor' || currentUser?.role === 'user';
+
 
   const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -60,8 +59,8 @@ const AppContent = () => {
     };
   }, []);
 
-  // Função para tocar som de alerta (Padrão Sirene)
-  const playAlertSound = () => {
+  // Função para tocar som de alerta personalizado por tipo de alarme
+  const playAlertSound = (alertType?: string) => {
     try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -70,32 +69,58 @@ const AppContent = () => {
 
       const runSound = () => {
         const startTime = ctx.currentTime;
+        const type = (alertType || '').toUpperCase();
 
         // Função auxiliar para criar bipes da sirene
-        const createTone = (freq: number, time: number, duration: number) => {
+        const createTone = (freq: number, time: number, duration: number, oscType: 'sawtooth' | 'sine' | 'triangle' | 'square' = 'sawtooth', gainVal = 0.2) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.connect(gain);
           gain.connect(ctx.destination);
 
-          osc.type = 'sawtooth'; // Som mais "alerta"
+          osc.type = oscType;
           osc.frequency.setValueAtTime(freq, time);
 
-          // Envelope suave para evitar estalidos
           gain.gain.setValueAtTime(0, time);
-          gain.gain.linearRampToValueAtTime(0.2, time + 0.05); // Aumentado para 0.2 para maior audibilidade
-          gain.gain.setValueAtTime(0.2, time + duration - 0.05);
+          gain.gain.linearRampToValueAtTime(gainVal, time + 0.05);
+          gain.gain.setValueAtTime(gainVal, time + duration - 0.05);
           gain.gain.linearRampToValueAtTime(0, time + duration);
 
           osc.start(time);
           osc.stop(time + duration);
         };
 
-        // Sirene de dois tons alternados
-        createTone(880, startTime, 0.25);
-        createTone(554, startTime + 0.25, 0.25);
-        createTone(880, startTime + 0.5, 0.25);
-        createTone(554, startTime + 0.75, 0.25);
+        if (type.includes('TEMP')) {
+          // Sirene de temperatura: Rápida e aguda (Sawtooth)
+          createTone(987.77, startTime, 0.15, 'sawtooth'); // B5
+          createTone(1318.51, startTime + 0.15, 0.15, 'sawtooth'); // E6
+          createTone(987.77, startTime + 0.30, 0.15, 'sawtooth');
+          createTone(1318.51, startTime + 0.45, 0.15, 'sawtooth');
+        } else if (type.includes('TENSAO') || type.includes('ENERGIA') || type.includes('OUTAGE')) {
+          // Sirene de tensão/energia: Grave, pulsante e industrial (Square)
+          createTone(329.63, startTime, 0.25, 'square', 0.15); // E4
+          createTone(220.00, startTime + 0.25, 0.25, 'square', 0.15); // A3
+          createTone(329.63, startTime + 0.50, 0.25, 'square', 0.15);
+          createTone(220.00, startTime + 0.75, 0.25, 'square', 0.15);
+        } else if (type.includes('BAT')) {
+          // Sirene de Bateria: Tom de aviso suave, estilo sonar/triângulo (Triangle)
+          createTone(523.25, startTime, 0.20, 'triangle', 0.25); // C5
+          createTone(440.00, startTime + 0.25, 0.20, 'triangle', 0.25); // A4
+          createTone(523.25, startTime + 0.50, 0.20, 'triangle', 0.25);
+          createTone(440.00, startTime + 0.75, 0.20, 'triangle', 0.25);
+        } else if (type.includes('PORTA') || type.includes('DOOR')) {
+          // Sirene de Porta aberta: Bipe duplo estridente (Sine)
+          createTone(880, startTime, 0.1, 'sine'); 
+          createTone(880, startTime + 0.15, 0.1, 'sine');
+          createTone(880, startTime + 0.4, 0.1, 'sine');
+          createTone(880, startTime + 0.55, 0.1, 'sine');
+        } else {
+          // Alerta Genérico / Padrão (Sirene de dois tons original)
+          createTone(880, startTime, 0.25, 'sawtooth');
+          createTone(554, startTime + 0.25, 0.25, 'sawtooth');
+          createTone(880, startTime + 0.5, 0.25, 'sawtooth');
+          createTone(554, startTime + 0.75, 0.25, 'sawtooth');
+        }
       };
 
       if (ctx.state === 'suspended') {
@@ -167,7 +192,7 @@ const AppContent = () => {
 
       // Gestores veem alertas de todos os dispositivos
       if (isManager) {
-        addAlert(alertPayload, playAlertSound);
+        addAlert(alertPayload, () => playAlertSound(alertPayload.TIPO));
         logAlertToSupabase(alertPayload);
         return;
       }
@@ -185,7 +210,7 @@ const AppContent = () => {
 
       // SÓ dispara se for estritamente do tenant vinculado - caso contrário não mostra nem apita
       if (isFromLinkedTenant) {
-        addAlert(alertPayload, playAlertSound);
+        addAlert(alertPayload, () => playAlertSound(alertPayload.TIPO));
         logAlertToSupabase(alertPayload);
       }
     },
@@ -278,17 +303,7 @@ const AppContent = () => {
               <p className="text-slate-400 text-[10px] leading-snug">
                 {alert.TIPO?.replace('ALERTA_', '').replace('_', ' ')}: <span className="text-red-400 font-bold">{getAlertValue(alert)}</span>
               </p>
-              {/* Botão Snooze 2 min: apenas para admin e gestor */}
-              {canSnooze && (
-                <button
-                  onClick={() => snoozeDevice(alert.ID_DISPOSITIVO || alert.id)}
-                  className="mt-2 flex items-center gap-1 text-[9px] font-bold text-amber-400 hover:text-amber-300 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg transition-colors"
-                  title="Silenciar este alerta por 2 minutos"
-                >
-                  <BellOff size={10} />
-                  Snooze 2 min
-                </button>
-              )}
+
             </div>
             <button
               onClick={() => clearAlert(idx)}

@@ -30,32 +30,46 @@ public:
   }
 
   void read() {
-    // Gatilho de medição
-    Wire.beginTransmission(_address);
-    Wire.write(0xAC);
-    Wire.write(0x33);
-    Wire.write(0x00);
-    Wire.endTransmission();
+    static unsigned long lastTrigger = 0;
+    static bool waitingForMeasure = false;
+    unsigned long now = millis();
 
-    delay(80); // Aguarda medição
-
-    Wire.requestFrom(_address, (uint8_t)6);
-    if (Wire.available() >= 6) {
-      uint8_t data[6];
-      for (int i = 0; i < 6; i++) {
-        data[i] = Wire.read();
+    // Se não estivermos aguardando uma medição, inicia uma nova leitura a cada 2 segundos
+    if (!waitingForMeasure) {
+      if (now - lastTrigger >= 2000) {
+        Wire.beginTransmission(_address);
+        Wire.write(0xAC);
+        Wire.write(0x33);
+        Wire.write(0x00);
+        if (Wire.endTransmission() == 0) {
+          lastTrigger = now;
+          waitingForMeasure = true;
+        }
       }
+      return;
+    }
 
-      if (!(data[0] & 0x80)) { // Verifica bit de ocupado (0 = pronto)
-        uint32_t humRaw = ((uint32_t)data[1] << 12) | ((uint32_t)data[2] << 4) |
-                          (data[3] >> 4);
-        _humidity = (float)humRaw * 100.0 / 1048576.0;
+    // Se estivermos aguardando, aguarda assincronamente os 80ms passarem
+    if (waitingForMeasure && (now - lastTrigger >= 80)) {
+      waitingForMeasure = false;
+      Wire.requestFrom(_address, (uint8_t)6);
+      if (Wire.available() >= 6) {
+        uint8_t data[6];
+        for (int i = 0; i < 6; i++) {
+          data[i] = Wire.read();
+        }
 
-        uint32_t tempRaw = ((uint32_t)(data[3] & 0x0F) << 16) |
-                           ((uint32_t)data[4] << 8) | data[5];
-        _temperature = ((float)tempRaw * 200.0 / 1048576.0) - 50.0;
+        if (!(data[0] & 0x80)) { // Verifica bit de ocupado (0 = pronto)
+          uint32_t humRaw = ((uint32_t)data[1] << 12) | ((uint32_t)data[2] << 4) |
+                            (data[3] >> 4);
+          _humidity = (float)humRaw * 100.0 / 1048576.0;
 
-        _valid = (_temperature > -40 && _temperature < 85);
+          uint32_t tempRaw = ((uint32_t)(data[3] & 0x0F) << 16) |
+                             ((uint32_t)data[4] << 8) | data[5];
+          _temperature = ((float)tempRaw * 200.0 / 1048576.0) - 50.0;
+
+          _valid = (_temperature > -40 && _temperature < 85);
+        }
       }
     }
   }

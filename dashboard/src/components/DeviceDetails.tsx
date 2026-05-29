@@ -13,6 +13,7 @@ import DeviceTelemetryCard from './device/DeviceTelemetryCard';
 import HysteresisControl from './device/HysteresisControl';
 import AlarmSettings from './device/AlarmSettings';
 import SensorAlarmToggles from './device/SensorAlarmToggles';
+import UserAlarmMuteControl from './device/UserAlarmMuteControl';
 import CalibrationControl from './device/CalibrationControl';
 import RelayControl from './device/RelayControl';
 import DeviceHistoryChart from './device/DeviceHistoryChart';
@@ -30,7 +31,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     // Todos os hooks devem ser chamados incondicionalmente no topo
     const [remoteSync, setRemoteSync] = useState(true);
     const { devices: supabaseDevices, history, events } = useSupabaseData(currentTenant?.id || '', deviceId, currentUser?.role);
-    const { devices: tenantDevices, isConnected, publish, updateDeviceLocal } = useMqttData('all', currentUser?.role, supabaseDevices);
+    const { devices: tenantDevices, isConnected, publish, updateDeviceLocal, mqttClient } = useMqttData('all', currentUser?.role, supabaseDevices);
 
     // Estados locais para controle remoto
     const [tempMinInput, setTempMinInput] = useState<string>('');
@@ -62,6 +63,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const [isEditingName, setIsEditingName] = useState(false);
     const [newDeviceName, setNewDeviceName] = useState('');
     const [isChangingName, setIsChangingName] = useState(false);
+    const [wifiResetting, setWifiResetting] = useState(false);
 
     // Estado para silenciar alertas de offline (localStorage)
     const [isOfflinePaused, setIsOfflinePaused] = useState<boolean>(() => {
@@ -259,6 +261,15 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
         else setTempCalibration('');
     };
 
+    const handleWifiReset = () => {
+        if (!device || !mqttClient || wifiResetting) return;
+        setWifiResetting(true);
+        const cmdPayload = JSON.stringify({ intent: "reset_wifi", is_admin: true });
+        const cmdTopic = `devices/${device.id}/cmd`;
+        mqttClient.publish(cmdTopic, cmdPayload);
+        setTimeout(() => setWifiResetting(false), 5000);
+    };
+
     const handleSensorChange = (type: 'DS18B20' | 'PT100') => {
         setSelectedTempSensor(type);
         handleAction('set_sensor_type', { sensor_type: type }, `Tipo de sensor alterado para ${type}`);
@@ -340,17 +351,26 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                             isConnected={isConnected}
                                             userRole={currentUser?.role}
                                         />
-                                        {/* Toggles de sensores, Calibração e Relés: apenas para gestores */}
+                                        {/* Toggles de sensores: apenas para gestores */}
+                                        {isManager && (
+                                            <SensorAlarmToggles
+                                                chkVolt={chkVolt} chkBat={chkBat} chkTemp={chkTemp} chkDoor={chkDoor}
+                                                isOfflinePaused={isOfflinePaused}
+                                                onToggleOfflinePause={handleToggleOfflinePause}
+                                                handleToggleAlarm={handleToggleAlarm}
+                                                isUpdating={isUpdating}
+                                                isConnected={isConnected}
+                                            />
+                                        )}
+
+                                        {/* Painel de Silenciamento Local de Alarmes: visível para gestores e admins */}
+                                        {canAccessControlPanel && (
+                                            <UserAlarmMuteControl deviceId={device.id} />
+                                        )}
+
+                                        {/* Calibração e Relés: apenas para gestores */}
                                         {isManager && (
                                             <>
-                                                <SensorAlarmToggles
-                                                    chkVolt={chkVolt} chkBat={chkBat} chkTemp={chkTemp} chkDoor={chkDoor}
-                                                    isOfflinePaused={isOfflinePaused}
-                                                    onToggleOfflinePause={handleToggleOfflinePause}
-                                                    handleToggleAlarm={handleToggleAlarm}
-                                                    isUpdating={isUpdating}
-                                                    isConnected={isConnected}
-                                                />
                                                 <CalibrationControl
                                                     voltCalibration={voltCalibration} setVoltCalibration={setVoltCalibration}
                                                     batCalibration={batCalibration} setBatCalibration={setBatCalibration}
@@ -367,6 +387,8 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                                     isUpdating={isUpdating}
                                                     isConnected={isConnected}
                                                     handleAction={handleAction}
+                                                    handleWifiReset={handleWifiReset}
+                                                    wifiResetting={wifiResetting}
                                                 />
                                             </>
                                         )}

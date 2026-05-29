@@ -380,10 +380,9 @@ void DisplayManager::drawMenu() {
 }
 
 void DisplayManager::openMenu() {
-  _currentMenu = MENU_PASSWORD;
-  _passwordIndex = 0;
-  for (int i = 0; i < 4; i++)
-    _password[i] = 0;
+  _currentMenu = MENU_MAIN;
+  _menuIndex = 0;
+  _subMenuIndex = 0;
 }
 
 void DisplayManager::closeMenu() { _currentMenu = MENU_OFF; }
@@ -545,19 +544,9 @@ void DisplayManager::menuAction(ButtonEvent ev) {
   if (ev == BTN_PRESSED_ENTER) {
     switch (_currentMenu) {
     case MENU_PASSWORD:
-      if (_passwordIndex < 3) {
-        _passwordIndex++;
-      } else {
-        // Verifica senha (default 0000 para agora, ou uma fixa)
-        if (_password[0] == 0 && _password[1] == 0 && _password[2] == 0 &&
-            _password[3] == 0) {
-          _currentMenu = MENU_MAIN;
-          _menuIndex = 0;
-        } else {
-          showMessage("SENHA INCORRETA", 2000);
-          closeMenu();
-        }
-      }
+      // Bypass total da senha: Qualquer ENTER ou clique leva direto ao Menu Principal
+      _currentMenu = MENU_MAIN;
+      _menuIndex = 0;
       break;
 
     case MENU_MAIN:

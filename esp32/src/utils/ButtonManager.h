@@ -38,8 +38,8 @@ public:
     Wire.requestFrom(_address, (uint8_t)1);
     if (Wire.available()) {
       uint8_t val = Wire.read();
-      _lastState = val & 0x0F;
-      Serial.printf("[BTN] PCF8574 initial: raw=0x%02X masked=0x%02X\n", val, _lastState);
+      _lastState = val; // Leitura completa de 8 bits
+      Serial.printf("[BTN] PCF8574 initial: raw=0x%02X\n", val);
     }
   }
 
@@ -56,9 +56,9 @@ public:
       return BTN_NONE;
     }
 
-    uint8_t currentState = Wire.read() & 0x0F;
+    uint8_t currentState = Wire.read(); // Lê todos os 8 bits
     
-    // Debug a cada 3 segundos
+    // Debug a cada 3 segundos mostrando os 8 bits reais
     if (millis() - lastDebug > 3000) {
       Serial.printf("[BTN] last=0x%02X curr=0x%02X\n", _lastState, currentState);
       lastDebug = millis();
@@ -74,26 +74,32 @@ public:
     }
     _lastDebounceTime = millis();
 
-    // Bits que foram de HIGH para LOW
-    uint8_t pressed = (_lastState & (~currentState)) & 0x0F;
+    // Bits de 0 a 7 que foram de HIGH para LOW (pressionados)
+    uint8_t pressed = (_lastState & (~currentState));
     Serial.printf("[BTN] CHANGE: last=0x%02X curr=0x%02X pressed=0x%02X\n", _lastState, currentState, pressed);
 
     // Atualiza estado APÓS detectar
     _lastState = currentState;
 
-    if (pressed & (1 << BTN_MENU)) {
+    // Tenta ler do bit mapeado inferior ou do correspondente superior (deslocado em 4 bits)
+    bool isMenuPressed = (pressed & (1 << BTN_MENU)) || (pressed & (1 << (BTN_MENU + 4)));
+    bool isUpPressed = (pressed & (1 << BTN_UP)) || (pressed & (1 << (BTN_UP + 4)));
+    bool isDownPressed = (pressed & (1 << BTN_DOWN)) || (pressed & (1 << (BTN_DOWN + 4)));
+    bool isEnterPressed = (pressed & (1 << BTN_ENTER)) || (pressed & (1 << (BTN_ENTER + 4)));
+
+    if (isMenuPressed) {
       Serial.println("[BTN] MENU pressed");
       return BTN_PRESSED_MENU;
     }
-    if (pressed & (1 << BTN_UP)) {
+    if (isUpPressed) {
       Serial.println("[BTN] UP pressed");
       return BTN_PRESSED_UP;
     }
-    if (pressed & (1 << BTN_DOWN)) {
+    if (isDownPressed) {
       Serial.println("[BTN] DOWN pressed");
       return BTN_PRESSED_DOWN;
     }
-    if (pressed & (1 << BTN_ENTER)) {
+    if (isEnterPressed) {
       Serial.println("[BTN] ENTER pressed");
       return BTN_PRESSED_ENTER;
     }

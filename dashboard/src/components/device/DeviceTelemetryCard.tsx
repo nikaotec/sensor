@@ -11,7 +11,9 @@ import {
     CheckCircle2,
     Cpu,
     Bell,
-    BellOff
+    BellOff,
+    ArrowUp,
+    ArrowDown
 } from 'lucide-react';
 import type { Device } from '../../data/mockData';
 import { getStatusStyle, getStatusLabel } from '../../utils/statusUtils';
@@ -84,17 +86,6 @@ const DeviceTelemetryCard: React.FC<DeviceTelemetryCardProps> = ({ device, isMan
                                     <span className="text-[9px] font-bold uppercase tracking-tighter">Silenciar</span>
                                 </>
                             )}
-                        </button>
-                    )}
-                    {/* Botão RESETAR MÍN/MÁX: visível para admin, manager e user */}
-                    {(isManager || userRole === 'admin' || userRole === 'user') && handleAction && (
-                        <button
-                            onClick={() => handleAction('reset_manual', {}, 'Reset de registros de temperatura')}
-                            disabled={isUpdating || !isConnected}
-                            title="Zerar os registros de temperatura máxima e mínima do período"
-                            className="text-[9px] px-2 py-1 rounded bg-[#0F110D] border border-[#2A2E24] hover:bg-primary/20 hover:text-primary hover:border-primary/30 transition-all font-bold tracking-widest text-slate-400 disabled:opacity-50"
-                        >
-                            RESETAR MÍN/MÁX
                         </button>
                     )}
                 </div>
@@ -185,15 +176,36 @@ const DeviceTelemetryCard: React.FC<DeviceTelemetryCardProps> = ({ device, isMan
                         </div>
                     </div>
 
-                    <div className="bg-[#0A0D08] p-3 rounded-xl border border-[#2A2E24] text-center flex flex-col items-center justify-center shadow-inner group/card hover:border-red-500/30 transition-colors">
-                        <p className="text-[9px] text-slate-500 uppercase font-bold mb-1 tracking-widest group-hover/card:text-red-400 transition-colors">Máxima</p>
-                        <p className="text-base font-bold text-[#FF5F5F] drop-shadow-[0_0_8px_rgba(255,95,95,0.3)]">
+                    <div className="col-span-2 flex items-center justify-between mt-1 mb-[-4px]">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Extremos do Período</span>
+                        {(isManager || userRole === 'admin' || userRole === 'user') && handleAction && (
+                            <button
+                                onClick={() => handleAction('reset_manual', {}, 'Reset de registros de temperatura')}
+                                disabled={isUpdating || !isConnected}
+                                title="Zerar os registros de temperatura máxima e mínima do período"
+                                className="flex items-center gap-1.5 text-[9px] px-2.5 py-1.5 rounded-lg bg-[#0F110D] border border-[#2A2E24] hover:bg-primary/20 hover:text-primary hover:border-primary/30 transition-all font-bold tracking-widest text-slate-400 disabled:opacity-50"
+                            >
+                                <RotateCw size={10} />
+                                RESETAR MÍN/MÁX
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="bg-[#0A0D08] p-3 rounded-xl border border-[#2A2E24] text-center flex flex-col items-center justify-center shadow-inner group/card hover:border-red-500/30 transition-colors relative overflow-hidden">
+                        <div className="flex items-center gap-1 mb-1 z-10">
+                            <ArrowUp size={10} className="text-red-400" />
+                            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest group-hover/card:text-red-400 transition-colors">Máxima</p>
+                        </div>
+                        <p className="text-base font-bold text-[#FF5F5F] drop-shadow-[0_0_8px_rgba(255,95,95,0.3)] z-10">
                             {device?.telemetry?.tempMax !== undefined ? `${device.telemetry.tempMax.toFixed(1)}°C` : '--'}
                         </p>
                     </div>
-                    <div className="bg-[#0A0D08] p-3 rounded-xl border border-[#2A2E24] text-center flex flex-col items-center justify-center shadow-inner group/card hover:border-primary/30 transition-colors">
-                        <p className="text-[9px] text-slate-500 uppercase font-bold mb-1 tracking-widest group-hover/card:text-primary transition-colors">Mínima</p>
-                        <p className="text-base font-bold text-primary drop-shadow-[0_0_8px_rgba(var(--color-primary-rgb),0.3)]">
+                    <div className="bg-[#0A0D08] p-3 rounded-xl border border-[#2A2E24] text-center flex flex-col items-center justify-center shadow-inner group/card hover:border-primary/30 transition-colors relative overflow-hidden">
+                        <div className="flex items-center gap-1 mb-1 z-10">
+                            <ArrowDown size={10} className="text-primary" />
+                            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest group-hover/card:text-primary transition-colors">Mínima</p>
+                        </div>
+                        <p className="text-base font-bold text-primary drop-shadow-[0_0_8px_rgba(var(--color-primary-rgb),0.3)] z-10">
                             {device?.telemetry?.tempMin !== undefined ? `${device.telemetry.tempMin.toFixed(1)}°C` : '--'}
                         </p>
                     </div>

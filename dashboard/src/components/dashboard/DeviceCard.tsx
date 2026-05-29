@@ -2,21 +2,13 @@ import React from 'react';
 import {
     Activity,
     AlertTriangle,
-    ArrowDown,
-    ArrowUp,
     BatteryCharging,
     Droplets,
     ServerCrash,
     Thermometer,
     Wifi,
     Zap,
-    BellOff,
-    Bell,
-    CheckCircle2,
-    RotateCcw,
-    Volume2,
-    VolumeX,
-    Clock
+    CheckCircle2
 } from 'lucide-react';
 import type { OtaStatus } from '../../types/ota';
 import OtaProgressBadge from '../ota/OtaProgressBadge';
@@ -31,8 +23,6 @@ interface DeviceCardProps {
     availableTenants: any[];
     otaStatus?: OtaStatus;
     onClearOtaProgress?: (deviceId: string) => void;
-    mqttClient?: any;
-    currentUserRole?: string;
 }
 
 const DeviceCard: React.FC<DeviceCardProps> = ({
@@ -42,85 +32,8 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
     currentTenantId,
     availableTenants,
     otaStatus,
-    onClearOtaProgress,
-    mqttClient,
-    currentUserRole
+    onClearOtaProgress
 }) => {
-    const localKey = `offline_alerts_paused_${device.id}`;
-    const [isOfflinePaused, setIsOfflinePaused] = React.useState<boolean>(() => {
-        return localStorage.getItem(localKey) === 'true';
-    });
-    const [wifiResetting, setWifiResetting] = React.useState(false);
-    // Modo manutenção: silencia todos os alarmes gerais (device em MANUAL)
-    const isModoManual = device?.telemetry?.modo === 'MANUAL';
-    const [isManualToggling, setIsManualToggling] = React.useState(false);
-    const [isSilencing2Min, setIsSilencing2Min] = React.useState(false);
-
-    // Sincronizar o estado local com o localStorage
-    React.useEffect(() => {
-        setIsOfflinePaused(localStorage.getItem(localKey) === 'true');
-    }, [device.id]);
-
-    const handleTogglePause = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        const newValue = !isOfflinePaused;
-        setIsOfflinePaused(newValue);
-        if (newValue) {
-            localStorage.setItem(localKey, 'true');
-        } else {
-            localStorage.removeItem(localKey);
-        }
-    };
-
-    const handleWifiReset = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!mqttClient || wifiResetting) return;
-
-        setWifiResetting(true);
-        const cmdPayload = JSON.stringify({ intent: "reset_wifi", is_admin: true });
-        const cmdTopic = `devices/${device.id}/cmd`;
-        mqttClient.publish(cmdTopic, cmdPayload);
-
-        setTimeout(() => setWifiResetting(false), 5000);
-    };
-
-    const handleToggleModoManutencao = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!mqttClient || isManualToggling) return;
-        setIsManualToggling(true);
-        const novoModo = isModoManual ? 'AUTO' : 'MANUAL';
-        const intencao = isModoManual ? 'modo_automatico' : 'modo_manutencao';
-        const payload = JSON.stringify({
-            intencao,
-            id: device.id,
-            dispositivo_id: device.id,
-            is_admin: true,
-            source: 'dashboard'
-        });
-        mqttClient.publish('esp32c3/status/action', payload);
-        console.log(`🔔 Modo ${novoModo} enviado via MQTT para ${device.name}`);
-        setTimeout(() => setIsManualToggling(false), 3000);
-    };
-
-    const handleSilenciar2Min = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!mqttClient || isSilencing2Min) return;
-
-        setIsSilencing2Min(true);
-        const payload = JSON.stringify({
-            intencao: 'silenciar_2min',
-            id: device.id,
-            dispositivo_id: device.id,
-            duracao: 120, // 2 minutos em segundos
-            source: 'dashboard',
-            is_admin: true // Para garantir que o comando seja aceito
-        });
-        mqttClient.publish('esp32c3/status/action', payload);
-        console.log(`⏳ Silenciamento de 2 min enviado para ${device.name}`);
-
-        setTimeout(() => setIsSilencing2Min(false), 3000);
-    };
-
     const getStatusLabel = (status: string) => {
         switch (status) {
             case 'online': return 'ESTÁVEL';
@@ -166,65 +79,43 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
             <div className="mb-4 flex flex-col z-20">
                 <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-loose font-heading">Monitoramento em Tempo Real</h3>
                 <div className="flex justify-between items-center mt-1">
-                    <div className="flex justify-between items-start w-full">
-                        <div className={`${isOffline ? 'opacity-70' : ''}`}>
-                            <h4 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{device.name}</h4>
-                            {device.location && (
-                                <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
-                                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
-                                    {device.location}
-                                    {(device.firmwareVersion || device.telemetry?.version) && (() => {
-                                        const fwVersion = device.firmwareVersion || device.telemetry.version;
-                                        const latestFw = firmwareRegistryService.getLatestVersion();
-                                        const latestVersion = latestFw?.version;
-                                        const isUpToDate = latestVersion ? VersionService.isUpToDate(fwVersion, latestVersion) : true;
-                                        return (
-                                            <div className="flex items-center gap-1.5 ml-2">
-                                                <span className="text-[8px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded-full border border-slate-700 font-bold uppercase tracking-tighter">
-                                                    FW {fwVersion}
+                    <div className={`${isOffline ? 'opacity-70' : ''}`}>
+                        <h4 className="font-bold text-white text-lg group-hover:text-primary transition-colors">{device.name}</h4>
+                        {device.location && (
+                            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                {device.location}
+                                {(device.firmwareVersion || device.telemetry?.version) && (() => {
+                                    const fwVersion = device.firmwareVersion || device.telemetry.version;
+                                    const latestFw = firmwareRegistryService.getLatestVersion();
+                                    const latestVersion = latestFw?.version;
+                                    const isUpToDate = latestVersion ? VersionService.isUpToDate(fwVersion, latestVersion) : true;
+                                    return (
+                                        <div className="flex items-center gap-1.5 ml-2">
+                                            <span className="text-[8px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded-full border border-slate-700 font-bold uppercase tracking-tighter">
+                                                FW {fwVersion}
+                                            </span>
+                                            {isUpToDate ? (
+                                                <span className="text-[8px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter flex items-center gap-1">
+                                                    <CheckCircle2 size={10} />
+                                                    Atualizado
                                                 </span>
-                                                {isUpToDate ? (
-                                                    <span className="text-[8px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter flex items-center gap-1">
-                                                        <CheckCircle2 size={10} />
-                                                        Atualizado
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter flex items-center gap-1">
-                                                        <AlertTriangle size={10} />
-                                                        Atualizar
-                                                    </span>
-                                                )}
-                                            </div>
-                                        );
-                                    })()}
-                                </p>
-                            )}
-                            {currentTenantId === 'all' && (
-                                <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md mt-1.5 inline-block font-medium">
-                                    {availableTenants.find(t => t.id === device.tenantId)?.name || device.tenantId}
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {/* Botão de Silenciar Alertas Offline */}
-                            <button
-                                onClick={handleTogglePause}
-                                className={`p-2 rounded-xl border transition-all duration-300 z-30 cursor-pointer ${isOfflinePaused
-                                    ? 'bg-rose-500/20 border-rose-500/40 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.1)]'
-                                    : 'bg-[#0F110D] border-[#2A2E24] text-slate-500 hover:text-slate-300 hover:border-slate-700'
-                                    }`}
-                                title={isOfflinePaused ? "Alertas Offline Pausados" : "Pausar Alertas Offline"}
-                            >
-                                {isOfflinePaused ? (
-                                    <div className="flex items-center gap-2 px-1">
-                                        <BellOff size={18} />
-                                        <span className="text-[9px] font-bold uppercase tracking-tight">Silenciado</span>
-                                    </div>
-                                ) : (
-                                    <Bell size={18} />
-                                )}
-                            </button>
-                        </div>
+                                            ) : (
+                                                <span className="text-[8px] bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter flex items-center gap-1">
+                                                    <AlertTriangle size={10} />
+                                                    Atualizar
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
+                            </p>
+                        )}
+                        {currentTenantId === 'all' && (
+                            <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-md mt-1.5 inline-block font-medium">
+                                {availableTenants.find(t => t.id === device.tenantId)?.name || device.tenantId}
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
@@ -280,8 +171,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
 
                 <div className="grid grid-cols-2 gap-4 mb-4 z-10">
                     <div className="bg-[#0F110D] rounded-xl p-4 border border-[#2A2E24] flex flex-col items-center justify-center text-center">
-                        <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
-                            <ArrowUp size={16} color="#f43f5e" />
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
                             Máxima
                         </div>
                         <div className="text-lg font-bold text-rose-500">
@@ -289,8 +179,7 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                         </div>
                     </div>
                     <div className="bg-[#0F110D] rounded-xl p-4 border border-[#2A2E24] flex flex-col items-center justify-center text-center">
-                        <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
-                            <ArrowDown size={16} color="#818cf8" />
+                        <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">
                             Mínima
                         </div>
                         <div className="text-lg font-bold text-indigo-400">
@@ -378,65 +267,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Botão: Silenciar Alarmes Gerais (Modo Manutenção via MQTT) */}
-                    {mqttClient && (
-                        <button
-                            onClick={handleToggleModoManutencao}
-                            disabled={isManualToggling}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all ${isModoManual
-                                ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                                : 'bg-[#0F110D] border-[#2A2E24] text-slate-400 hover:text-white hover:border-slate-600'
-                                }`}
-                            title={isModoManual ? 'Modo Manutenção ativo — alertas suspensos. Clique para reativar.' : 'Silenciar todos os alarmes (Modo Manutenção)'}
-                        >
-                            {isModoManual ? (
-                                <>
-                                    <VolumeX size={14} className="shrink-0" />
-                                    <span className="text-[9px] font-bold uppercase tracking-tighter">Em Manutenção</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Volume2 size={14} className="shrink-0" />
-                                    <span className="text-[9px] font-bold uppercase tracking-tighter">Alarmes</span>
-                                </>
-                            )}
-                        </button>
-                    )}
-
-                    {/* Botão: Silenciar 2 Minutos (Disponível para Usuário Comum) */}
-                    {mqttClient && (
-                        <button
-                            onClick={handleSilenciar2Min}
-                            disabled={isSilencing2Min}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all ${isSilencing2Min
-                                ? 'bg-primary/20 border-primary/40 text-primary'
-                                : 'bg-[#0F110D] border-[#2A2E24] text-slate-400 hover:text-white hover:border-slate-600'
-                                }`}
-                            title="Silenciar alertas por 2 minutos"
-                        >
-                            <Clock size={14} className={isSilencing2Min ? 'animate-pulse' : ''} />
-                            <span className="text-[9px] font-bold uppercase tracking-tighter">
-                                {isSilencing2Min ? 'Silenciando...' : '2 min'}
-                            </span>
-                        </button>
-                    )}
-
-                    {/* Botão de Reset WiFi (Apenas se MQTT disponível e for gestor) */}
-                    {mqttClient && currentUserRole === 'gestor' && (
-                        <button
-                            onClick={handleWifiReset}
-                            disabled={wifiResetting}
-                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-all ${wifiResetting
-                                ? 'bg-slate-800 border-slate-700 text-slate-500'
-                                : 'bg-[#0F110D] border-[#2A2E24] text-slate-400 hover:text-white hover:border-slate-600'
-                                }`}
-                            title="Reiniciar Módulo WiFi"
-                        >
-                            <RotateCcw size={14} className={wifiResetting ? 'animate-spin' : ''} />
-                            <span className="text-[9px] font-bold uppercase tracking-tighter">{wifiResetting ? 'Resetando...' : 'Reset WiFi'}</span>
-                        </button>
-                    )}
-
                     <div className="flex items-center gap-1.5 bg-[#0F110D] px-2.5 py-1.5 rounded-lg border border-[#2A2E24]">
                         <Wifi size={14} className={!isOffline ? 'text-primary' : 'text-slate-600'} />
                         <span className="text-[9px] font-bold text-white uppercase tracking-tighter">{!isOffline ? getSignalQuality(device.telemetry.signal) : '---'}</span>
