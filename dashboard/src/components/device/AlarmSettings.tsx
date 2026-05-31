@@ -14,6 +14,8 @@ interface AlarmSettingsProps {
     setBatMinInput: (value: string) => void;
     doorTimeInput: string;
     setDoorTimeInput: (value: string) => void;
+    voltReturnDelayInput: string;
+    setVoltReturnDelayInput: (value: string) => void;
     setRemoteSync: (value: boolean) => void;
     handleSaveLimits: () => void;
     isUpdating: boolean;
@@ -29,6 +31,7 @@ const AlarmSettings: React.FC<AlarmSettingsProps> = ({
     voltMaxInput, setVoltMaxInput,
     batMinInput, setBatMinInput,
     doorTimeInput, setDoorTimeInput,
+    voltReturnDelayInput, setVoltReturnDelayInput,
     setRemoteSync,
     handleSaveLimits,
     isUpdating,
@@ -73,6 +76,10 @@ const AlarmSettings: React.FC<AlarmSettingsProps> = ({
                             <label className="text-[9px] text-slate-500 uppercase font-bold tracking-widest px-1">Máx (V)</label>
                             <input type="number" step="1" value={voltMaxInput} onChange={(e) => { setVoltMaxInput(e.target.value); setRemoteSync(false); }} className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-amber-500/50 focus:outline-none" placeholder="0" />
                         </div>
+                    </div>
+                    <div className="mt-3 space-y-1.5">
+                        <label className="text-[9px] text-slate-500 uppercase font-bold tracking-widest px-1">Atraso Pós-Estabilização (s)</label>
+                        <input type="number" step="1" value={voltReturnDelayInput} onChange={(e) => { setVoltReturnDelayInput(e.target.value); setRemoteSync(false); }} className="w-full bg-[#0F110D] border border-[#2A2E24] rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-amber-500/50 focus:outline-none" placeholder="0" />
                     </div>
                 </div>
             )}

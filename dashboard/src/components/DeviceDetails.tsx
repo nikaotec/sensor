@@ -40,6 +40,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const [voltMaxInput, setVoltMaxInput] = useState<string>('');
     const [batMinInput, setBatMinInput] = useState<string>('');
     const [doorTimeInput, setDoorTimeInput] = useState<string>('');
+    const [voltReturnDelayInput, setVoltReturnDelayInput] = useState<string>('');
 
     // Estados para histerese do relé 0
     const [hysteresisOnInput, setHysteresisOnInput] = useState<string>('');
@@ -65,17 +66,35 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     const [isChangingName, setIsChangingName] = useState(false);
     const [wifiResetting, setWifiResetting] = useState(false);
 
-    // Estado para silenciar alertas de offline (localStorage)
-    const [isOfflinePaused, setIsOfflinePaused] = useState<boolean>(() => {
-        return localStorage.getItem(`offline_alerts_paused_${deviceId}`) === 'true';
-    });
-
     const device = tenantDevices.find(d => d.id === deviceId);
 
-    const handleToggleOfflinePause = () => {
+    // Estado para silenciar alertas de offline (Supabase alerts_paused)
+    const [isOfflinePaused, setIsOfflinePaused] = useState<boolean>((device as any)?.alerts_paused || false);
+
+    useEffect(() => {
+        setIsOfflinePaused((device as any)?.alerts_paused || false);
+    }, [(device as any)?.alerts_paused, deviceId]);
+
+    const handleToggleOfflinePause = async () => {
+        if (!device) return;
         const newValue = !isOfflinePaused;
-        setIsOfflinePaused(newValue);
-        localStorage.setItem(`offline_alerts_paused_${deviceId}`, newValue ? 'true' : 'false');
+        setIsOfflinePaused(newValue); // Optimistic UI update
+
+        try {
+            const { error } = await supabase
+                .from('devices_status')
+                .update({ alerts_paused: newValue })
+                .eq('id', device.id);
+
+            if (error) throw error;
+
+            if (updateDeviceLocal) {
+                updateDeviceLocal(device.id, { alerts_paused: newValue } as any);
+            }
+        } catch (err) {
+            console.error("Erro ao pausar alertas de offline:", err);
+            setIsOfflinePaused(!newValue); // Revert on failure
+        }
     };
 
     // Sincronizar inputs com dados do dispositivo
@@ -88,6 +107,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                 if (device.telemetry.voltMinLimit !== undefined) setVoltMinInput(device.telemetry.voltMinLimit.toString());
                 if (device.telemetry.batMinLimit !== undefined) setBatMinInput(device.telemetry.batMinLimit.toString());
                 if (device.telemetry.doorMaxTime !== undefined) setDoorTimeInput(device.telemetry.doorMaxTime.toString());
+                if (device.telemetry.voltReturnDelay !== undefined) setVoltReturnDelayInput(device.telemetry.voltReturnDelay.toString());
 
                 if (device.telemetry.R0_TEMP_ON !== undefined && device.telemetry.R0_TEMP_ON !== 0) {
                     setHysteresisOnInput(device.telemetry.R0_TEMP_ON.toString());
@@ -153,6 +173,21 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
             publish('esp32c3/status/action', JSON.stringify(payload));
             const isValidUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
             const tenant_id = device.tenantId && isValidUUID(device.tenantId) ? device.tenantId : null;
+
+            // Se for silenciar/reativar alarme geral, também afeta os alertas offline
+            if (action === 'silenciar_alarme' || action === 'reativar_alarme') {
+                const newValue = action === 'silenciar_alarme';
+                setIsOfflinePaused(newValue); // Optimistic UI
+                
+                await supabase
+                    .from('devices_status')
+                    .update({ alerts_paused: newValue })
+                    .eq('id', device.id);
+
+                if (updateDeviceLocal) {
+                    updateDeviceLocal(device.id, { alerts_paused: newValue } as any);
+                }
+            }
 
             await supabase.from('events').insert({
                 device_id: device.id,
@@ -221,6 +256,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
             volt_min: voltMinInput !== '' ? parseFloat(voltMinInput) : undefined,
             bat_min: batMinInput !== '' ? parseFloat(batMinInput) : undefined,
             tempo_porta: doorTimeInput !== '' ? parseInt(doorTimeInput) : undefined,
+            volt_return_delay: voltReturnDelayInput !== '' ? parseInt(voltReturnDelayInput) : undefined,
         }, `Limites atualizados`);
     };
 
@@ -345,6 +381,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
                                             voltMaxInput={voltMaxInput} setVoltMaxInput={setVoltMaxInput}
                                             batMinInput={batMinInput} setBatMinInput={setBatMinInput}
                                             doorTimeInput={doorTimeInput} setDoorTimeInput={setDoorTimeInput}
+                                            voltReturnDelayInput={voltReturnDelayInput} setVoltReturnDelayInput={setVoltReturnDelayInput}
                                             setRemoteSync={setRemoteSync}
                                             handleSaveLimits={handleSaveLimits}
                                             isUpdating={isUpdating}

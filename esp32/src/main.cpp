@@ -334,11 +334,11 @@ void firmware_loop() {
       releEstado[2] = true;
       rele3NormalStart = 0;
     } else {
-      // Tensão normal: aguarda 5 segundos antes de desligar
+      // Tensão normal: aguarda o tempo configurado antes de desligar
       if (releEstado[2]) {
         if (rele3NormalStart == 0) {
           rele3NormalStart = now;
-        } else if (now - rele3NormalStart >= 5000) {
+        } else if (now - rele3NormalStart >= (storage.data.voltReturnDelay * 1000UL)) {
           releEstado[2] = false;
           rele3NormalStart = 0;
         }
@@ -800,6 +800,10 @@ void handleCommand(String intent, JsonObject params) {
     }
     if (params.containsKey("volt_min")) {
       storage.data.voltMin = params["volt_min"];
+      alterouTensao = true;
+    }
+    if (params.containsKey("volt_return_delay")) {
+      storage.data.voltReturnDelay = params["volt_return_delay"];
       alterouTensao = true;
     }
     if (params.containsKey("bat_min")) {
@@ -1323,6 +1327,7 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
     doc["VOLT_MAX_LIMIT"] = serialized(String(storage.data.voltMax, 1));
     doc["VOLT_MIN_LIMIT"] = serialized(String(storage.data.voltMin, 1));
     doc["BAT_MIN_LIMIT"] = serialized(String(storage.data.batMinLimit, 1));
+    doc["VOLT_RETURN_DELAY"] = storage.data.voltReturnDelay;
   }
 
   doc["VOLTAGEM"] = serialized(String(voltSensor.getVoltage(), 1));

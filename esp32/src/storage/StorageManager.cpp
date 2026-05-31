@@ -29,6 +29,7 @@ void StorageManager::load() {
   EEPROM.get(ADDR_LIGHT_ENABLED, data.lightEnabled);
   EEPROM.get(ADDR_SENSOR_PIN_IDX, data.sensorPinIdx);
   EEPROM.get(ADDR_VERSION, data.version);
+  EEPROM.get(ADDR_VOLT_RETURN_DELAY, data.voltReturnDelay);
 
   // Carregar relés (cada relé usa 32 bytes para evitar sobreposição)
   Serial.println("STORAGE: Carregando relés...");
@@ -103,6 +104,13 @@ void StorageManager::load() {
       data.doorMaxTime > 300) {
     data.doorMaxTime = DOOR_TIME_DEFAULT;
     EEPROM.put(ADDR_DOOR_TIME, data.doorMaxTime);
+    EEPROM.commit();
+  }
+
+  // Validação do novo atraso de relé: entre 0 e 600 segundos
+  if (data.voltReturnDelay < 0 || data.voltReturnDelay > 600) {
+    data.voltReturnDelay = VOLT_RETURN_DELAY_DEFAULT;
+    EEPROM.put(ADDR_VOLT_RETURN_DELAY, data.voltReturnDelay);
     EEPROM.commit();
   }
 
@@ -222,6 +230,7 @@ void StorageManager::save() {
   EEPROM.put(ADDR_LIGHT_ENABLED, data.lightEnabled);
   EEPROM.put(ADDR_SENSOR_PIN_IDX, data.sensorPinIdx);
   EEPROM.put(ADDR_VERSION, data.version);
+  EEPROM.put(ADDR_VOLT_RETURN_DELAY, data.voltReturnDelay);
 
   // Salvar relés (cada relé usa 32 bytes para evitar sobreposição)
   for (int i = 0; i < RELAY_COUNT; i++) {

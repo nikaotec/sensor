@@ -47,6 +47,7 @@ export class TelemetryService {
         addIfDefined('voltMinLimit', this.parseNumber(payload.voltMinLimit ?? payload.volt_min ?? payload.VOLT_MIN_LIMIT));
         addIfDefined('batMinLimit', this.parseNumber(payload.batMinLimit ?? payload.bat_min ?? payload.BAT_MIN_LIMIT));
         addIfDefined('doorMaxTime', this.parseNumber(payload.doorMaxTime ?? payload.tempo_porta ?? payload.TEMPO_PORTA));
+        addIfDefined('voltReturnDelay', this.parseNumber(payload.voltReturnDelay ?? payload.volt_return_delay ?? payload.VOLT_RETURN_DELAY));
 
         // Estado de Monitoramento (CHK_*)
         if (payload.chk_volt !== undefined) addIfDefined('chkVolt', !!payload.chk_volt);

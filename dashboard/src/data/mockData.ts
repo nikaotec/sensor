@@ -58,6 +58,7 @@ export interface Device {
         voltMinLimit?: number;
         batMinLimit?: number;
         doorMaxTime?: number;
+        voltReturnDelay?: number;
         // Estado do sistema
         modo?: string;
         silenced?: boolean;

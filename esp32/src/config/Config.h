@@ -94,6 +94,7 @@ enum SensorType { SENSOR_DS18B20 = 0, SENSOR_PT100 = 1 };
 #define ADDR_LIGHT_ENABLED 280
 #define ADDR_SENSOR_PIN_IDX 281
 #define ADDR_VERSION 282 // Novo: Campo de versão dinâmica (16 bytes)
+#define ADDR_VOLT_RETURN_DELAY 298 // Novo: Atraso dinâmico de recuperação do relé (4 bytes)
 
 // ---------- CONSTANTES ----------
 #define VOLTAGE_CALIBRATION_DEFAULT 570.0
@@ -102,6 +103,7 @@ enum SensorType { SENSOR_DS18B20 = 0, SENSOR_PT100 = 1 };
 #define BAT_MIN_DEFAULT 11.5
 #define DOOR_TIME_DEFAULT 30
 #define VOLT_OUTAGE_THR 20.0
+#define VOLT_RETURN_DELAY_DEFAULT 5
 #define ALERT_DEBOUNCE 5000
 #define ALERT_REPEAT                                                           \
   120000 // 2 minutos para repetição contínua via MQTT (WhatsApp)
@@ -154,6 +156,7 @@ struct SystemSettings {
   bool lightEnabled;
   uint8_t sensorPinIdx; // 0=IN-1 (13), 1=IN-2 (17)
   char version[16];     // Armazenamento da versão atualizada via OTA
+  int voltReturnDelay;  // Tempo (em seg) para estabilização de tensão antes de desligar R3
 };
 
 #endif

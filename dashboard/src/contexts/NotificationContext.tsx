@@ -82,7 +82,22 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         if (!user) return;
         const storageKey = `user_mute_settings_${user.id}_${deviceId}`;
         localStorage.setItem(storageKey, JSON.stringify(settings));
-        // Força re-render apenas dos componentes de UI (não afeta addAlert que usa ref)
+        
+        // Limpar alertas ativos que acabaram de ser silenciados
+        setActiveAlerts(prev => prev.filter(alert => {
+            if ((alert.ID_DISPOSITIVO || alert.id) !== deviceId) return true;
+            
+            const type = (alert.TIPO || '').toUpperCase();
+            if (settings.muteTemp && type.includes('TEMP')) return false;
+            if (settings.muteVolt && (type.includes('TENSAO') || type.includes('ENERGIA') || type.includes('OUTAGE') || type.includes('FALTA'))) return false;
+            if (settings.muteBat && type.includes('BAT')) return false;
+            if (settings.muteDoor && (type.includes('PORTA') || type.includes('DOOR'))) return false;
+            if (settings.muteOffline && type.includes('OFFLINE')) return false;
+            
+            return true;
+        }));
+
+        // Força re-render apenas dos componentes de UI
         setMuteUpdateTrigger(prev => prev + 1);
     }, []);
 
