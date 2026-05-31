@@ -66,7 +66,8 @@ unsigned long lastWebReport = 0;       // Timer para Dashboard Web
 unsigned long lastDashboardReport = 0; // Timer para Dashboard Especial (1 min)
 unsigned long lastSupportReport = 0;   // Timer relatorio suporte (1h)
 unsigned long lastReportDay = -1;
-unsigned long doorOpenStart = 0; // Início do tempo de porta aberta
+unsigned long doorOpenStart = 0;   // Início do tempo de porta aberta
+unsigned long rele3NormalStart = 0; // Timer: tensão voltou ao normal (aguarda 5s antes de desligar Relé 3)
 
 // ...
 
@@ -310,6 +311,65 @@ void firmware_loop() {
     doorOpenStart = 0;
   }
 
+  // Controle instantâneo do Relé 2 (índice 1) pelo sensor de porta
+  bool anteriorRele1 = releEstado[1];
+  releEstado[1] = isDoorOpen;
+  digitalWrite(RELAY_PINS[1], releEstado[1] ? HIGH : LOW);
+  if (releEstado[1] != anteriorRele1) {
+    Serial.print(F("[RELE] R1 (Porta)"));
+    Serial.println(releEstado[1] ? F(" LIGADO") : F(" DESLIGADO"));
+  }
+
+  // --- CONTROLE DO RELÉ 3 (PROTEÇÃO DE BATERIA / PROTEÇÃO DE TENSÃO) ---
+  // Liga imediatamente quando tensão sai da faixa (alta, baixa ou falta total).
+  // Desliga somente após 5 segundos de tensão estável dentro da faixa.
+  {
+    bool voltForaDaFaixa = (tVoltagem < VOLT_OUTAGE_THR) ||
+                           (storage.data.chkVolt &&
+                            (tVoltagem > storage.data.voltMax ||
+                             tVoltagem < storage.data.voltMin));
+    bool anteriorRele2 = releEstado[2];
+    if (voltForaDaFaixa) {
+      // Tensão instável: liga relé imediatamente e reseta timer de retorno
+      releEstado[2] = true;
+      rele3NormalStart = 0;
+    } else {
+      // Tensão normal: aguarda 5 segundos antes de desligar
+      if (releEstado[2]) {
+        if (rele3NormalStart == 0) {
+          rele3NormalStart = now;
+        } else if (now - rele3NormalStart >= 5000) {
+          releEstado[2] = false;
+          rele3NormalStart = 0;
+        }
+      }
+    }
+    digitalWrite(RELAY_PINS[2], releEstado[2] ? HIGH : LOW);
+    // Notificações na borda de mudança de estado
+    if (releEstado[2] != anteriorRele2 && !alertasSilenciados) {
+      if (releEstado[2]) {
+        // Relé 3 ligou: tensão fora da faixa — notifica display e MQTT
+        Serial.println(F("[RELE] R2 (Bateria) LIGADO - Tensao fora da faixa"));
+        if (tVoltagem < VOLT_OUTAGE_THR) {
+          String msg = "BAT ATIVA " + String(tBateria, 1) + "V REDE:" + String(tVoltagem, 0) + "V";
+          notificarUsuario(msg, 6000);
+          enviarDadosMqtt("ALERTA_BATERIA_ATIVADA", false);
+        } else if (tVoltagem > storage.data.voltMax) {
+          String msg = "SOBRETENSAO " + String(tVoltagem, 0) + "V BAT:" + String(tBateria, 1) + "V";
+          notificarUsuario(msg, 6000);
+          enviarDadosMqtt("ALERTA_BATERIA_ATIVADA_SOBRETENSAO", false);
+        } else {
+          String msg = "TENSAO BAIXA " + String(tVoltagem, 0) + "V BAT:" + String(tBateria, 1) + "V";
+          notificarUsuario(msg, 6000);
+          enviarDadosMqtt("ALERTA_BATERIA_ATIVADA_SUBTENSAO", false);
+        }
+      } else {
+        // Relé 3 desligou: tensão normalizada — apenas loga na serial, sem notificar display ou MQTT
+        Serial.println(F("[RELE] R2 (Bateria) DESLIGADO - Tensao normalizada"));
+      }
+    }
+  }
+
   // 2.1 Controle de Luz Interna (Sincronizada com Porta)
   if (storage.data.lightEnabled) {
     digitalWrite(LUZ_PIN, isDoorOpen ? HIGH : LOW);
@@ -339,6 +399,8 @@ void firmware_loop() {
     // --- LÓGICA DE CONTROLE DOS RELÉS (HISTERESE E MANUAL) ---
     if (temperaturaAtual > -50 && temperaturaAtual < 80) {
       for (int i = 0; i < RELAY_COUNT; i++) {
+        if (i == 1) continue; // Relé 2 (índice 1) controlado instantaneamente pelo sensor de porta
+        if (i == 2) continue; // Relé 3 (índice 2) controlado pela proteção de tensão/bateria
         RelayConfig &relay = storage.data.relays[i];
         bool anterior = releEstado[i];
 
@@ -1264,6 +1326,7 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
   }
 
   doc["VOLTAGEM"] = serialized(String(voltSensor.getVoltage(), 1));
+  doc["TENSAO"] = serialized(String(voltSensor.getVoltage(), 1)); // Compatibilidade com chaves do n8n/WhatsApp
   doc["BATERIA"] = serialized(String(voltSensor.getBatteryVoltage(), 2));
   doc["CHK_VOLT"] = storage.data.chkVolt;
   doc["CHK_BAT"] = storage.data.chkBat;

@@ -44,6 +44,13 @@ export const useMqttData = (
         devicesRef.current = devices;
     }, [devices]);
 
+    // Ref para onAlert — garante que o listener MQTT sempre chame a versão mais recente
+    // sem precisar re-subscrever à conexão MQTT quando o callback muda.
+    const onAlertRef = useRef(onAlert);
+    useEffect(() => {
+        onAlertRef.current = onAlert;
+    }, [onAlert]);
+
     useEffect(() => {
         if (initialDevices.length > 0) {
             setDevices((prevDevices) => {
@@ -97,13 +104,21 @@ export const useMqttData = (
                     const lastSeenTime = new Date(device.lastSeen).getTime();
 
                     if (now - lastSeenTime > OFFLINE_TIMEOUT) {
-                        // Apenas dispara na TRANSIÇÃO para offline, não continuamente
+                        const isPaused = device.alerts_paused === true;
+                        
                         if (device.status !== 'offline') {
+                            // Transição inicial para offline
                             devicesToBeMarkedOffline.push(device.id);
 
-                            // Verifica se os alertas estão silenciados
-                            const isPaused = device.alerts_paused === true;
                             if (!isPaused) {
+                                alertsToTrigger.push(device);
+                            }
+                        } else {
+                            // Disparos subsequentes a cada 2 minutos enquanto continuar offline
+                            const lastSent = localStorage.getItem(`offline_last_sent_${device.id}`);
+                            const lastSentTime = lastSent ? parseInt(lastSent, 10) : 0;
+                            
+                            if (!isPaused && (now - lastSentTime >= 2 * 60 * 1000)) {
                                 alertsToTrigger.push(device);
                             }
                         }
@@ -124,8 +139,8 @@ export const useMqttData = (
                 console.warn(`⚠️ Dispositivo ${device.name || device.id} OFFLINE. Enviando alerta.`);
 
                 // Local Alert
-                if (onAlert) {
-                    onAlert({
+                if (onAlertRef.current) {
+                    onAlertRef.current({
                         TIPO: 'ALERTA_OFFLINE_LOCAL',
                         device_name: device.name,
                         id: device.id,
@@ -277,10 +292,10 @@ export const useMqttData = (
                     const belongsToCurrentView = tenantId === 'all' || resolvedCompany.toLowerCase() === tenantId?.toLowerCase();
                     if (!belongsToCurrentView) return prevDevices;
 
-                    // Trigger alert callback (Apenas se não estiver silenciado)
+                    // Trigger alert callback (Apenas se não estiver silenciado globalmente por sensor)
                     const deviceIsPaused = existing?.alerts_paused === true;
-                    if (rawPayload.TIPO?.startsWith('ALERTA_') && onAlert && !deviceIsPaused) {
-                        onAlert(rawPayload);
+                    if (rawPayload.TIPO?.startsWith('ALERTA_') && onAlertRef.current && !deviceIsPaused) {
+                        onAlertRef.current(rawPayload);
                     }
 
                     if (existing) {

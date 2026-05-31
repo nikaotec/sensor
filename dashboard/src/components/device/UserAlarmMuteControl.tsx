@@ -66,13 +66,16 @@ const UserAlarmMuteControl: React.FC<UserAlarmMuteControlProps> = ({ deviceId })
             <div className="flex items-center gap-2 mb-3">
                 <VolumeX size={16} className="text-primary" />
                 <label className="text-[10px] text-slate-400 uppercase font-bold tracking-widest block">
-                    Silenciar Alarmes Localmente (Logado)
+                    Silenciar Alarmes (Somente Este Navegador)
                 </label>
             </div>
-            
-            <p className="text-[9px] text-slate-500 mb-4 leading-normal">
-                Esta seção permite escolher quais alarmes você deseja ouvir no seu navegador. 
-                As alterações são salvas estritamente no seu perfil local e <strong>não afetam outros usuários nem o sensor físico</strong>.
+
+            <p className="text-[9px] text-slate-500 mb-3 leading-normal">
+                Controla <strong className="text-slate-400">sons e popups</strong> apenas no seu navegador.
+                Outros usuários continuam recebendo normalmente.
+            </p>
+            <p className="text-[9px] text-amber-600/80 mb-4 leading-normal">
+                ⚠️ Para parar o <strong>WhatsApp</strong>, use o botão <strong>"Silenciar Alarme"</strong> nos Comandos Rápidos acima (afeta todos).
             </p>
 
             <div className="space-y-2.5">
