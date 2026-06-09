@@ -70,17 +70,24 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, onNavigate, isCollapsed: 
     const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
     const isCommonUser = currentUser?.role === 'user' || (!isManager && !isAdmin);
 
-    const finalMenuItems: SidebarScreen[] = [];
+    // Flag temporária para ocultar as abas de Alertas e Relatórios
+    const SHOW_ALERTS_AND_REPORTS = false;
+
+    let finalMenuItems: SidebarScreen[] = [];
 
     if (isCommonUser) {
         // Usuário comum vê apenas o Dashboard
         finalMenuItems.push('dashboard');
     } else if (isAdmin) {
-        // Admin não vê configurações, administração, firmware e usuários
-        finalMenuItems.push('dashboard', 'device-list', 'alerts', 'reports');
+        // Admin não vê configurações e firmware
+        finalMenuItems.push('dashboard', 'device-list', 'alerts', 'reports', 'admin-users');
     } else if (isManager) {
         // Gestor tem acesso total
         finalMenuItems.push('dashboard', 'device-list', 'alerts', 'reports', 'manager-panel', 'admin-users', 'ota-panel', 'settings');
+    }
+
+    if (!SHOW_ALERTS_AND_REPORTS && isAdmin) {
+        finalMenuItems = finalMenuItems.filter(item => item !== 'alerts' && item !== 'reports');
     }
 
     return (

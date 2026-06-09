@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../supabase/config';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useMqttData } from '../hooks/useMqttData';
@@ -28,6 +27,8 @@ import {
     Bell
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
 
 // Máscara de telefone: +55 81 99999-9999 (formato brasileiro)
 // Aceita até 13 dígitos: +55 (2) + DDD (2) + 9 dígitos = 13 dígitos
@@ -69,19 +70,28 @@ const syncPhoneToUsersDevices = async (
 ): Promise<void> => {
     const phoneClean = phone?.trim() || null;
     if (phoneClean) {
-        // Upsert: insere ou atualiza a linha do usuário (device_id=null = todos os dispositivos)
-        await supabase.from('users_devices').upsert({
-            user_id: userId,
-            device_id: null,
-            phone: phoneClean,
-            receive_notifications: receiveNotifications,
-            updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id,device_id' });
+        const response = await fetch(`${API_BASE_URL}/users-devices`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: userId,
+                deviceId: null,
+                phone: phoneClean,
+                receiveNotifications: receiveNotifications
+            })
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Falha ao sincronizar notificações: ${errText || response.statusText}`);
+        }
     } else {
-        // Sem telefone: remove o usuário da lista de alertas
-        await supabase.from('users_devices').delete()
-            .eq('user_id', userId)
-            .is('device_id', null);
+        const response = await fetch(`${API_BASE_URL}/users-devices/user/${userId}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Falha ao remover notificações: ${errText || response.statusText}`);
+        }
     }
 };
 
@@ -97,8 +107,8 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const [activeTab, setActiveTab] = useState<Tab>('overview');
 
     // Data hooks
-    const { users, isLoading: loadingUsers } = useUsers(currentUser?.role);
-    const { devices: supabaseDevices } = useSupabaseData('all', undefined, currentUser?.role);
+    const { users, isLoading: loadingUsers, refreshUsers } = useUsers(currentUser?.role);
+    const { devices: supabaseDevices } = useSupabaseData('all', undefined, currentUser?.role, currentUser?.allowedDevices);
     const { devices: mqttDevices, publish: mqttPublish, updateDeviceLocal } = useMqttData('all', currentUser?.role, supabaseDevices);
 
     const [selectedTenants, setSelectedTenants] = useState<{ [key: string]: string }>({});
@@ -113,6 +123,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const [newUserReceiveWhatsapp, setNewUserReceiveWhatsapp] = useState(false);
     const [newUserRole, setNewUserRole] = useState<'manager' | 'admin' | 'user'>('user');
     const [newUserTenants, setNewUserTenants] = useState<string[]>([]);
+    const [newUserAllowedDevices, setNewUserAllowedDevices] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [generatedCredentials, setGeneratedCredentials] = useState<{ email: string, pass: string } | null>(null);
 
@@ -136,14 +147,17 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         setPausedDevices(prev => ({ ...prev, [deviceId]: newValue }));
 
         try {
-            const { error } = await supabase
-                .from('devices_status')
-                .update({ alerts_paused: newValue })
-                .eq('id', deviceId);
-
-            if (error) throw error;
+            const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ alertsPaused: newValue })
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
+            }
         } catch (err) {
-            console.error('Erro ao atualizar silenciamento no Supabase:', err);
+            console.error('Erro ao atualizar silenciamento na API:', err);
             setPausedDevices(prev => ({ ...prev, [deviceId]: currentStatus }));
         }
     };
@@ -156,6 +170,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const [editUserReceiveWhatsapp, setEditUserReceiveWhatsapp] = useState(false);
     const [editUserRole, setEditUserRole] = useState<'manager' | 'admin' | 'user'>('user');
     const [editUserTenants, setEditUserTenants] = useState<string[]>([]);
+    const [editUserAllowedDevices, setEditUserAllowedDevices] = useState<string[]>([]);
 
     // Forçar desativação de notificações WhatsApp se a role for 'user' na criação
     useEffect(() => {
@@ -207,11 +222,17 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         e.preventDefault();
         if (!newCompanyName.trim()) return;
         try {
-            const { error } = await supabase.from('tenants').insert({
-                name: newCompanyName.trim(),
-                created_at: new Date().toISOString()
+            const response = await fetch(`${API_BASE_URL}/tenants`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newCompanyName.trim()
+                })
             });
-            if (error) throw error;
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
+            }
             showMessage('success', `Empresa "${newCompanyName}" criada com sucesso!`);
             setNewCompanyName('');
         } catch (err: any) {
@@ -245,21 +266,27 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
 
             const uid = fbResult.uid || newUserEmail.toLowerCase();
 
-            // 2. Salvar no Supabase com o UID do Firebase
-            const { error } = await supabase.from('users').upsert({
-                id: uid,
-                name: newUserName,
-                email: newUserEmail.toLowerCase(),
-                phone: newUserRole === 'user' ? null : (newUserWhatsapp || null),
-                receive_notifications: newUserRole === 'user' ? false : newUserReceiveWhatsapp,
-                role: newUserRole,
-                tenant_ids: newUserRole === 'manager' ? [] : newUserTenants,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                provisioned_by: currentUser?.email
+            // 2. Salvar na API Java com o UID do Firebase
+            const response = await fetch(`${API_BASE_URL}/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: uid,
+                    name: newUserName,
+                    email: newUserEmail.toLowerCase(),
+                    phone: newUserRole === 'user' ? null : (newUserWhatsapp || null),
+                    receiveNotifications: newUserRole === 'user' ? false : newUserReceiveWhatsapp,
+                    role: newUserRole,
+                    tenantIds: newUserRole === 'manager' ? [] : newUserTenants,
+                    allowedDevices: newUserRole === 'user' ? newUserAllowedDevices : [],
+                    provisionedBy: currentUser?.email
+                })
             });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
+            }
 
             // 3. Sincronizar telefone na tabela users_devices (para alertas WhatsApp via n8n)
             await syncPhoneToUsersDevices(uid, newUserRole === 'user' ? null : (newUserWhatsapp || null), newUserRole === 'user' ? false : newUserReceiveWhatsapp);
@@ -274,6 +301,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
             setNewUserReceiveWhatsapp(false);
             setNewUserRole('user');
             setNewUserTenants([]);
+            setNewUserAllowedDevices([]);
         } catch (err: any) {
             console.error("Erro no provisionamento:", err);
             showMessage('error', `Erro ao criar usuário: ${err.message}`);
@@ -300,12 +328,16 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         const device = mqttDevices.find(d => d.id === deviceId);
 
         try {
-            // 1. Salva no Supabase (vínculo para o dashboard)
-            const { error } = await supabase.from('devices_status').upsert({
-                id: deviceId,
-                tenant_id: tId
+            // 1. Salva na API Java (vínculo para o dashboard)
+            const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tenantId: tId })
             });
-            if (error) throw error;
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
+            }
 
             // 2. Envia comando MQTT para o ESP32 gravar na EEPROM
             const mqttPayload = JSON.stringify({
@@ -344,13 +376,21 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         try {
             const updatePayload: any = { role: newRole };
             if (newRole === 'manager') {
-                updatePayload.tenant_ids = [];
+                updatePayload.tenantIds = [];
             } else if (newRole === 'user') {
-                updatePayload.receive_notifications = false;
+                updatePayload.receiveNotifications = false;
                 updatePayload.phone = null;
             }
-            const { error } = await supabase.from('users').update(updatePayload).eq('id', userId);
-            if (error) throw error;
+
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatePayload)
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || `Erro HTTP ${response.status}`);
+            }
 
             if (newRole === 'user') {
                 await syncPhoneToUsersDevices(userId, null, false);
@@ -380,10 +420,11 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         setEditingUser(user);
         setEditUserName(user.name || '');
         setEditUserEmail(user.email || '');
-        setEditUserWhatsapp(user.whatsapp || user.phone || '');
-        setEditUserReceiveWhatsapp(user.receive_notifications || false);
+        setEditUserWhatsapp(user.phone || '');
+        setEditUserReceiveWhatsapp(user.receiveNotifications !== undefined ? user.receiveNotifications : (user.receive_notifications || false));
         setEditUserRole(user.role === 'gestor' ? 'manager' : (user.role || 'user'));
-        setEditUserTenants(user.tenant_ids || []);
+        setEditUserTenants(user.tenantIds || user.tenant_ids || []);
+        setEditUserAllowedDevices(user.allowedDevices || user.allowed_devices || []);
     };
 
     // Salva edição de usuário
@@ -397,23 +438,31 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         }
 
         try {
-            const { error } = await supabase.from('users').update({
-                name: editUserName,
-                email: editUserEmail.toLowerCase(),
-                phone: editUserRole === 'user' ? null : (editUserWhatsapp || null),
-                receive_notifications: editUserRole === 'user' ? false : editUserReceiveWhatsapp,
-                role: editUserRole,
-                tenant_ids: editUserRole === 'manager' ? [] : editUserTenants,
-                updated_at: new Date().toISOString()
-            }).eq('id', editingUser.id);
+            const response = await fetch(`${API_BASE_URL}/users/${editingUser.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: editUserName,
+                    email: editUserEmail.toLowerCase(),
+                    phone: editUserRole === 'user' ? null : (editUserWhatsapp || null),
+                    receiveNotifications: editUserRole === 'user' ? false : editUserReceiveWhatsapp,
+                    role: editUserRole,
+                    tenantIds: editUserRole === 'manager' ? [] : editUserTenants,
+                    allowedDevices: editUserRole === 'user' ? editUserAllowedDevices : []
+                })
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || `Erro HTTP ${response.status}`);
+            }
 
             // Sincronizar telefone na tabela users_devices (para alertas WhatsApp via n8n)
             await syncPhoneToUsersDevices(editingUser.id, editUserRole === 'user' ? null : (editUserWhatsapp || null), editUserRole === 'user' ? false : editUserReceiveWhatsapp);
 
-            showMessage('success', `Usuário ${editUserName} atualizado com sucesso!`);
+            showMessage('success', 'Usuário atualizado com sucesso!');
             setEditingUser(null);
+            if (refreshUsers) refreshUsers();
         } catch (err: any) {
             showMessage('error', `Erro ao atualizar usuário: ${err.message}`);
         }
@@ -431,8 +480,15 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
         const newName = window.prompt("Digite o novo nome da empresa:", oldName);
         if (!newName || newName === oldName) return;
         try {
-            const { error } = await supabase.from('tenants').update({ name: newName }).eq('id', id);
-            if (error) throw error;
+            const response = await fetch(`${API_BASE_URL}/tenants/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || `Erro HTTP ${response.status}`);
+            }
             showMessage('success', 'Nome da empresa atualizado!');
         } catch (err: any) {
             showMessage('error', `Erro ao renomear: ${err.message}`);
@@ -442,8 +498,13 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const handleDeleteCompany = async (id: string, name: string) => {
         if (!window.confirm(`Excluir a empresa "${name}"? Esta ação é irreversível.`)) return;
         try {
-            const { error } = await supabase.from('tenants').delete().eq('id', id);
-            if (error) throw error;
+            const response = await fetch(`${API_BASE_URL}/tenants/${id}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || `Erro HTTP ${response.status}`);
+            }
             showMessage('success', `Empresa "${name}" removida.`);
         } catch (err: any) {
             showMessage('error', `Erro ao remover empresa: ${err.message}`);
@@ -464,13 +525,16 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
             });
             mqttPublish('esp32c3/status/action', mqttPayload);
 
-            // 2. Atualizar o Supabase para remover o vínculo com o tenant
-            const { error } = await supabase.from('devices_status').update({
-                tenant_id: null,
-                updated_at: new Date().toISOString()
-            }).eq('id', deviceId);
-
-            if (error) throw error;
+            // 2. Atualizar a API Java para remover o vínculo com o tenant
+            const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tenantId: "" })
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || `Erro HTTP ${response.status}`);
+            }
 
             updateDeviceLocal(deviceId, { tenantId: 'Unknown' });
 
@@ -484,8 +548,13 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     const handleDeleteDevice = async (deviceId: string, deviceName: string) => {
         if (!window.confirm(`ATENÇÃO: Deseja excluir definitivamente o dispositivo "${deviceName}" do banco de dados? Ele poderá reaparecer como pendente se continuar enviando dados.`)) return;
         try {
-            const { error } = await supabase.from('devices_status').delete().eq('id', deviceId);
-            if (error) throw error;
+            const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || `Erro HTTP ${response.status}`);
+            }
             showMessage('success', "Dispositivo excluído com sucesso.");
         } catch (err: any) {
             showMessage('error', `Erro ao excluir: ${err.message}`);
@@ -493,16 +562,29 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
     };
 
     const handleToggleUserTenant = async (userId: string, tenantId: string, currentTenants: string[]) => {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
         try {
             const isSelected = currentTenants.includes(tenantId);
             const updatedTenants = isSelected
                 ? currentTenants.filter(id => id !== tenantId)
                 : [...currentTenants, tenantId];
 
-            const { error } = await supabase.from('users').update({
-                tenant_ids: updatedTenants
-            }).eq('id', userId);
-            if (error) throw error;
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...user,
+                    tenantIds: updatedTenants,
+                    allowedDevices: user.allowed_devices || user.allowedDevices || [],
+                    receiveNotifications: user.receive_notifications !== undefined ? user.receive_notifications : user.receiveNotifications
+                })
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || `Erro HTTP ${response.status}`);
+            }
+            if (refreshUsers) refreshUsers();
         } catch (err: any) {
             showMessage('error', `Erro ao atualizar empresas: ${err.message}`);
         }
@@ -604,6 +686,9 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                             role={editUserRole}
                             setRole={setEditUserRole}
                             tenants={editUserTenants}
+                            allowedDevices={editUserAllowedDevices}
+                            setAllowedDevices={setEditUserAllowedDevices}
+                            assignableDevices={supabaseDevices.filter(d => editUserTenants.includes(d.tenantId))}
                             availableTenants={availableTenants}
                             onSave={handleSaveUser}
                             onToggleTenant={toggleTenantForEditUser}
@@ -671,9 +756,9 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                                     <div>
                                                                         <p className="text-sm font-bold text-white">{u.name || 'Sem nome'}</p>
                                                                         <p className="text-xs text-slate-500 font-medium">{u.email}</p>
-                                                                        {u.phone && (
-                                                                            <p className="text-xs text-primary font-medium flex items-center gap-1">
-                                                                                <Phone size={10} /> {u.phone}
+                                                                        {(u.phone || u.whatsapp) && (
+                                                                            <p className={`text-[10px] font-bold flex items-center gap-1 mt-1 ${(u.receiveNotifications || u.receive_notifications) ? 'text-primary' : 'text-slate-600'}`}>
+                                                                                <Phone size={10} /> {u.phone || u.whatsapp} {(u.receiveNotifications || u.receive_notifications) ? '• Notifica' : ''}
                                                                             </p>
                                                                         )}
                                                                     </div>
@@ -699,7 +784,7 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                                             className="flex flex-wrap gap-1 max-w-[200px] cursor-pointer p-1 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/10"
                                                                             onClick={() => setOpenTenantPopoverFor(openTenantPopoverFor === u.id ? null : u.id)}
                                                                         >
-                                                                            {u.tenant_ids?.length > 0 ? u.tenant_ids.map((tid: string) => (
+                                                                            {(u.tenantIds || u.tenant_ids || []).length > 0 ? (u.tenantIds || u.tenant_ids).map((tid: string) => (
                                                                                 <span key={tid} className="text-[9px] bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded text-primary font-bold">
                                                                                     {availableTenants.find(t => t.id === tid)?.name || tid}
                                                                                 </span>
@@ -719,16 +804,16 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                                                             key={t.id}
                                                                                             onClick={(e) => {
                                                                                                 e.stopPropagation();
-                                                                                                handleToggleUserTenant(u.id, t.id, u.tenant_ids || []);
+                                                                                                handleToggleUserTenant(u.id, t.id, u.tenantIds || u.tenant_ids || []);
                                                                                                 setOpenTenantPopoverFor(null);
                                                                                             }}
-                                                                                            className={`w-full flex items-center justify-between p-2 rounded-lg text-[10px] font-bold transition-all ${(u.tenant_ids || []).includes(t.id)
+                                                                                            className={`w-full flex items-center justify-between p-2 rounded-lg text-[10px] font-bold transition-all ${(u.tenantIds || u.tenant_ids || []).includes(t.id)
                                                                                                 ? 'bg-primary/10 text-primary'
                                                                                                 : 'text-slate-500 hover:bg-white/5'
                                                                                                 }`}
                                                                                         >
                                                                                             {t.name}
-                                                                                            {(u.tenant_ids || []).includes(t.id) && <CheckCircle2 size={12} />}
+                                                                                            {(u.tenantIds || u.tenant_ids || []).includes(t.id) && <CheckCircle2 size={12} />}
                                                                                         </button>
                                                                                     ))}
                                                                                 </div>
@@ -817,6 +902,30 @@ const ManagerPanel: React.FC<ManagerPanelProps> = ({ onNavigate }) => {
                                                     ))}
                                                 </div>
                                             </div>
+
+                                            {newUserRole === 'user' && (
+                                                <div>
+                                                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Dispositivos Permitidos</label>
+                                                    <div className="flex flex-wrap gap-2 mb-2">
+                                                        {supabaseDevices.filter(d => newUserTenants.includes(d.tenantId)).map((device: any) => (
+                                                            <button
+                                                                key={device.id}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setNewUserAllowedDevices(prev => prev.includes(device.id) ? prev.filter(id => id !== device.id) : [...prev, device.id]);
+                                                                }}
+                                                                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border ${newUserAllowedDevices.includes(device.id)
+                                                                    ? 'bg-primary/20 border-primary text-primary'
+                                                                    : 'bg-black/20 border-white/10 text-slate-500 hover:border-white/20'
+                                                                    }`}
+                                                            >
+                                                                {device.name || device.id}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    {newUserAllowedDevices.length === 0 && <p className="text-[9px] text-rose-500/70 font-medium">* Se nenhum for selecionado, o painel do usuário ficará vazio.</p>}
+                                                </div>
+                                            )}
 
                                             <button
                                                 type="submit"
@@ -1133,6 +1242,9 @@ const EditUserModal = ({
     role,
     setRole,
     tenants,
+    allowedDevices,
+    setAllowedDevices,
+    assignableDevices,
     availableTenants,
     onSave,
     onToggleTenant
@@ -1212,6 +1324,28 @@ const EditUserModal = ({
                             ))}
                         </div>
                     </div>
+
+                    {role === 'user' && (
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Dispositivos Permitidos</label>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                                {assignableDevices.map((device: any) => (
+                                    <button
+                                        key={device.id}
+                                        type="button"
+                                        onClick={() => setAllowedDevices((prev: string[]) => prev.includes(device.id) ? prev.filter(id => id !== device.id) : [...prev, device.id])}
+                                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border ${allowedDevices?.includes(device.id)
+                                            ? 'bg-primary/20 border-primary text-primary'
+                                            : 'bg-black/20 border-white/10 text-slate-500 hover:border-white/20'
+                                            }`}
+                                    >
+                                        {device.name || device.id}
+                                    </button>
+                                ))}
+                            </div>
+                            {(!allowedDevices || allowedDevices.length === 0) && <p className="text-[9px] text-rose-500/70 font-medium">* Se nenhum for selecionado, o painel do usuário ficará vazio.</p>}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex gap-3 mt-8">

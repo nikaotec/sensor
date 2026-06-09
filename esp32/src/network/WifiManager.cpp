@@ -20,10 +20,38 @@ void WifiManager::begin() {
 }
 
 void WifiManager::update() {
+  static bool wasPortalActive = false;
+  static unsigned long lastRetryTime = 0;
+
   if (_portalActive) {
     _dnsServer.processNextRequest();
     _webServer.handleClient();
+
+    if (_hasSavedCredentials()) {
+      if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("[WIFI] Conexao restabelecida em segundo plano. Parando portal.");
+        _stopPortal();
+        _state = WIFI_STATE_CONNECTED;
+        _connectCbFired = true;
+        if (_onConnectCb) _onConnectCb();
+        wasPortalActive = false;
+      } else {
+        unsigned long now = millis();
+        if (!wasPortalActive) {
+          lastRetryTime = now;
+          wasPortalActive = true;
+        }
+
+        if (now - lastRetryTime > 30000) {
+          lastRetryTime = now;
+          Serial.println("[WIFI] Portal ativo: Tentando reconectar ao WiFi salvo...");
+          WiFi.begin();
+        }
+      }
+    }
     return;
+  } else {
+    wasPortalActive = false;
   }
 
   if (_state == WIFI_STATE_CONNECTING || _state == WIFI_STATE_RECONNECTING) {
@@ -135,12 +163,23 @@ void WifiManager::_checkConnection() {
     return;
   }
 
+  // Tentativa periódica ativa de reconexão a cada 15 segundos
+  static unsigned long lastCheckRetry = 0;
+  if (elapsed < 1000) {
+    lastCheckRetry = now;
+  }
+  if (now - lastCheckRetry > 15000) {
+    lastCheckRetry = now;
+    Serial.println("[WIFI] Tentando forçar conexão de forma explícita...");
+    WiFi.begin();
+  }
+
   if (elapsed > 2000 && (elapsed / 5000) != ((elapsed - 2000) / 5000)) {
     Serial.printf("[WIFI] Tentando conectar... status=%d elapsed=%lus\n",
                   status, elapsed / 1000);
   }
 
-  unsigned long timeout = (_state == WIFI_STATE_RECONNECTING) ? 15000 : 20000;
+  unsigned long timeout = 60000; // 1 minuto de timeout antes do Portal AP
 
   if (elapsed > timeout) {
     Serial.println("[WIFI] Timeout. Ativando portal...");

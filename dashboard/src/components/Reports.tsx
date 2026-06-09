@@ -32,7 +32,7 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
     const { currentTenant, availableTenants } = useTenant();
     const { currentUser } = useAuth();
     const { reportConfigs, saveReportConfig, deleteReportConfig, isLoading } = useReports(currentTenant?.id || 'all');
-    const { devices, events } = useSupabaseData(currentTenant?.id || 'all', undefined, currentUser?.role);
+    const { devices, events } = useSupabaseData(currentTenant?.id || 'all', undefined, currentUser?.role, currentUser?.allowedDevices);
 
     const [showModal, setShowModal] = useState(false);
     const [editingReport, setEditingReport] = useState<any>(null);
@@ -785,24 +785,26 @@ const Reports: React.FC<ReportsProps> = ({ onNavigate }) => {
 
                                 {/* Seletor avançado - apenas no modo custom */}
                                 {generateForm.report_preset === 'custom' && (
-                                    <div className="space-y-2">
-                                        <div
-                                            className={`p-3 border rounded-xl cursor-pointer transition-all ${generateForm.use_all_hours
-                                                ? 'bg-[#1a2332] border-white/10'
-                                                : 'bg-[#1a2332] border-primary/30'
-                                                }`}
-                                            onClick={() => setGenerateForm(prev => ({ ...prev, use_all_hours: !prev.use_all_hours }))}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm text-slate-300">
-                                                    {generateForm.use_all_hours ? 'Todos os horários' : 'Horários específicos'}
-                                                </span>
-                                                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${generateForm.use_all_hours ? 'border-slate-600 bg-transparent' : 'border-primary bg-primary'
-                                                    }`}>
-                                                    {!generateForm.use_all_hours && <div className="w-2 h-2 bg-white rounded-full" />}
-                                                </div>
+                                    <div className="space-y-3">
+                                        <label className="flex items-center gap-3 text-sm text-slate-300 cursor-pointer group bg-black/20 p-3 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                                            <input
+                                                type="checkbox"
+                                                checked={!generateForm.use_all_hours}
+                                                onChange={(e) => setGenerateForm(prev => {
+                                                    const useSelected = e.target.checked;
+                                                    return {
+                                                        ...prev,
+                                                        use_all_hours: !useSelected,
+                                                        selected_hours: useSelected ? ['08:00', '16:00'] : []
+                                                    };
+                                                })}
+                                                className="w-4 h-4 rounded border-white/10 bg-[#0a1323] text-primary focus:ring-primary accent-primary"
+                                            />
+                                            <div className="flex flex-col">
+                                                <span className="group-hover:text-white transition-colors font-bold">Gerar Apenas para 08:00 e 16:00</span>
+                                                <span className="text-[10px] text-slate-500">Com tolerância de 15 minutos</span>
                                             </div>
-                                        </div>
+                                        </label>
 
                                         {!generateForm.use_all_hours && (
                                             <div className="bg-[#0a1323] border border-white/10 rounded-xl p-3 max-h-40 overflow-y-auto">

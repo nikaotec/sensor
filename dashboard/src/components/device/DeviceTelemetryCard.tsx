@@ -19,7 +19,6 @@ import type { Device } from '../../data/mockData';
 import { getStatusStyle, getStatusLabel } from '../../utils/statusUtils';
 import { firmwareRegistryService } from '../../services/FirmwareRegistryService';
 import { VersionService } from '../../services/VersionService';
-import { supabase } from '../../supabase/config';
 
 interface DeviceTelemetryCardProps {
     device: Device;
@@ -47,14 +46,16 @@ const DeviceTelemetryCard: React.FC<DeviceTelemetryCardProps> = ({ device, isMan
         setIsOfflinePaused(newValue);
 
         try {
-            const { error } = await supabase
-                .from('devices_status')
-                .update({ alerts_paused: newValue })
-                .eq('id', device.id);
+            const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
+            const response = await fetch(`${API_BASE_URL}/devices/${device.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ alertsPaused: newValue })
+            });
 
-            if (error) throw error;
+            if (!response.ok) throw new Error(`Erro HTTP ${response.status}`);
         } catch (err) {
-            console.error('Erro ao atualizar silenciamento no Supabase:', err);
+            console.error('Erro ao atualizar silenciamento via API Java:', err);
             // Reverter em caso de erro
             setIsOfflinePaused(!newValue);
         }
@@ -261,12 +262,11 @@ const DeviceTelemetryCard: React.FC<DeviceTelemetryCardProps> = ({ device, isMan
                 {isManager && (
                     <div className="pt-2 border-t border-[#2A2E24]/50 mt-2">
                         <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest px-1 block mb-2">Máquinas</p>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             {[
                                 { id: 0, label: 'R-0' },
                                 { id: 1, label: 'R-1' },
-                                { id: 2, label: 'R-2' },
-                                { id: 3, label: 'R-3' }
+                                { id: 2, label: 'R-2' }
                             ].map((rele) => {
                                 const state = device?.telemetry ? (device.telemetry as any)[`rele${rele.id}`] ?? (rele.id === 0 ? device.telemetry.rele : undefined) : undefined;
                                 return (

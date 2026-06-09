@@ -62,7 +62,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onDeviceClick, onNavigate }) => {
                     key={device.id}
                     device={device}
                     onDeviceClick={onDeviceClick}
-                    isManager={isManager || isAdmin}
                     currentTenantId={currentTenant?.id || ''}
                     availableTenants={availableTenants}
                     otaStatus={progressMap[device.id]}

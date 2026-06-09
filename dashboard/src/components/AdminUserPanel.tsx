@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../supabase/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
-import { useUsers } from '../hooks/useSupabaseData';
+import { useUsers, useSupabaseData } from '../hooks/useSupabaseData';
 import {
     AlertCircle,
     CheckCircle2,
@@ -19,6 +18,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { provisionFirebaseUser, generateRandomPassword } from '../services/firebaseAuth';
 import { deleteUserCompletely } from '../services/userService';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
 
 // Máscara de telefone: +55 81 99999-9999
 const formatPhone = (value: string): string => {
@@ -41,20 +42,30 @@ const syncPhoneToUsersDevices = async (
     receiveNotifications: boolean
 ): Promise<void> => {
     const phoneClean = phone?.trim() || null;
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
     if (phoneClean) {
-        // Upsert: insere ou atualiza a linha do usuário (device_id=null = todos os dispositivos)
-        await supabase.from('users_devices').upsert({
-            user_id: userId,
-            device_id: null,
-            phone: phoneClean,
-            receive_notifications: receiveNotifications,
-            updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id,device_id' });
+        const response = await fetch(`${API_BASE_URL}/users-devices`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: userId,
+                deviceId: null,
+                phone: phoneClean,
+                receiveNotifications: receiveNotifications
+            })
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Falha ao sincronizar notificações: ${errText || response.statusText}`);
+        }
     } else {
-        // Sem telefone: remove o usuário da lista de alertas
-        await supabase.from('users_devices').delete()
-            .eq('user_id', userId)
-            .is('device_id', null);
+        const response = await fetch(`${API_BASE_URL}/users-devices/user/${userId}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Falha ao remover notificações: ${errText || response.statusText}`);
+        }
     }
 };
 
@@ -65,7 +76,23 @@ interface AdminUserPanelProps {
 const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
     const { currentUser } = useAuth();
     const { availableTenants } = useTenant();
-    const { users, isLoading: loadingUsers } = useUsers(currentUser?.role);
+    const { users, isLoading: loadingUsers, refreshUsers } = useUsers(currentUser?.role);
+    const { devices } = useSupabaseData('all', undefined, currentUser?.role, currentUser?.allowedDevices);
+
+    // Filter users: admins can only see users that share at least one tenant
+    const filteredUsers = users.filter((u: any) => {
+        if (currentUser?.role === 'manager' || currentUser?.role === 'gestor') return true;
+        if (currentUser?.role === 'admin') {
+            if (u.role === 'admin') return false;
+            const uTenants = u.tenantIds || u.tenant_ids || [];
+            const cTenants = currentUser?.tenantIds || [];
+            return uTenants.some((tid: string) => cTenants.includes(tid));
+        }
+        return false;
+    });
+
+    // Filter available devices: admins can only assign devices from their available tenants
+    const assignableDevices = devices.filter((d: any) => availableTenants.some((t: any) => t.id === d.tenantId));
 
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [openTenantPopoverFor, setOpenTenantPopoverFor] = useState<string | null>(null);
@@ -77,6 +104,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
     const [newUserReceiveWhatsapp, setNewUserReceiveWhatsapp] = useState(false);
     const [newUserRole, setNewUserRole] = useState<'admin' | 'user'>('user');
     const [newUserTenants, setNewUserTenants] = useState<string[]>([]);
+    const [newUserAllowedDevices, setNewUserAllowedDevices] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [generatedCredentials, setGeneratedCredentials] = useState<{ email: string, pass: string } | null>(null);
 
@@ -88,6 +116,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
     const [editUserReceiveWhatsapp, setEditUserReceiveWhatsapp] = useState(false);
     const [editUserRole, setEditUserRole] = useState<'admin' | 'user'>('user');
     const [editUserTenants, setEditUserTenants] = useState<string[]>([]);
+    const [editUserAllowedDevices, setEditUserAllowedDevices] = useState<string[]>([]);
 
     const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -121,22 +150,28 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
             if (!fbResult.success) {
                 throw new Error(fbResult.error);
             }
-
             const uid = fbResult.uid || newUserEmail.toLowerCase();
-
-            // 2. Salvar no Supabase com o UID real
-            const { error } = await supabase.from('users').upsert({
-                id: uid,
-                name: newUserName,
-                email: newUserEmail.toLowerCase(),
-                phone: newUserWhatsapp || null,
-                receive_notifications: newUserReceiveWhatsapp,
-                role: newUserRole,
-                tenant_ids: newUserTenants,
-                created_at: new Date().toISOString(),
-                provisioned_by: currentUser?.email
+ 
+            // 2. Salvar na API Java com o UID real
+            const response = await fetch(`${API_BASE_URL}/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: uid,
+                    name: newUserName,
+                    email: newUserEmail.toLowerCase(),
+                    phone: newUserWhatsapp || null,
+                    receiveNotifications: newUserReceiveWhatsapp,
+                    role: newUserRole,
+                    tenantIds: newUserTenants,
+                    allowedDevices: newUserAllowedDevices,
+                    provisionedBy: currentUser?.email
+                })
             });
-            if (error) throw error;
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
+            }
 
             // 3. Sincronizar telefone na tabela users_devices (para alertas WhatsApp via n8n)
             await syncPhoneToUsersDevices(uid, newUserWhatsapp || null, newUserReceiveWhatsapp);
@@ -151,6 +186,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
             setNewUserReceiveWhatsapp(false);
             setNewUserRole('user');
             setNewUserTenants([]);
+            setNewUserAllowedDevices([]);
         } catch (err: any) {
             showMessage('error', `Erro ao criar usuário: ${err.message}`);
         } finally {
@@ -160,12 +196,16 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
 
     const handleUpdateUserRole = async (userId: string, newRole: 'admin' | 'user') => {
         try {
-            const { error: roleError } = await supabase
-                .from('users')
-                .update({ role: newRole, updated_at: new Date().toISOString() })
-                .eq('id', userId);
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: newRole })
+            });
 
-            if (roleError) throw roleError;
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
+            }
             showMessage('success', 'Cargo atualizado com sucesso!');
             // refreshUsers(); // Removed
         } catch (err: any) {
@@ -192,34 +232,40 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
         setEditUserName(user.name || '');
         setEditUserEmail(user.email || '');
         setEditUserWhatsapp(user.whatsapp || user.phone || '');
-        setEditUserReceiveWhatsapp(user.receive_notifications || false);
+        setEditUserReceiveWhatsapp(user.receive_notifications !== undefined ? user.receive_notifications : user.receiveNotifications || false);
         setEditUserRole(user.role || 'user');
-        setEditUserTenants(user.tenant_ids || []);
+        setEditUserTenants(user.tenant_ids || user.tenantIds || []);
+        setEditUserAllowedDevices(user.allowed_devices || user.allowedDevices || []);
     };
 
     const handleSaveUser = async () => {
         if (!editingUser) return;
         try {
-            const { error } = await supabase
-                .from('users')
-                .update({
+            const response = await fetch(`${API_BASE_URL}/users/${editingUser.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     name: editUserName,
                     email: editUserEmail.toLowerCase(),
                     phone: editUserWhatsapp || null,
-                    receive_notifications: editUserReceiveWhatsapp,
+                    receiveNotifications: editUserReceiveWhatsapp,
                     role: editUserRole,
-                    tenant_ids: editUserTenants,
-                    updated_at: new Date().toISOString()
-                }).eq('id', editingUser.id);
+                    tenantIds: editUserTenants,
+                    allowedDevices: editUserAllowedDevices
+                })
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
+            }
 
             // Sincronizar telefone na tabela users_devices (para alertas WhatsApp via n8n)
             await syncPhoneToUsersDevices(editingUser.id, editUserWhatsapp || null, editUserReceiveWhatsapp);
 
-            showMessage('success', 'Usuário atualizado!');
+            showMessage('success', 'Usuário atualizado com sucesso!');
             setEditingUser(null);
-            // refreshUsers(); // Removed
+            if (refreshUsers) refreshUsers();
         } catch (err: any) {
             showMessage('error', `Erro ao salvar: ${err.message}`);
         }
@@ -245,14 +291,40 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
         setEditUserTenants(prev => prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]);
     };
 
+    const toggleDevice = (deviceId: string, isNewUser: boolean) => {
+        if (isNewUser) {
+            setNewUserAllowedDevices(prev => prev.includes(deviceId) ? prev.filter(id => id !== deviceId) : [...prev, deviceId]);
+        } else {
+            setEditUserAllowedDevices(prev => prev.includes(deviceId) ? prev.filter(id => id !== deviceId) : [...prev, deviceId]);
+        }
+    };
+
+    const toggleDeviceForEditUser = (deviceId: string) => {
+        setEditUserAllowedDevices(prev => prev.includes(deviceId) ? prev.filter(id => id !== deviceId) : [...prev, deviceId]);
+    };
+
     const handleToggleUserTenant = async (userId: string, tenantId: string, currentTenants: string[]) => {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
         const isSelected = currentTenants.includes(tenantId);
         const newTenants = isSelected ? currentTenants.filter(id => id !== tenantId) : [...currentTenants, tenantId];
 
         try {
-            const { error } = await supabase.from('users').update({ tenant_ids: newTenants }).eq('id', userId);
-            if (error) throw error;
-            // refreshUsers(); // Removed
+            const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...user,
+                    tenantIds: newTenants,
+                    allowedDevices: user.allowed_devices || user.allowedDevices || [],
+                    receiveNotifications: user.receive_notifications !== undefined ? user.receive_notifications : user.receiveNotifications
+                })
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
+            }
+            if (refreshUsers) refreshUsers();
         } catch (err: any) {
             showMessage('error', `Erro ao atualizar empresas: ${err.message}`);
         }
@@ -299,7 +371,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                 <div className="max-w-6xl mx-auto space-y-8">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Lista de Usuários */}
-                        <div className="lg:col-span-2 space-y-4">
+                        <div className={`${currentUser?.role !== 'admin' ? 'lg:col-span-2' : 'lg:col-span-3'} space-y-4`}>
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-xl font-bold text-white">Usuários do Sistema</h3>
                                 <div className="relative">
@@ -321,7 +393,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                                     <tbody className="divide-y divide-white/5">
                                         {loadingUsers ? (
                                             <tr><td colSpan={4} className="p-10 text-center text-slate-500"><Loader2 className="animate-spin mx-auto mb-2" /> Carregando...</td></tr>
-                                        ) : users.map(u => (
+                                        ) : filteredUsers.map((u: any) => (
                                             <tr key={u.id} className="hover:bg-white/[0.02] transition-colors group">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
@@ -331,9 +403,9 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                                                         <div>
                                                             <p className="text-sm font-bold text-white">{u.name || 'Sem nome'}</p>
                                                             <p className="text-xs text-slate-500">{u.email}</p>
-                                                            {u.whatsapp && (
-                                                                <p className={`text-[10px] font-bold flex items-center gap-1 mt-1 ${u.receive_notifications ? 'text-primary' : 'text-slate-600'}`}>
-                                                                    <Phone size={10} /> {u.phone || u.whatsapp} {u.receive_notifications ? '• Notifica' : ''}
+                                                            {(u.whatsapp || u.phone) && (
+                                                                <p className={`text-[10px] font-bold flex items-center gap-1 mt-1 ${(u.receive_notifications || u.receiveNotifications) ? 'text-primary' : 'text-slate-600'}`}>
+                                                                    <Phone size={10} /> {u.phone || u.whatsapp} {(u.receive_notifications || u.receiveNotifications) ? '• Notifica' : ''}
                                                                 </p>
                                                             )}
                                                         </div>
@@ -357,7 +429,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                                                             className="flex flex-wrap gap-1 max-w-[200px] cursor-pointer p-1 rounded-lg hover:bg-white/5 transition-colors"
                                                             onClick={() => setOpenTenantPopoverFor(openTenantPopoverFor === u.id ? null : u.id)}
                                                         >
-                                                            {u.tenant_ids?.length > 0 ? u.tenant_ids.map((tid: string) => (
+                                                            {(u.tenant_ids || u.tenantIds)?.length > 0 ? (u.tenant_ids || u.tenantIds).map((tid: string) => (
                                                                 <span key={tid} className="text-[9px] bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded text-primary font-bold">
                                                                     {availableTenants.find(t => t.id === tid)?.name || tid}
                                                                 </span>
@@ -369,11 +441,11 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                                                                     {availableTenants.map(t => (
                                                                         <button
                                                                             key={t.id}
-                                                                            onClick={() => handleToggleUserTenant(u.id, t.id, u.tenant_ids || [])}
-                                                                            className={`w-full flex items-center justify-between p-2 rounded-lg text-[10px] font-bold ${(u.tenant_ids || []).includes(t.id) ? 'bg-primary/10 text-primary' : 'text-slate-500'}`}
+                                                                            onClick={() => handleToggleUserTenant(u.id, t.id, u.tenant_ids || u.tenantIds || [])}
+                                                                            className={`w-full flex items-center justify-between p-2 rounded-lg text-[10px] font-bold ${(u.tenant_ids || u.tenantIds || []).includes(t.id) ? 'bg-primary/10 text-primary' : 'text-slate-500'}`}
                                                                         >
                                                                             {t.name}
-                                                                            {(u.tenant_ids || []).includes(t.id) && <CheckCircle2 size={12} />}
+                                                                            {(u.tenant_ids || u.tenantIds || []).includes(t.id) && <CheckCircle2 size={12} />}
                                                                         </button>
                                                                     ))}
                                                                 </div>
@@ -393,6 +465,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                         </div>
 
                         {/* Formulário Novo Usuário */}
+                        {currentUser?.role !== 'admin' && (
                         <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-xl h-fit">
                             <div className="flex items-center gap-3 mb-8">
                                 <div className="p-3 rounded-2xl bg-primary/10 text-primary"><UserPlus size={24} /></div>
@@ -436,11 +509,33 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
 
                                 <div>
                                     <label className="block text-[10px] font-black text-slate-500 uppercase mb-3">Cargo</label>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-2 gap-2 mb-4">
                                         <button type="button" onClick={() => setNewUserRole('admin')} className={`py-3 rounded-xl text-[10px] font-black uppercase border transition-all ${newUserRole === 'admin' ? 'bg-primary/20 border-primary text-primary' : 'bg-black/20 border-white/10 text-slate-600'}`}>Admin</button>
                                         <button type="button" onClick={() => setNewUserRole('user')} className={`py-3 rounded-xl text-[10px] font-black uppercase border transition-all ${newUserRole === 'user' ? 'bg-primary/20 border-primary text-primary' : 'bg-black/20 border-white/10 text-slate-600'}`}>Usuário</button>
                                     </div>
                                 </div>
+
+                                {newUserRole === 'user' && (
+                                    <div>
+                                        <label className="block text-[10px] font-black text-slate-500 uppercase mb-3">Dispositivos Permitidos</label>
+                                        <div className="flex flex-wrap gap-2 mb-2">
+                                            {assignableDevices.map((device: any) => (
+                                                <button
+                                                    key={device.id}
+                                                    type="button"
+                                                    onClick={() => toggleDevice(device.id, true)}
+                                                    className={`px-3 py-2 rounded-xl text-[10px] font-bold transition-all border ${newUserAllowedDevices.includes(device.id)
+                                                        ? 'bg-primary/20 border-primary text-primary'
+                                                        : 'bg-black/20 border-white/5 text-slate-600 hover:border-white/10'
+                                                        }`}
+                                                >
+                                                    {device.name || device.id}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {newUserAllowedDevices.length === 0 && <p className="text-[9px] text-rose-500/70 font-medium">* Se nenhum for selecionado, o painel do usuário ficará vazio.</p>}
+                                    </div>
+                                )}
 
                                 <button
                                     type="submit"
@@ -504,6 +599,7 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                                 )}
                             </AnimatePresence>
                         </div>
+                        )}
                     </div>
                 </div>
             </main>
@@ -523,8 +619,11 @@ const AdminUserPanel: React.FC<AdminUserPanelProps> = ({ onNavigate }) => {
                 setRole={setEditUserRole}
                 tenants={editUserTenants}
                 availableTenants={availableTenants}
+                allowedDevices={editUserAllowedDevices}
+                assignableDevices={assignableDevices}
                 onSave={handleSaveUser}
                 onToggleTenant={toggleTenantForEditUser}
+                onToggleDevice={toggleDeviceForEditUser}
             />
         </div>
     );
@@ -559,7 +658,10 @@ const EditUserModal = ({
     setRole,
     tenants,
     availableTenants,
+    allowedDevices,
+    assignableDevices,
     onToggleTenant,
+    onToggleDevice,
     onSave
 }: any) => {
     if (!isOpen) return null;
@@ -616,6 +718,28 @@ const EditUserModal = ({
                             <button type="button" onClick={() => setRole('user')} className={`py-3 rounded-xl text-[10px] font-black uppercase border transition-all ${role === 'user' ? 'bg-primary/20 border-primary text-primary' : 'bg-black/20 border-white/10 text-slate-600'}`}>Usuário</button>
                         </div>
                     </div>
+
+                    {role === 'user' && (
+                        <div>
+                            <label className="block text-[10px] font-black text-slate-500 uppercase mb-3">Dispositivos Permitidos</label>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                                {assignableDevices.map((device: any) => (
+                                    <button
+                                        key={device.id}
+                                        type="button"
+                                        onClick={() => onToggleDevice(device.id)}
+                                        className={`px-3 py-2 rounded-xl text-xs font-bold transition-all border ${allowedDevices.includes(device.id)
+                                            ? 'bg-primary/20 border-primary text-primary'
+                                            : 'bg-black/20 border-white/10 text-slate-500 hover:border-white/20'
+                                            }`}
+                                    >
+                                        {device.name || device.id}
+                                    </button>
+                                ))}
+                            </div>
+                            {allowedDevices.length === 0 && <p className="text-[9px] text-rose-500/70 font-medium">* Se nenhum for selecionado, o painel do usuário ficará vazio.</p>}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex gap-3 mt-8">

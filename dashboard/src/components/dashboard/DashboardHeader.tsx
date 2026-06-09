@@ -4,9 +4,12 @@ import {
     Bell,
     Wifi,
     CalendarRange,
-    KeyRound
+    KeyRound,
+    Mail
 } from 'lucide-react';
 import ChangePasswordModal from './ChangePasswordModal';
+import DailyReportPreferencesModal from './DailyReportPreferencesModal';
+import { AnimatePresence } from 'framer-motion';
 
 interface DashboardHeaderProps {
     currentUser: any;
@@ -25,6 +28,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 }) => {
     const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
     const [isChangePasswordOpen, setIsChangePasswordOpen] = React.useState(false);
+    const [isDailyReportPreferencesOpen, setIsDailyReportPreferencesOpen] = React.useState(false);
 
     return (
         <React.Fragment>
@@ -74,14 +78,25 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
 
                         {isProfileMenuOpen && (
                             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#12150F] rounded-xl border border-gray-200 dark:border-[#2A2E24] shadow-lg py-1 z-50">
+                                {currentUser?.role === 'manager' || currentUser?.role === 'gestor' ? (
+                                    <button
+                                        onClick={() => {
+                                            setIsProfileMenuOpen(false);
+                                            onNavigate('settings');
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1D16] transition-colors"
+                                    >
+                                        Configurações
+                                    </button>
+                                ) : null}
                                 <button
                                     onClick={() => {
                                         setIsProfileMenuOpen(false);
-                                        onNavigate('settings');
+                                        setIsDailyReportPreferencesOpen(true);
                                     }}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1D16] transition-colors"
+                                    className="w-full text-left flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1A1D16] transition-colors border-b border-gray-100 dark:border-[#2A2E24]/50"
                                 >
-                                    Configurações
+                                    <Mail size={14} /> Preferências de Relatório
                                 </button>
                                 <button
                                     onClick={() => {
@@ -107,6 +122,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 </div>
             </header>
             <ChangePasswordModal isOpen={isChangePasswordOpen} onClose={() => setIsChangePasswordOpen(false)} />
+            <AnimatePresence>
+                {isDailyReportPreferencesOpen && (
+                    <DailyReportPreferencesModal isOpen={isDailyReportPreferencesOpen} onClose={() => setIsDailyReportPreferencesOpen(false)} />
+                )}
+            </AnimatePresence>
         </React.Fragment>
     );
 };

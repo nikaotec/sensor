@@ -11,7 +11,8 @@ import {
 } from 'firebase/auth';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { auth } from '../firebase/config';
-import { supabase } from '../supabase/config';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
 
 export interface AppUser {
     id: string;
@@ -20,6 +21,10 @@ export interface AppUser {
     role: 'manager' | 'gestor' | 'admin' | 'user' | 'viewer'; // Global role or active tenant role
     avatarUrl?: string;
     tenantIds: string[]; // List of companies the user has access to (managers ignore this)
+    allowedDevices?: string[]; // List of specific device IDs the user has access to
+    dailyReportsEnabled?: boolean;
+    dailyReportDeviceIds?: string[];
+    dailyReportTime?: string;
 }
 
 interface AuthContextType {
@@ -46,24 +51,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setFirebaseUser(user);
             if (user) {
                 try {
-                    // Buscar perfil por UID
-                    const { data: userDoc, error: uidError } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('id', user.uid)
-                        .maybeSingle();
+                    // Buscar perfil por UID via API Java REST
+                    const response = await fetch(`${API_BASE_URL}/users/${user.uid}`);
+                    let userDoc = null;
+                    if (response.ok) {
+                        userDoc = await response.json();
+                    }
 
-                    if (uidError) throw uidError;
-
-                    // Buscar possível pré-provisionamento por email
-                    const { data: emailDoc } = user.email
-                        ? await supabase
-                            .from('users')
-                            .select('*')
-                            .eq('email', user.email.toLowerCase())
-                            .neq('id', user.uid)
-                            .maybeSingle()
-                        : { data: null };
+                    // Buscar possível pré-provisionamento por email via API Java REST
+                    let emailDoc = null;
+                    if (user.email) {
+                        const emailRes = await fetch(`${API_BASE_URL}/users/by-email/${encodeURIComponent(user.email.toLowerCase())}`);
+                        if (emailRes.ok) {
+                            const resDoc = await emailRes.json();
+                            if (resDoc && resDoc.id !== user.uid) {
+                                emailDoc = resDoc;
+                            }
+                        }
+                    }
 
                     if (userDoc) {
                         let userData = userDoc as any;
@@ -71,26 +76,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         // Se existe um documento pré-provisionado por email, mescla as empresas e atualiza
                         if (emailDoc) {
                             const mergedTenants = Array.from(new Set([
-                                ...(userData.tenant_ids || []),
-                                ...(emailDoc.tenant_ids || [])
+                                ...(userData.tenantIds || userData.tenant_ids || []),
+                                ...(emailDoc.tenantIds || emailDoc.tenant_ids || [])
                             ]));
 
                             userData = {
                                 ...userData,
                                 role: emailDoc.role || userData.role,
-                                tenant_ids: mergedTenants
+                                tenantIds: mergedTenants
                             };
 
-                            await supabase
-                                .from('users')
-                                .update({ role: userData.role, tenant_ids: mergedTenants })
-                                .eq('id', user.uid);
+                            await fetch(`${API_BASE_URL}/users/${user.uid}`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ role: userData.role, tenantIds: mergedTenants })
+                            });
 
                             // Remove documento temporário indexado por email
-                            await supabase
-                                .from('users')
-                                .delete()
-                                .eq('id', emailDoc.id);
+                            await fetch(`${API_BASE_URL}/users/${emailDoc.id}`, {
+                                method: 'DELETE'
+                            });
                         }
 
                         setCurrentUser({
@@ -98,8 +103,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                             name: userData.name,
                             email: userData.email,
                             role: userData.role,
-                            avatarUrl: userData.avatar_url,
-                            tenantIds: userData.tenant_ids || []
+                            avatarUrl: userData.avatarUrl || userData.avatar_url,
+                            tenantIds: userData.tenantIds || userData.tenant_ids || [],
+                            allowedDevices: userData.allowedDevices || userData.allowed_devices || [],
+                            dailyReportsEnabled: userData.dailyReportsEnabled !== undefined ? userData.dailyReportsEnabled : (userData.daily_reports_enabled || false),
+                            dailyReportDeviceIds: userData.dailyReportDeviceIds || userData.daily_report_device_ids || [],
+                            dailyReportTime: userData.dailyReportTime || userData.daily_report_time || '17:05'
                         });
                     } else {
                         // Não achou por UID. Verifica se foi pré-provisionado por EMAIL pelo Gestor
@@ -109,19 +118,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                                 name: user.displayName || 'Novo Administrador',
                                 email: user.email || '',
                                 role: emailDoc.role || 'admin',
-                                tenantIds: emailDoc.tenant_ids || []
+                                tenantIds: emailDoc.tenantIds || emailDoc.tenant_ids || [],
+                                allowedDevices: emailDoc.allowedDevices || emailDoc.allowed_devices || [],
+                                dailyReportsEnabled: emailDoc.dailyReportsEnabled || emailDoc.daily_reports_enabled || false,
+                                dailyReportDeviceIds: emailDoc.dailyReportDeviceIds || emailDoc.daily_report_device_ids || [],
+                                dailyReportTime: emailDoc.dailyReportTime || emailDoc.daily_report_time || '17:05'
                             };
 
-                            await supabase.from('users').upsert({
-                                id: user.uid,
-                                name: newUser.name,
-                                email: newUser.email,
-                                role: newUser.role,
-                                tenant_ids: newUser.tenantIds
+                            await fetch(`${API_BASE_URL}/users`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    id: user.uid,
+                                    name: newUser.name,
+                                    email: newUser.email,
+                                    role: newUser.role,
+                                    tenantIds: newUser.tenantIds,
+                                    allowedDevices: newUser.allowedDevices
+                                })
                             });
 
                             // Deleta o de email temporário
-                            await supabase.from('users').delete().eq('id', emailDoc.id);
+                            await fetch(`${API_BASE_URL}/users/${emailDoc.id}`, {
+                                method: 'DELETE'
+                            });
                             setCurrentUser(newUser);
                         } else {
                             // Totalmente novo (ex: primeiro login manual)
@@ -130,27 +150,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                                 name: user.displayName || 'Novo Usuário',
                                 email: user.email || '',
                                 role: user.email === 'antoniovenancio10@gmail.com' ? 'manager' : 'admin',
-                                tenantIds: []
+                                tenantIds: [],
+                                allowedDevices: [],
+                                dailyReportsEnabled: false,
+                                dailyReportDeviceIds: [],
+                                dailyReportTime: '17:05'
                             };
-                            await supabase.from('users').upsert({
-                                id: user.uid,
-                                name: newUser.name,
-                                email: newUser.email,
-                                role: newUser.role,
-                                tenant_ids: newUser.tenantIds
+                            await fetch(`${API_BASE_URL}/users`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    id: user.uid,
+                                    name: newUser.name,
+                                    email: newUser.email,
+                                    role: newUser.role,
+                                    tenantIds: newUser.tenantIds,
+                                    allowedDevices: newUser.allowedDevices
+                                })
                             });
                             setCurrentUser(newUser);
                         }
                     }
                 } catch (error: any) {
-                    console.error("❌ Erro ao buscar dados do Supabase:", error.message);
+                    console.error("❌ Erro ao buscar dados da API:", error.message);
                     // Fallback para não travar a UI
                     setCurrentUser({
                         id: user.uid,
                         name: user.displayName || 'Usuário (Offline/Mock)',
                         email: user.email || '',
                         role: user.email === 'antoniovenancio10@gmail.com' ? 'manager' : 'admin',
-                        tenantIds: []
+                        tenantIds: [],
+                        allowedDevices: [],
+                        dailyReportsEnabled: false,
+                        dailyReportDeviceIds: [],
+                        dailyReportTime: '17:05'
                     });
                 }
             } else {
@@ -182,24 +215,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const signup = async (email: string, pass: string, name: string) => {
         const res = await createUserWithEmailAndPassword(auth, email, pass);
-        // Create standard user profile in Supabase
         const newUser: AppUser = {
             id: res.user.uid,
             name,
             email,
             role: 'admin',
-            tenantIds: [] // Needs to create a company after signup
+            tenantIds: [],
+            allowedDevices: [],
+            dailyReportsEnabled: false,
+            dailyReportDeviceIds: [],
+            dailyReportTime: '17:05'
         };
         try {
-            await supabase.from('users').upsert({
-                id: res.user.uid,
-                name,
-                email,
-                role: 'admin',
-                tenant_ids: []
+            await fetch(`${API_BASE_URL}/users`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: res.user.uid,
+                    name,
+                    email,
+                    role: 'admin',
+                    tenantIds: [],
+                    allowedDevices: []
+                })
             });
         } catch (e: any) {
-            console.error("Warning: could not save to Supabase", e.message);
+            console.error("Warning: could not save to API", e.message);
         }
         setCurrentUser(newUser);
     };

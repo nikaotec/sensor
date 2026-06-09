@@ -22,13 +22,17 @@ void StorageManager::load() {
   EEPROM.get(ADDR_CHK_DOOR, data.chkDoor);
   EEPROM.get(ADDR_TEMP_CAL, data.tempCalOffset);
   EEPROM.get(ADDR_DEVICE_NAME, data.deviceName);
+  data.deviceName[31] = '\0';
   EEPROM.get(ADDR_COMPANY_NAME, data.companyName);
+  data.companyName[31] = '\0';
   EEPROM.get(ADDR_DEVICE_LOCATION, data.deviceLocation);
+  data.deviceLocation[31] = '\0';
   EEPROM.get(ADDR_PT100_OFFSET, data.pt100Offset);
   EEPROM.get(ADDR_SENSOR_TYPE, data.sensorType);
   EEPROM.get(ADDR_LIGHT_ENABLED, data.lightEnabled);
   EEPROM.get(ADDR_SENSOR_PIN_IDX, data.sensorPinIdx);
   EEPROM.get(ADDR_VERSION, data.version);
+  data.version[15] = '\0';
   EEPROM.get(ADDR_VOLT_RETURN_DELAY, data.voltReturnDelay);
 
   // Carregar relés (cada relé usa 32 bytes para evitar sobreposição)

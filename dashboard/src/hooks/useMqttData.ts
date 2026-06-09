@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import mqtt from 'mqtt';
 import type { Device } from '../data/mockData';
-import { supabase } from '../supabase/config';
 import { TelemetryService } from '../services/TelemetryService';
 
 // Default broker URL for WebSockets (can be passed via env variables)
@@ -233,10 +232,14 @@ export const useMqttData = (
                     const newName = rawMsg.split('|')[1]?.trim();
                     if (deviceId && newName) {
                         if (onDeviceNameChange) onDeviceNameChange(deviceId, newName);
-                        supabase.from('devices_status').update({ name: newName, updated_at: new Date().toISOString() }).eq('id', deviceId)
-                            .then(({ error }) => {
-                                if (error) console.error('[MQTT] Falha ao salvar nome:', error.message);
-                            });
+                        const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
+                        fetch(`${API_BASE_URL}/devices/${deviceId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: newName })
+                        }).catch(err => {
+                            console.error('[MQTT] Falha ao salvar nome via API Java:', err);
+                        });
                     }
                 }
 
@@ -295,7 +298,13 @@ export const useMqttData = (
                     // Trigger alert callback (Apenas se não estiver silenciado globalmente por sensor)
                     const deviceIsPaused = existing?.alerts_paused === true;
                     if (rawPayload.TIPO?.startsWith('ALERTA_') && onAlertRef.current && !deviceIsPaused) {
-                        onAlertRef.current(rawPayload);
+                        const alertToSend = { ...rawPayload };
+                        if (existing?.name) {
+                            alertToSend.DISPOSITIVO = existing.name;
+                        } else if (lockedData?.name) {
+                            alertToSend.DISPOSITIVO = lockedData.name;
+                        }
+                        onAlertRef.current(alertToSend);
                     }
 
                     if (existing) {

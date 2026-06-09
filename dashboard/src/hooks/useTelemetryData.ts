@@ -12,7 +12,9 @@ export interface TelemetryData {
 export const useTelemetryData = (
     currentTenant: any,
     availableTenants: any[],
-    currentUser: any
+    currentUser: any,
+    onAlert?: (payload: any) => void,
+    onDeviceNameChange?: (deviceId: string, newName: string) => void
 ) => {
     const isManager = currentUser?.role === 'manager' || currentUser?.role === 'gestor';
     const isAdmin = currentUser?.role === 'admin';
@@ -21,13 +23,16 @@ export const useTelemetryData = (
     const { devices: supabaseDevices } = useSupabaseData(
         currentTenant?.id || '',
         undefined,
-        currentUser?.role
+        currentUser?.role,
+        currentUser?.allowedDevices
     );
 
     const { devices: tenantDevices, isConnected: mqttConnected, mqttClient } = useMqttData(
         'all',
         currentUser?.role,
-        supabaseDevices
+        supabaseDevices,
+        onAlert,
+        onDeviceNameChange
     );
 
     // Filter refined to respect the selected tab and role permissions
@@ -52,14 +57,24 @@ export const useTelemetryData = (
             return assignedDevices;
         }
 
-        // Normal user: show only devices from linked tenants
+        // Normal user: show only devices from linked tenants AND allowed devices
         const allowedTenantIds = availableTenants.map(t => t.id);
         const allowedTenantNames = availableTenants.map(t => t.name);
-
-        return assignedDevices.filter(d => {
+        
+        let filteredByTenant = assignedDevices.filter(d => {
             return allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId);
         });
-    }, [tenantDevices, currentTenant, availableTenants, isManager, isAdmin]);
+
+        if (!isAdmin && !isManager) {
+            const allowedDevices = currentUser?.allowedDevices || currentUser?.allowed_devices || [];
+            if (!allowedDevices || allowedDevices.length === 0) {
+                return []; // Se não tem permissão para nenhum, retorna vazio
+            }
+            return filteredByTenant.filter(d => allowedDevices.includes(d.id));
+        }
+
+        return filteredByTenant;
+    }, [tenantDevices, currentTenant, availableTenants, isManager, isAdmin, currentUser]);
 
     const onlineDevices = useMemo(() => {
         // Garantir que o dispositivo esteja online E tenha recebido atualização via MQTT nesta sessão com dados reais

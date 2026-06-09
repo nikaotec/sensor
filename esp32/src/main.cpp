@@ -43,8 +43,7 @@ AlertManager alertDoor("PORTA_ABERTA", 2000, ALERT_REPEAT); // 2s debounce porta
 
 // ---------- ESTADO DO SISTEMA ----------
 float temperaturaAtual = 0.0;
-bool releEstado[RELAY_COUNT] = {false, false, false,
-                                false}; // Estado dos 4 relés
+bool releEstado[RELAY_COUNT] = {false, false, false}; // Estado dos 3 relés
 bool modoManual = false;
 bool alertasSilenciados =
     false; // Novo flag para silenciar alertas persistentes
@@ -312,18 +311,23 @@ void firmware_loop() {
   }
 
   // Controle instantâneo do Relé 2 (índice 1) pelo sensor de porta
-  bool anteriorRele1 = releEstado[1];
-  releEstado[1] = isDoorOpen;
-  digitalWrite(RELAY_PINS[1], releEstado[1] ? HIGH : LOW);
-  if (releEstado[1] != anteriorRele1) {
-    Serial.print(F("[RELE] R1 (Porta)"));
-    Serial.println(releEstado[1] ? F(" LIGADO") : F(" DESLIGADO"));
+  if (!modoManual && storage.data.relays[1].func != RELAY_FUNC_MANUAL) {
+    bool anteriorRele1 = releEstado[1];
+    releEstado[1] = isDoorOpen;
+    digitalWrite(RELAY_PINS[1], releEstado[1] ? HIGH : LOW);
+    if (releEstado[1] != anteriorRele1) {
+      Serial.print(F("[RELE] R1 (Porta)"));
+      Serial.println(releEstado[1] ? F(" LIGADO") : F(" DESLIGADO"));
+    }
+  } else {
+    // Mantém a sincronização física do pino no modo manual
+    digitalWrite(RELAY_PINS[1], releEstado[1] ? HIGH : LOW);
   }
 
   // --- CONTROLE DO RELÉ 3 (PROTEÇÃO DE BATERIA / PROTEÇÃO DE TENSÃO) ---
   // Liga imediatamente quando tensão sai da faixa (alta, baixa ou falta total).
   // Desliga somente após 5 segundos de tensão estável dentro da faixa.
-  {
+  if (!modoManual && storage.data.relays[2].func != RELAY_FUNC_MANUAL) {
     bool voltForaDaFaixa = (tVoltagem < VOLT_OUTAGE_THR) ||
                            (storage.data.chkVolt &&
                             (tVoltagem > storage.data.voltMax ||
@@ -368,6 +372,9 @@ void firmware_loop() {
         Serial.println(F("[RELE] R2 (Bateria) DESLIGADO - Tensao normalizada"));
       }
     }
+  } else {
+    // Mantém a sincronização física do pino no modo manual
+    digitalWrite(RELAY_PINS[2], releEstado[2] ? HIGH : LOW);
   }
 
   // 2.1 Controle de Luz Interna (Sincronizada com Porta)
@@ -536,6 +543,9 @@ void firmware_loop() {
       enviarDadosMqtt("TEMP_NORMALIZADA", false);
       notificarUsuario("TEMP. NORMAL", 4000);
     }
+  } else {
+    // Sincroniza o Relé 1 (índice 0) no hardware caso o dispositivo esteja no modo manual
+    digitalWrite(RELAY_PINS[0], releEstado[0] ? HIGH : LOW);
   }
 
   // 3. Reset Diário 06:00 e 16:00
@@ -774,7 +784,10 @@ void handleCommand(String intent, JsonObject params) {
 
   // --- MODO MANUTENÇÃO ---
   if (modoManual && intent != "modo_manutencao" &&
-      intent != "modo_operacional" && intent != "reset_wifi") {
+      intent != "modo_operacional" && intent != "reset_wifi" &&
+      intent != "ligar_rele" && intent != "desligar_rele" &&
+      intent != "configurar_rele" && intent != "obter_status_atual" &&
+      intent != "obter_ambiente" && intent != "ativar_automatico") {
     Serial.println("[MQTT RX] BLOQUEADO - Dispositivo em manutenção");
     enviarDadosMqtt("EM_MANUTENCAO", false);
     return;
@@ -1030,6 +1043,11 @@ void handleCommand(String intent, JsonObject params) {
       storage.data.relays[idx].manualState = true;
       storage.data.relays[idx].func = RELAY_FUNC_MANUAL;
       storage.save();
+      
+      // Aciona fisicamente o pino e atualiza o estado local imediatamente
+      releEstado[idx] = true;
+      digitalWrite(RELAY_PINS[idx], HIGH);
+
       String msg = "Rele " + String(idx + 1) + " LIGADO";
       notificarUsuario(msg, 5000);
       String resp = "RELE_" + String(idx) + "_ON";
@@ -1042,6 +1060,11 @@ void handleCommand(String intent, JsonObject params) {
       storage.data.relays[idx].manualState = false;
       storage.data.relays[idx].func = RELAY_FUNC_MANUAL;
       storage.save();
+
+      // Aciona fisicamente o pino e atualiza o estado local imediatamente
+      releEstado[idx] = false;
+      digitalWrite(RELAY_PINS[idx], LOW);
+
       String msg = "Rele " + String(idx + 1) + " DESLIGADO";
       notificarUsuario(msg, 5000);
       String resp = "RELE_" + String(idx) + "_OFF";
@@ -1369,7 +1392,7 @@ void enviarDadosMqtt(String evento, bool isRepeat) {
   doc["PORTA"] = digitalRead(PIN_DOOR) == HIGH ? "ABERTA" : "FECHADA";
 
   JsonObject reles = doc.createNestedObject("RELES");
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < RELAY_COUNT; i++) {
     reles["R" + String(i)] =
         digitalRead(RELAY_PINS[i]) == LOW ? "LIGADO" : "DESLIGADO";
   }

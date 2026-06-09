@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '../supabase/config';
 import { validateReportSelection } from '../utils/reportValidation';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
 
 // Chave de persistência no localStorage para horários do relatório Diário
 const DAILY_HOURS_KEY = 'nikaotec_daily_report_hours';
@@ -203,28 +204,68 @@ export const useReportGenerator = (
                 return;
             }
 
-            // BUSCA NO SUPABASE
-            const { data, error } = await supabase
-                .from('telemetry')
-                .select('*')
-                .in('device_id', targetDeviceIds)
-                .gte('timestamp', startISO)
-                .lte('timestamp', endISO)
-                .order('timestamp', { ascending: true })
-                .limit(reportForm.report_type === 'detailed' ? 2000 : 10000);
+            // BUSCA NA API JAVA
+            const telemetryResponse = await fetch(`${API_BASE_URL}/telemetry/query`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    deviceIds: targetDeviceIds,
+                    start: startISO,
+                    end: endISO
+                })
+            });
 
-            if (error) throw error;
+            if (!telemetryResponse.ok) {
+                const errText = await telemetryResponse.text();
+                throw new Error(`Erro ao buscar telemetria histórica: ${errText || telemetryResponse.statusText}`);
+            }
 
-            let telemetryRows = data || [];
+            const data = await telemetryResponse.json();
+            let telemetryRows = (data || []).map((row: any) => ({
+                id: row.id,
+                device_id: row.deviceId || row.device_id,
+                temperature: row.temperature,
+                temp_max: row.tempMax || row.temp_max,
+                temp_min: row.tempMin || row.temp_min,
+                humidity: row.humidity,
+                battery: row.battery,
+                voltage: row.voltage,
+                signal: row.signal,
+                timestamp: row.timestamp,
+                data_registro: row.dataRegistro || row.data_registro,
+                hora_registro: row.horaRegistro || row.hora_registro
+            }));
 
-            // Filtro de Horas (Se necessário)
+            // Filtro de Horas (Tolerância de 15 min, selecionando o mais próximo)
             if (useSelectedHoursFilter && selectedHoursAtJS.length > 0) {
-                const hourNums = selectedHoursAtJS.map(h => parseInt(h.split(':')[0]));
-                telemetryRows = telemetryRows.filter(row => {
-                    if (!row.hora_registro) return false;
-                    const rowHour = parseInt(row.hora_registro.split(':')[0]);
-                    return hourNums.includes(rowHour);
+                const targetMins = selectedHoursAtJS.map(h => {
+                    const [hh, mm] = h.split(':').map(Number);
+                    return hh * 60 + (mm || 0);
                 });
+
+                const grouped = new Map<string, { row: any, diff: number }>();
+
+                telemetryRows.forEach((row: any) => {
+                    if (!row.hora_registro || !row.data_registro) return;
+                    
+                    const [h, m] = row.hora_registro.split(':').map(Number);
+                    const rowMins = h * 60 + m;
+
+                    for (const target of targetMins) {
+                        const diff = Math.abs(rowMins - target);
+                        if (diff <= 15) {
+                            const key = `${row.device_id}_${row.data_registro}_${target}`;
+                            const existing = grouped.get(key);
+                            if (!existing || diff < existing.diff) {
+                                grouped.set(key, { row, diff });
+                            }
+                            break;
+                        }
+                    }
+                });
+
+                telemetryRows = Array.from(grouped.values()).map(g => g.row);
+                telemetryRows.sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
             }
 
             if (!telemetryRows || telemetryRows.length === 0) {
@@ -234,7 +275,7 @@ export const useReportGenerator = (
             }
 
             // Enriquecer dados com nomes/locais para facilitar o PDF
-            const enrichedRows = telemetryRows.map(row => {
+            const enrichedRows = telemetryRows.map((row: any) => {
                 const dev = supabaseDevices.find(d => d.id === row.device_id);
                 return {
                     ...row,
@@ -259,7 +300,7 @@ export const useReportGenerator = (
             if (tenantId) payload.tenant_id = tenantId;
 
             if (reportForm.device_id) {
-                const device = enrichedRows.find(d => d.device_id === reportForm.device_id) || { device_name: reportForm.device_id };
+                const device = enrichedRows.find((d: any) => d.device_id === reportForm.device_id) || { device_name: reportForm.device_id };
                 payload.device_id = reportForm.device_id;
                 payload.device_name = device.device_name;
             } else {

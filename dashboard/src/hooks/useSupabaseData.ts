@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../supabase/config';
 import type { Device } from '../data/mockData';
 import { useTenant } from '../contexts/TenantContext';
 import { mapRowToDevice } from '../services/SupabaseMapper';
 import { channelManager } from '../services/ChannelManager';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
 
 export interface DeviceEvent {
     id: string;
@@ -22,7 +23,7 @@ export interface DeviceEvent {
 
 const UNASSIGNED_TENANT_IDS = ['Unknown', 'empresa_default', 'unassigned', null, ''];
 
-export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: string) => {
+export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: string, allowedDevices?: string[]) => {
     const { availableTenants } = useTenant();
     const [devices, setDevices] = useState<Device[]>([]);
     const [history, setHistory] = useState<{ time: string, value: number, timestamp?: string }[]>([]);
@@ -33,37 +34,44 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
     // Fetch devices
     useEffect(() => {
         const fetchDevices = async () => {
-            let query = supabase.from('devices_status').select('*');
+            try {
+                let url = `${API_BASE_URL}/devices`;
+                if (deviceId) {
+                    url = `${API_BASE_URL}/devices/${deviceId}`;
+                }
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Falha ao buscar dispositivos');
+                const data = await response.json();
 
-            if (deviceId) {
-                query = query.eq('id', deviceId);
-            } else if (tenantId && tenantId !== 'all') {
-                query = query.eq('tenant_id', tenantId);
-            } else if (isManager && tenantId === 'all') {
-                // Gestor vê todos
-            } else if (!isManager && availableTenants.length > 0) {
-                const userTenantIds = availableTenants.map(t => t.id);
-                query = query.in('tenant_id', userTenantIds);
-            } else if (!isManager) {
-                setDevices([]);
-                return;
+                const dataArray = Array.isArray(data) ? data : [data];
+                const mappedDevices = dataArray.map(mapRowToDevice);
+
+                const filteredDevices = mappedDevices.filter(d => {
+                    if (isManager) return true;
+                    if (userRole === 'admin') return true;
+
+                    const isUnassigned = UNASSIGNED_TENANT_IDS.includes(d.tenantId as any) || !d.tenantId;
+                    if (isUnassigned) return false;
+
+                    if (userRole === 'user' || userRole === 'viewer') {
+                        if (allowedDevices && allowedDevices.length > 0) {
+                            return allowedDevices.includes(d.id);
+                        }
+                        return false;
+                    }
+
+                    return true;
+                });
+
+                // Filtrar por tenantId localmente no carregamento inicial se não for 'all' e não for detalhe de device único
+                const finalDevices = (tenantId && tenantId !== 'all' && !deviceId)
+                    ? filteredDevices.filter(d => d.tenantId === tenantId)
+                    : filteredDevices;
+
+                setDevices(finalDevices);
+            } catch (error) {
+                console.error("API Error (devices):", error);
             }
-
-            const { data, error } = await query;
-            if (error) {
-                console.error("Supabase Error (devices):", error);
-                return;
-            }
-
-            const mappedDevices = (data || []).map(mapRowToDevice);
-
-            const filteredDevices = mappedDevices.filter(d => {
-                if (isManager) return true;
-                const isUnassigned = UNASSIGNED_TENANT_IDS.includes(d.tenantId as any) || !d.tenantId;
-                return !isUnassigned;
-            });
-
-            setDevices(filteredDevices);
         };
 
         fetchDevices();
@@ -76,63 +84,48 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
         return () => {
             channelManager.unsubscribe(channelId);
         };
-    }, [tenantId, isManager, availableTenants, userRole, deviceId]);
+    }, [tenantId, isManager, availableTenants, userRole, deviceId, allowedDevices]);
 
     // Fetch telemetry history (últimas 24h)
     useEffect(() => {
         const fetchHistory = async () => {
-            const now = new Date();
-            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-            let query = supabase
-                .from('telemetry')
-                .select('data_registro, hora_registro, temperature, timestamp, mensage_tipo')
-                .gte('data_registro', yesterdayStr)
-                .order('data_registro', { ascending: true })
-                .order('hora_registro', { ascending: true });
-
-            if (deviceId) {
-                query = query.eq('device_id', deviceId);
-            } else if (tenantId && tenantId !== 'all' && devices.length > 0) {
-                const deviceIds = devices.map(d => d.id);
-                query = query.in('device_id', deviceIds);
-            } else if (isManager && tenantId === 'all') {
-                // Gestor vê de tudo
-            } else if (!isManager && tenantId === 'all' && devices.length > 0) {
-                const deviceIds = devices.map(d => d.id);
-                query = query.in('device_id', deviceIds);
-            } else if (!isManager) {
+            if (!deviceId) {
                 setHistory([]);
                 return;
             }
 
-            const { data, error } = await query;
-            if (error) {
-                console.error("Supabase Error (history):", error);
-                return;
-            }
+            try {
+                const response = await fetch(`${API_BASE_URL}/devices/${deviceId}/history`);
+                if (!response.ok) throw new Error('Falha ao buscar histórico de telemetria');
+                const data = await response.json();
 
-            const hist: { time: string; value: number; timestamp?: string }[] = [];
-            let lastAddedHour = -1;
+                const hist: { time: string; value: number; timestamp?: string }[] = [];
+                let lastAddedHour = -1;
 
-            for (const row of (data || [])) {
-                if (!row.hora_registro) continue;
+                // Ordena do mais antigo para o mais novo para plotar o gráfico
+                const sortedData = [...data].reverse();
 
-                const [hStr] = row.hora_registro.split(':');
-                const h = parseInt(hStr, 10);
+                for (const row of sortedData) {
+                    const horaReg = row.horaRegistro || row.hora_registro;
+                    if (!horaReg) continue;
 
-                if (!isNaN(h) && h !== lastAddedHour) {
-                    lastAddedHour = h;
-                    // Add only the first record for each hour block
-                    hist.push({
-                        time: `${hStr}:00`,
-                        value: Number(row.temperature) ?? 0,
-                        timestamp: row.timestamp ?? undefined
-                    });
+                    const [hStr] = horaReg.split(':');
+                    const h = parseInt(hStr, 10);
+
+                    if (!isNaN(h) && h !== lastAddedHour) {
+                        lastAddedHour = h;
+                        // Adiciona o primeiro registro para cada bloco de hora
+                        hist.push({
+                            time: `${hStr}:00`,
+                            value: Number(row.temperature) ?? 0,
+                            timestamp: row.timestamp ?? undefined
+                        });
+                    }
                 }
+                setHistory(hist);
+            } catch (error) {
+                console.error("API Error (history):", error);
             }
-            setHistory(hist);
         };
 
         fetchHistory();
@@ -148,52 +141,60 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
         return () => {
             channelManager.unsubscribe(channelId);
         };
-    }, [tenantId, deviceId, devices]);
+    }, [tenantId, deviceId]);
 
     // Fetch events
     useEffect(() => {
         const fetchEvents = async () => {
-            let query = supabase
-                .from('events')
-                .select('*')
-                .order('timestamp', { ascending: false })
-                .limit(50);
+            try {
+                let url = `${API_BASE_URL}/events?`;
+                if (deviceId) {
+                    url += `deviceId=${deviceId}&`;
+                }
+                if (tenantId) {
+                    url += `tenantId=${tenantId}&`;
+                }
+                if (userRole) {
+                    url += `userRole=${userRole}&`;
+                }
+                if (availableTenants && availableTenants.length > 0) {
+                    availableTenants.forEach(t => {
+                        url += `availableTenantIds=${t.id}&`;
+                    });
+                }
 
-            if (deviceId) {
-                query = query.eq('device_id', deviceId);
-            } else if (tenantId && tenantId !== 'all') {
-                query = query.eq('tenant_id', tenantId);
-            } else if (isManager && tenantId === 'all') {
-                // Gestor vê tudo - mantém a query base sem filtros extras
-            } else if (!isManager && availableTenants.length > 0) {
-                const userTenantIds = availableTenants.map(t => t.id);
-                query = query.in('tenant_id', userTenantIds);
-            } else {
-                setEvents([]);
-                return;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Falha ao buscar eventos');
+                const data = await response.json();
+
+                const mappedEvents: DeviceEvent[] = (data || []).map((row: any) => ({
+                    id: row.id,
+                    deviceId: row.deviceId || row.device_id,
+                    type: row.details?.TIPO || row.type || '',
+                    msg: row.msg,
+                    message: row.message,
+                    timestamp: row.timestamp,
+                    tenantId: row.tenantId || row.tenant_id,
+                    userName: row.userName || row.user_name,
+                    userEmail: row.userEmail || row.user_email,
+                    source: row.source,
+                    value: row.value,
+                    details: row.details,
+                }));
+                const filteredEvents = mappedEvents.filter(e => {
+                    if (userRole === 'user' || userRole === 'viewer') {
+                        if (allowedDevices && allowedDevices.length > 0) {
+                            return allowedDevices.includes(e.deviceId);
+                        }
+                        return false;
+                    }
+                    return true;
+                });
+
+                setEvents(filteredEvents);
+            } catch (error) {
+                console.error("API Error (events):", error);
             }
-
-            const { data, error } = await query;
-            if (error) {
-                console.error("Supabase Error (events):", error);
-                return;
-            }
-
-            const mappedEvents: DeviceEvent[] = (data || []).map((row: any) => ({
-                id: row.id,
-                deviceId: row.device_id,
-                type: row.details?.TIPO || row.type || '',
-                msg: row.msg,
-                message: row.message,
-                timestamp: row.timestamp,
-                tenantId: row.tenant_id,
-                userName: row.user_name,
-                userEmail: row.user_email,
-                source: row.source,
-                value: row.value,
-                details: row.details,
-            }));
-            setEvents(mappedEvents);
         };
 
         if (userRole) {
@@ -208,44 +209,54 @@ export const useSupabaseData = (tenantId: string, deviceId?: string, userRole?: 
                 channelManager.unsubscribe(channelId);
             };
         }
-    }, [tenantId, deviceId, userRole, availableTenants, isManager]);
+    }, [tenantId, deviceId, userRole, availableTenants, isManager, allowedDevices]);
 
     const refreshEvents = async () => {
-        const dateLimit = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-        let query = supabase
-            .from('events')
-            .select('*')
-            .gte('timestamp', dateLimit)
-            .order('timestamp', { ascending: false });
+        try {
+            let url = `${API_BASE_URL}/events?`;
+            if (deviceId) {
+                url += `deviceId=${deviceId}&`;
+            }
+            if (tenantId) {
+                url += `tenantId=${tenantId}&`;
+            }
+            if (userRole) {
+                url += `userRole=${userRole}&`;
+            }
+            if (availableTenants && availableTenants.length > 0) {
+                availableTenants.forEach(t => {
+                    url += `availableTenantIds=${t.id}&`;
+                });
+            }
 
-        if (deviceId) {
-            query = query.eq('device_id', deviceId);
-        } else if (tenantId && tenantId !== 'all') {
-            query = query.eq('tenant_id', tenantId);
-        } else if (isManager && tenantId === 'all') {
-            // Gestor vê tudo
-        } else if (!isManager && availableTenants.length > 0) {
-            const userTenantIds = availableTenants.map(t => t.id);
-            query = query.in('tenant_id', userTenantIds);
-        } else {
-            setEvents([]);
-            return;
-        }
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Falha ao atualizar eventos');
+            const data = await response.json();
 
-        const { data } = await query;
-        if (data) {
-            const mappedEvents: DeviceEvent[] = data.map((row: any) => ({
+            const mappedEvents: DeviceEvent[] = (data || []).map((row: any) => ({
                 id: row.id,
-                deviceId: row.device_id,
-                tenantId: row.tenant_id,
+                deviceId: row.deviceId || row.device_id,
+                tenantId: row.tenantId || row.tenant_id,
                 type: row.details?.TIPO || row.type || '',
                 msg: row.msg || row.message,
                 severity: row.severity,
                 timestamp: row.timestamp,
-                userName: row.user_name,
-                userEmail: row.user_email
+                userName: row.userName || row.user_name,
+                userEmail: row.userEmail || row.user_email
             }));
-            setEvents(mappedEvents);
+            const filteredEvents = mappedEvents.filter(e => {
+                if (userRole === 'user' || userRole === 'viewer') {
+                    if (allowedDevices && allowedDevices.length > 0) {
+                        return allowedDevices.includes(e.deviceId);
+                    }
+                    return false;
+                }
+                return true;
+            });
+
+            setEvents(filteredEvents);
+        } catch (error) {
+            console.error("API Error (refreshEvents):", error);
         }
     };
 
@@ -256,27 +267,24 @@ export const useUsers = (userRole?: string) => {
     const [users, setUsers] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const fetchUsers = async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/users`);
+            if (!response.ok) throw new Error('Falha ao buscar usuários');
+            const data = await response.json();
+            setUsers(data || []);
+        } catch (error) {
+            console.error("API Error (users):", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (userRole !== 'manager' && userRole !== 'gestor' && userRole !== 'admin') {
             setIsLoading(false);
             return;
         }
-
-        const fetchUsers = async () => {
-            const { data, error } = await supabase
-                .from('users')
-                .select('*')
-                .order('email');
-
-            if (error) {
-                console.error("Erro ao carregar usuários:", error);
-                setIsLoading(false);
-                return;
-            }
-
-            setUsers(data || []);
-            setIsLoading(false);
-        };
 
         fetchUsers();
 
@@ -290,7 +298,7 @@ export const useUsers = (userRole?: string) => {
         };
     }, [userRole]);
 
-    return { users, isLoading };
+    return { users, isLoading, refreshUsers: fetchUsers };
 };
 
 export const useReports = (tenantId: string) => {
@@ -299,20 +307,16 @@ export const useReports = (tenantId: string) => {
 
     const fetchReports = async () => {
         setIsLoading(true);
-        let query = supabase.from('report_configs').select('*');
-
-        if (tenantId !== 'all') {
-            query = query.eq('tenant_id', tenantId);
-        }
-
-        const { data, error } = await query.order('created_at', { ascending: false });
-
-        if (error) {
-            console.error("Erro ao carregar relatórios:", error);
-        } else {
+        try {
+            const response = await fetch(`${API_BASE_URL}/reports/configs?tenantId=${tenantId}`);
+            if (!response.ok) throw new Error('Falha ao buscar configs de relatórios');
+            const data = await response.json();
             setReportConfigs(data || []);
+        } catch (error) {
+            console.error("API Error (reports configs):", error);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     useEffect(() => {
@@ -328,14 +332,20 @@ export const useReports = (tenantId: string) => {
     }, [tenantId]);
 
     const saveReportConfig = async (config: any) => {
-        const { error } = await supabase.from('report_configs').upsert(config);
-        if (error) throw error;
+        const response = await fetch(`${API_BASE_URL}/reports/configs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        if (!response.ok) throw new Error('Falha ao salvar configuração de relatório');
         await fetchReports();
     };
 
     const deleteReportConfig = async (id: string) => {
-        const { error } = await supabase.from('report_configs').delete().eq('id', id);
-        if (error) throw error;
+        const response = await fetch(`${API_BASE_URL}/reports/configs/${id}`, {
+            method: 'DELETE'
+        });
+        if (!response.ok) throw new Error('Falha ao excluir configuração de relatório');
         await fetchReports();
     };
 

@@ -3,7 +3,6 @@ import Sidebar from './Sidebar';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSupabaseData } from '../hooks/useSupabaseData';
-import { supabase } from '../supabase/config';
 import { BellRing, ShieldAlert, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface AlertsProps {
@@ -20,7 +19,7 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
     // para usuários não-gestores.
     const safeTenantId = currentTenant?.id || 'all';
 
-    const { events, refreshEvents } = useSupabaseData(safeTenantId, undefined, currentUser?.role);
+    const { events, refreshEvents, devices } = useSupabaseData(safeTenantId, undefined, currentUser?.role, currentUser?.allowedDevices);
     const [pendingConfirmations, setPendingConfirmations] = useState<Set<string>>(new Set());
     const [confirmedAlerts, setConfirmedAlerts] = useState<Set<string>>(new Set());
 
@@ -31,6 +30,12 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
     // Mapear eventos do Firestore para o formato da UI
     const tenantAlerts = events
         .filter(e => e.type.startsWith('ALERTA_') || e.type.includes('NORMALIZADA') || e.type.includes('RESTABELECIDA') || e.type.includes('FECHADA'))
+        .filter(e => {
+            if (confirmedAlerts.has(e.id)) return false;
+            // O backend altera a severity para 'info' quando o alerta é confirmado
+            if ((e as any).severity === 'info' && e.type.startsWith('ALERTA_')) return false;
+            return true;
+        })
         .map(e => {
             let dateStr = 'Recent';
             if (e.timestamp) {
@@ -42,11 +47,13 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
                     dateStr = new Date(timestamp).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
                 }
             }
+            const deviceObj = devices.find(d => d.id === e.deviceId);
             return {
                 id: e.id,
                 deviceId: e.deviceId,
+                type: e.type,
                 severity: (e as any).severity || (e.type.startsWith('ALERTA_') ? 'critical' : 'info'),
-                device: (e as any).deviceName || e.deviceId,
+                device: deviceObj ? deviceObj.name : ((e as any).deviceName || e.deviceId),
                 message: e.message || e.msg || 'Alerta detectado',
                 time: dateStr,
                 value: (e as any).value || 'N/A'
@@ -58,12 +65,15 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
         console.log('Confirming alert:', alertId);
         setPendingConfirmations(prev => new Set(prev).add(alertId));
         try {
-            const { error } = await supabase
-                .from('events')
-                .update({ severity: 'info' })
-                .eq('id', alertId);
+            const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
+            const response = await fetch(`${API_BASE_URL}/events/${alertId}/confirm`, {
+                method: 'PUT'
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`Falha ao confirmar alerta na API: ${errText || response.statusText}`);
+            }
 
             console.log('Alert confirmed in DB');
             setConfirmedAlerts(prev => new Set(prev).add(alertId));
@@ -89,13 +99,47 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
     const criticalCount = tenantAlerts.filter(a => a.severity === 'critical').length;
     const warningCount = tenantAlerts.filter(a => a.severity === 'warning').length;
 
-    const getSeverityBadge = (severity: string) => {
-        switch (severity) {
-            case 'critical': return <span className="bg-[#E63946]/10 text-[#E63946] border border-[#E63946]/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest">Crítico</span>;
-            case 'warning': return <span className="bg-amber-500/10 text-amber-500 border border-amber-500/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest">Aviso</span>;
-            case 'info': return <span className="bg-primary/10 text-primary border border-primary/30 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest">Info</span>;
-            default: return <span className="bg-slate-800 text-slate-400 border border-slate-700 px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest">Desconhecido</span>;
+    const getSeverityBadge = (alert: any) => {
+        const text = `${alert.type} ${alert.message}`.toLowerCase();
+        let colorClass = '';
+        let label = '';
+        
+        if (text.includes('temperatura alta') || text.includes('temp_alta')) {
+            colorClass = 'bg-red-500/10 text-red-500 border-red-500/30';
+            label = 'Temp. Alta';
+        } else if (text.includes('temperatura baixa') || text.includes('temp_baixa')) {
+            colorClass = 'bg-blue-500/10 text-blue-500 border-blue-500/30';
+            label = 'Temp. Baixa';
+        } else if (text.includes('bateria') || text.includes('battery')) {
+            colorClass = 'bg-yellow-400/10 text-yellow-400 border-yellow-400/30';
+            label = 'Bateria';
+        } else if (text.includes('220v') || text.includes('tensão') || text.includes('energia')) {
+            colorClass = 'bg-cyan-400/10 text-cyan-400 border-cyan-400/30';
+            label = 'Tensão 220V';
+        } else if (text.includes('porta') || text.includes('door') || text.includes('aberta')) {
+            colorClass = 'bg-emerald-400/10 text-emerald-400 border-emerald-400/30';
+            label = 'Porta Aberta';
+        } else {
+            switch (alert.severity) {
+                case 'critical': 
+                    colorClass = 'bg-[#E63946]/10 text-[#E63946] border-[#E63946]/30';
+                    label = 'Crítico';
+                    break;
+                case 'warning': 
+                    colorClass = 'bg-amber-500/10 text-amber-500 border-amber-500/30';
+                    label = 'Aviso';
+                    break;
+                case 'info': 
+                    colorClass = 'bg-primary/10 text-primary border-primary/30';
+                    label = 'Info';
+                    break;
+                default: 
+                    colorClass = 'bg-slate-800 text-slate-400 border-slate-700';
+                    label = 'Desconhecido';
+            }
         }
+        
+        return <span className={`${colorClass} border px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest`}>{label}</span>;
     };
 
     return (
@@ -189,7 +233,7 @@ const Alerts: React.FC<AlertsProps> = ({ onNavigate, onDeviceClick }) => {
                                             filteredAlerts.map((alert) => (
                                                 <tr key={alert.id} className="hover:bg-[#2A2E24]/30 transition-colors group">
                                                     <td className="px-6 py-5 whitespace-nowrap">
-                                                        {getSeverityBadge(alert.severity)}
+                                                        {getSeverityBadge(alert)}
                                                     </td>
                                                     <td className="px-6 py-5 text-white font-medium">
                                                         {alert.device}

@@ -13,12 +13,11 @@ import OtaPanel from './components/ota/OtaPanel'
 import { TenantProvider, useTenant } from './contexts/TenantContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import ErrorBoundary from './components/ErrorBoundary'
-import { useMqttData } from './hooks/useMqttData'
+
 import { useTelemetryData } from './hooks/useTelemetryData'
 import { X, AlertOctagon } from 'lucide-react'
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext'
 import { useOtaManager } from './hooks/useOtaManager'
-import { supabase } from './supabase/config'
 
 type Screen = 'login' | 'signup' | 'dashboard' | 'device-list' | 'device-details' | 'alerts' | 'reports' | 'settings' | 'manager-panel' | 'admin-users' | 'ota-panel'
 
@@ -27,7 +26,7 @@ const AppContent = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('login')
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null)
   const { activeAlerts, addAlert, clearAlert } = useNotifications();
-  const { currentTenant, setTenantId, availableTenants } = useTenant();
+  const { currentTenant, availableTenants } = useTenant();
   const { currentUser, loading } = useAuth();
 
 
@@ -133,57 +132,31 @@ const AppContent = () => {
     }
   };
 
-  // Função para salvar alerta no Supabase (Auditoria)
-  const logAlertToSupabase = async (alert: any) => {
-    try {
-      // Tentar encontrar o tenantId real baseado no nome da empresa vindo do MQTT
-      let realTenantId = 'unknown';
-      const foundTenant = availableTenants.find(t => t.name.toLowerCase() === alert.EMPRESA?.toLowerCase());
-      if (foundTenant) {
-        realTenantId = foundTenant.id;
-      } else if (currentTenant && currentTenant.id !== 'all') {
-        realTenantId = currentTenant.id;
-      }
-
-      await supabase.from('events').insert({
-        device_id: alert.ID_DISPOSITIVO || 'unknown',
-        tenant_id: realTenantId,
-        type: 'alert',
-        severity: 'critical',
-        message: `${alert.TIPO?.replace('ALERTA_', '').replace('_', ' ')} detectado`,
-        value: getAlertValue(alert),
-        details: alert,
-        timestamp: new Date().toISOString()
-      });
-    } catch (e) {
-      console.error("Erro ao salvar log de alerta no Supabase:", e);
-    }
-  };
-
   // Handler para mudança de nome de dispositivo via MQTT
   const handleDeviceNameChange = async (deviceId: string, newName: string) => {
     console.log('[Nome Alterado]', deviceId, '->', newName);
     alert(`Nome do dispositivo alterado para: ${newName}`);
 
-    // Salvar no Supabase
-    const { error } = await supabase
-      .from('devices_status')
-      .update({ name: newName, updated_at: new Date().toISOString() })
-      .eq('id', deviceId);
-
-    if (error) {
-      console.error('Erro ao salvar novo nome no Supabase:', error);
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
+      const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName })
+      });
+      if (!response.ok) {
+        throw new Error(`Erro HTTP ${response.status}`);
+      }
+    } catch (err) {
+      console.error('Erro ao salvar novo nome na API Java:', err);
     }
   };
 
   // Gerenciamento centralizado de telemetria e dispositivos
-  const { displayDevices, mqttConnected, mqttClient } = useTelemetryData(currentTenant, availableTenants, currentUser);
-
-  // Monitorar Alertas MQTT Globalmente (Side effects apenas)
-  useMqttData(
-    'all',
-    currentUser?.role,
-    [],
+  const { displayDevices, mqttConnected, mqttClient } = useTelemetryData(
+    currentTenant, 
+    availableTenants, 
+    currentUser,
     (alertPayload) => {
       // Ignorar alertas sem payload válido
       if (!alertPayload || !alertPayload.TIPO || (!alertPayload.ID_DISPOSITIVO && !alertPayload.id)) return;
@@ -193,7 +166,6 @@ const AppContent = () => {
       // Gestores veem alertas de todos os dispositivos
       if (isManager) {
         addAlert(alertPayload, () => playAlertSound(alertPayload.TIPO));
-        logAlertToSupabase(alertPayload);
         return;
       }
 
@@ -211,7 +183,6 @@ const AppContent = () => {
       // SÓ dispara se for estritamente do tenant vinculado - caso contrário não mostra nem apita
       if (isFromLinkedTenant) {
         addAlert(alertPayload, () => playAlertSound(alertPayload.TIPO));
-        logAlertToSupabase(alertPayload);
       }
     },
     handleDeviceNameChange
@@ -256,26 +227,6 @@ const AppContent = () => {
     setCurrentScreen('device-details');
   }
 
-  // Debug Tenant Switcher
-  const TenantSwitcher = () => {
-    if (!currentTenant) return null;
-    return (
-      <div className="fixed bottom-4 right-4 z-50 bg-slate-800 p-2 rounded-lg shadow-lg border border-slate-700 flex gap-2 items-center opacity-50 hover:opacity-100 transition-opacity">
-        <span className="text-xs text-slate-400">Tenant:</span>
-        <select
-          value={currentTenant.id}
-          onChange={(e) => setTenantId(e.target.value)}
-          className="bg-slate-700 text-white text-xs p-1 rounded border-none"
-        >
-          {availableTenants.length > 0 && <option value="all">TODOS</option>}
-          {availableTenants.map(t => (
-            <option key={t.id} value={t.id}>{t.name}</option>
-          ))}
-        </select>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
@@ -287,7 +238,6 @@ const AppContent = () => {
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark relative overflow-hidden">
-      <TenantSwitcher />
 
       {/* Floating Alert System */}
       <div className="fixed bottom-6 right-6 z-[999] flex flex-col-reverse gap-3 w-80 max-w-[90vw]">

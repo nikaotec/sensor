@@ -4,7 +4,6 @@ import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import { useMqttData } from '../hooks/useMqttData';
-import { supabase } from '../supabase/config';
 import { Wifi, Settings as SettingsIcon, RefreshCw } from 'lucide-react';
 
 // Sub-componentes modularizados
@@ -30,7 +29,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
 
     // Todos os hooks devem ser chamados incondicionalmente no topo
     const [remoteSync, setRemoteSync] = useState(true);
-    const { devices: supabaseDevices, history, events } = useSupabaseData(currentTenant?.id || '', deviceId, currentUser?.role);
+    const { devices: supabaseDevices, history, events } = useSupabaseData(currentTenant?.id || '', deviceId, currentUser?.role, currentUser?.allowedDevices);
     const { devices: tenantDevices, isConnected, publish, updateDeviceLocal, mqttClient } = useMqttData('all', currentUser?.role, supabaseDevices);
 
     // Estados locais para controle remoto
@@ -81,12 +80,17 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
         setIsOfflinePaused(newValue); // Optimistic UI update
 
         try {
-            const { error } = await supabase
-                .from('devices_status')
-                .update({ alerts_paused: newValue })
-                .eq('id', device.id);
+            const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
+            const response = await fetch(`${API_BASE_URL}/devices/${device.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ alertsPaused: newValue })
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
+            }
 
             if (updateDeviceLocal) {
                 updateDeviceLocal(device.id, { alerts_paused: newValue } as any);
@@ -153,6 +157,7 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
     // Handlers de Ações
     const handleAction = async (action: string, extraPayload: any = {}, logMsg: string) => {
         if (!device || !publish || isUpdating) return;
+        console.log(`[Dashboard Action] ${logMsg}`);
         setIsUpdating(true);
         const isAdmin = currentUser?.role === 'gestor' || currentUser?.role === 'manager' || currentUser?.role === 'admin';
 
@@ -171,34 +176,22 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
 
         try {
             publish('esp32c3/status/action', JSON.stringify(payload));
-            const isValidUUID = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-            const tenant_id = device.tenantId && isValidUUID(device.tenantId) ? device.tenantId : null;
-
             // Se for silenciar/reativar alarme geral, também afeta os alertas offline
             if (action === 'silenciar_alarme' || action === 'reativar_alarme') {
                 const newValue = action === 'silenciar_alarme';
                 setIsOfflinePaused(newValue); // Optimistic UI
                 
-                await supabase
-                    .from('devices_status')
-                    .update({ alerts_paused: newValue })
-                    .eq('id', device.id);
+                const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
+                await fetch(`${API_BASE_URL}/devices/${device.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ alertsPaused: newValue })
+                });
 
                 if (updateDeviceLocal) {
                     updateDeviceLocal(device.id, { alerts_paused: newValue } as any);
                 }
             }
-
-            await supabase.from('events').insert({
-                device_id: device.id,
-                tenant_id,
-                type: 'DASHBOARD_COMMAND',
-                msg: logMsg,
-                user_name: currentUser?.name || 'Usuário Dashboard',
-                user_email: currentUser?.email || '',
-                timestamp: new Date().toISOString(),
-                source: 'dashboard'
-            });
         } catch (error) {
             console.error(`❌ Erro comando ${action}:`, error);
         } finally {
@@ -211,8 +204,16 @@ const DeviceDetails: React.FC<DeviceDetailsProps> = ({ deviceId, onNavigate }) =
         const nameToSet = newDeviceName.trim().substring(0, 31);
         setIsChangingName(true);
         try {
-            const { error } = await supabase.from('devices_status').update({ name: nameToSet, updated_at: new Date().toISOString() }).eq('id', device.id);
-            if (error) throw error;
+            const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
+            const response = await fetch(`${API_BASE_URL}/devices/${device.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: nameToSet })
+            });
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
+            }
             publish('esp32c3/status/action', JSON.stringify({
                 intencao: 'alterar_nome',
                 novo_nome: nameToSet,

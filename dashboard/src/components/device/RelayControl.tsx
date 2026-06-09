@@ -24,12 +24,11 @@ const RelayControl: React.FC<RelayControlProps> = ({
         <div className="pt-3 border-t border-[#2A2E24] space-y-4">
             <div>
                 <label className="text-[9px] text-slate-500 uppercase font-bold tracking-widest px-1 block mb-2">Controle de Saída (Relés)</label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-3 gap-2">
                     {[
                         { id: 0, port: 23 },
                         { id: 1, port: 19 },
-                        { id: 2, port: 18 },
-                        { id: 3, port: 5 }
+                        { id: 2, port: 18 }
                     ].map((rele) => {
                         const currentState = device?.telemetry ? (device.telemetry as any)[`rele${rele.id}`] ?? (rele.id === 0 ? device.telemetry.rele : undefined) : undefined;
 

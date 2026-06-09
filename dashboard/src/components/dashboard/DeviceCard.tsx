@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-    Activity,
     AlertTriangle,
     BatteryCharging,
     Droplets,
@@ -18,7 +17,6 @@ import { firmwareRegistryService } from '../../services/FirmwareRegistryService'
 interface DeviceCardProps {
     device: any;
     onDeviceClick: (deviceId: string) => void;
-    isManager: boolean;
     currentTenantId: string;
     availableTenants: any[];
     otaStatus?: OtaStatus;
@@ -28,7 +26,6 @@ interface DeviceCardProps {
 const DeviceCard: React.FC<DeviceCardProps> = ({
     device,
     onDeviceClick,
-    isManager,
     currentTenantId,
     availableTenants,
     otaStatus,
@@ -213,52 +210,6 @@ const DeviceCard: React.FC<DeviceCardProps> = ({
                     </div>
                 </div>
             </div>
-
-            {/* Status dos Relés (Indicadores visuais) - Apenas para Gestores */}
-            {isManager && (
-                <div className="mb-6 bg-[#0F110D]/30 border border-[#2A2E24] rounded-xl p-3 z-10">
-                    <div className="flex items-center gap-2 mb-2.5 px-1">
-                        <div className="w-1 h-3 bg-primary rounded-full shadow-[0_0_8px_rgba(151,215,0,0.5)]"></div>
-                        <h3 className="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none">Status do Equipamento</h3>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        {[
-                            { id: 0, port: 23 },
-                            { id: 1, port: 19 },
-                            { id: 2, port: 18 },
-                            { id: 3, port: 5 }
-                        ].map((rele) => {
-                            const state: any = device?.telemetry ? (device.telemetry as any)[`rele${rele.id}`] ?? (rele.id === 0 ? (device.telemetry as any).rele : undefined) : undefined;
-                            const isOn = state === true || state === 1 || state === 'on';
-
-                            return (
-                                <div
-                                    key={rele.id}
-                                    className={`flex items-center justify-between px-3 py-2 rounded-lg border transition-all duration-300 ${isOn
-                                        ? 'bg-emerald-500/10 border-emerald-500/30'
-                                        : 'bg-slate-900/40 border-[#2A2E24]'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-1.5 h-1.5 rounded-full ${isOn ? 'bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-slate-600'}`}></div>
-                                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-tighter">R-{rele.id}</span>
-                                    </div>
-                                    <div className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${isOn ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'}`}>
-                                        {isOn ? (
-                                            <>
-                                                <Activity size={8} className="animate-pulse" />
-                                                <span>LIG</span>
-                                            </>
-                                        ) : (
-                                            <span>DESL</span>
-                                        )}
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
 
             <div className="mt-auto flex items-center justify-between z-10">
                 <div className="flex items-center gap-2">

@@ -14,7 +14,10 @@ CREATE TABLE IF NOT EXISTS users (
   tenant_ids TEXT[] DEFAULT '{}',
   avatar_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  provisioned_by TEXT
+  provisioned_by TEXT,
+  daily_reports_enabled BOOLEAN DEFAULT FALSE,
+  daily_report_device_ids TEXT[] DEFAULT '{}',
+  daily_report_time TEXT DEFAULT '17:05'
 );
 
 -- Tabela: tenants (empresas)

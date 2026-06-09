@@ -151,4 +151,23 @@ describe('TelemetryService', () => {
         expect(TelemetryService.normalizePayload(payloadLower).silenced).toBe(false);
         expect(TelemetryService.normalizePayload(payloadNumber).silenced).toBe(true);
     });
+
+    it('should normalize relay states using string representation (LIGADO/DESLIGADO)', () => {
+        const payload = {
+            RELES: {
+                R0: 'LIGADO',
+                R1: 'DESLIGADO',
+                R2: 'LIGADO',
+                R3: 'DESLIGADO'
+            }
+        };
+
+        const result = TelemetryService.normalizePayload(payload);
+
+        expect(result.rele0).toBe(true);
+        expect(result.rele1).toBe(false);
+        expect(result.rele2).toBe(true);
+        expect(result.rele3).toBe(false);
+        expect(result.rele).toBe(true); // Fallback for R0
+    });
 });

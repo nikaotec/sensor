@@ -72,18 +72,18 @@ export class TelemetryService {
         else if (payload.SILENCIADO !== undefined) addIfDefined('silenced', !!payload.SILENCIADO);
 
         // Relés e Histerese
-        if (payload.RELES?.R0 !== undefined) addIfDefined('rele0', !!payload.RELES.R0);
-        else if (payload.rele0 !== undefined) addIfDefined('rele0', !!payload.rele0);
-        else if (payload.rele !== undefined) addIfDefined('rele0', !!payload.rele);
+        if (payload.RELES?.R0 !== undefined) addIfDefined('rele0', this.parseRelay(payload.RELES.R0));
+        else if (payload.rele0 !== undefined) addIfDefined('rele0', this.parseRelay(payload.rele0));
+        else if (payload.rele !== undefined) addIfDefined('rele0', this.parseRelay(payload.rele));
 
-        if (payload.RELES?.R1 !== undefined) addIfDefined('rele1', !!payload.RELES.R1);
-        else if (payload.rele1 !== undefined) addIfDefined('rele1', !!payload.rele1);
+        if (payload.RELES?.R1 !== undefined) addIfDefined('rele1', this.parseRelay(payload.RELES.R1));
+        else if (payload.rele1 !== undefined) addIfDefined('rele1', this.parseRelay(payload.rele1));
 
-        if (payload.RELES?.R2 !== undefined) addIfDefined('rele2', !!payload.RELES.R2);
-        else if (payload.rele2 !== undefined) addIfDefined('rele2', !!payload.rele2);
+        if (payload.RELES?.R2 !== undefined) addIfDefined('rele2', this.parseRelay(payload.RELES.R2));
+        else if (payload.rele2 !== undefined) addIfDefined('rele2', this.parseRelay(payload.rele2));
 
-        if (payload.RELES?.R3 !== undefined) addIfDefined('rele3', !!payload.RELES.R3);
-        else if (payload.rele3 !== undefined) addIfDefined('rele3', !!payload.rele3);
+        if (payload.RELES?.R3 !== undefined) addIfDefined('rele3', this.parseRelay(payload.RELES.R3));
+        else if (payload.rele3 !== undefined) addIfDefined('rele3', this.parseRelay(payload.rele3));
 
         // Campos de Sincronia de Histerese
         addIfDefined('R0_TEMP_ON', this.parseNumber(payload.R0_TEMP_ON ?? payload.r0_temp_on));
@@ -104,6 +104,19 @@ export class TelemetryService {
         }
 
         return normalized;
+    }
+
+    private static parseRelay(val: any): boolean | undefined {
+        if (val === undefined || val === null) return undefined;
+        if (typeof val === 'boolean') return val;
+        if (typeof val === 'string') {
+            const lower = val.toLowerCase();
+            return lower === 'ligado' || lower === 'on' || lower === 'true' || lower === '1';
+        }
+        if (typeof val === 'number') {
+            return val === 1;
+        }
+        return !!val;
     }
 
     private static parseNumber(val: any): number | undefined {

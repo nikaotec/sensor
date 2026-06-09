@@ -69,7 +69,7 @@ export const generateRandomPassword = () => {
 };
 
 // Constante para o endpoint de tarefas administrativas no próprio servidor
-const DELETE_USER_ADMIN_URL = '/api/admin/delete-user';
+const DELETE_USER_ADMIN_URL = '/admin/delete-user';
 
 /**
  * Solicita a exclusão de um usuário no Firebase Auth via Webhook n8n.

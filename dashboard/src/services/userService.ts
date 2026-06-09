@@ -1,9 +1,10 @@
-import { supabase } from '../supabase/config';
 import { deleteFirebaseUser } from './firebaseAuth';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
 
 /**
  * Exclui um usuário completamente do sistema, garantindo consistência
- * entre o Firebase Auth (autenticação) e o Supabase (banco de dados).
+ * entre o Firebase Auth (autenticação) e a base de dados via API Java.
  */
 export const deleteUserCompletely = async (userId: string) => {
     console.log(`[userService] Iniciando exclusão completa do usuário: ${userId}`);
@@ -16,41 +17,22 @@ export const deleteUserCompletely = async (userId: string) => {
     }
     console.log(`[userService] Sucesso no Firebase:`, fbResult.warning || 'OK');
 
-    // 2. Remove dependências na tabela users_devices (alertas WhatsApp) - Tentativa resiliente
+    // 2. Remove dependências na tabela users_devices (alertas WhatsApp) e o usuário no banco via API Java REST
     try {
-        console.log(`[userService] Removendo vínculos em users_devices para: ${userId}`);
-        const { error: deviceError } = await supabase.from('users_devices').delete().eq('user_id', userId);
+        console.log(`[userService] Removendo registro principal e dependências na API Java para: ${userId}`);
+        const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
+            method: 'DELETE'
+        });
 
-        if (deviceError) {
-            // Se o erro for "cannot delete from view" ou similar (código 55000 no Postgres)
-            // nós avisamos no log mas NÃO travamos o processo, pois é uma View.
-            if (deviceError.code === '55000' || deviceError.message?.includes('view')) {
-                console.warn(`[userService] Aviso: users_devices é uma View e não permite deleção direta. Continuando... [${deviceError.code}]`);
-            } else {
-                console.error(`[userService] Erro ao deletar de users_devices:`, deviceError);
-                throw new Error(`Erro ao remover dependências de alertas (users_devices): ${deviceError.message}`);
-            }
-        } else {
-            console.log(`[userService] Vínculos removidos com sucesso.`);
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Falha ao remover usuário na API: ${errText || response.statusText}`);
         }
-    } catch (e) {
-        // Se for o erro esperado de View, ignoramos e seguimos para deletar o user
-        if (e instanceof Error && e.message.includes('users_devices')) {
-            console.warn(`[userService] Prosseguindo apesar do erro em users_devices: ${e.message}`);
-        } else {
-            throw e;
-        }
+        console.log(`[userService] Usuário e vínculos removidos com sucesso via API Java.`);
+    } catch (e: any) {
+        console.error(`[userService] Erro ao deletar usuário do banco de dados:`, e);
+        throw new Error(`Erro ao remover usuário do banco de dados (API Java): ${e.message}`);
     }
-
-    // 3. Exclui o registro principal no Supabase
-    console.log(`[userService] Removendo registro principal na tabela users...`);
-    const { error: userError } = await supabase.from('users').delete().eq('id', userId);
-
-    if (userError) {
-        console.error(`[userService] Erro ao deletar de users:`, userError);
-        throw new Error(`Erro ao remover usuário do banco de dados (users): ${userError.message}`);
-    }
-    console.log(`[userService] Usuário removido com sucesso de todas as bases.`);
 
     return { success: true, warning: fbResult.warning };
 };

@@ -81,7 +81,7 @@ app.use(cors());
 app.use(express.json());
 
 // Rota para exclusão de usuário via Firebase Admin SDK
-app.post('/api/admin/delete-user', async (req, res) => {
+app.post('/admin/delete-user', async (req, res) => {
   const { uid } = req.body;
 
   if (!uid || typeof uid !== 'string' || uid.length < 5) {

@@ -109,9 +109,8 @@ enum SensorType { SENSOR_DS18B20 = 0, SENSOR_PT100 = 1 };
   120000 // 2 minutos para repetição contínua via MQTT (WhatsApp)
 
 // ---------- RELÉS ----------
-const int RELAY_COUNT = 4;
-const int RELAY_PINS[RELAY_COUNT] = {RELAY_PIN_0, RELAY_PIN_1, RELAY_PIN_2,
-                                     RELAY_PIN_3};
+const int RELAY_COUNT = 3;
+const int RELAY_PINS[RELAY_COUNT] = {RELAY_PIN_0, RELAY_PIN_1, RELAY_PIN_2};
 
 // Funções do relé
 enum RelayFunc {

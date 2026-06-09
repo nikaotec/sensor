@@ -37,38 +37,27 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         const userRole = currentUser?.role || 'admin';
         const userTenants = currentUser?.tenantIds || [];
 
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
+
         const fetchTenants = async () => {
             try {
                 let data: any[] | null = null;
-                let error: any = null;
+                let url = `${API_BASE_URL}/tenants`;
 
-                if (userRole === 'manager') {
-                    // Manager vê todas as empresas
-                    const result = await supabase.from('tenants').select('*');
-                    data = result.data;
-                    error = result.error;
-                } else if (userTenants && userTenants.length > 0) {
-                    // Usuários normais ou admin: apenas seus tenants
-                    const result = await supabase
-                        .from('tenants')
-                        .select('*')
-                        .in('id', userTenants);
-                    data = result.data;
-                    error = result.error;
-                } else {
+                if (userRole !== 'manager' && userTenants && userTenants.length > 0) {
+                    const params = new URLSearchParams();
+                    userTenants.forEach((id: string) => params.append('ids', id));
+                    url += `?${params.toString()}`;
+                } else if (userRole !== 'manager') {
                     setAvailableTenants([]);
                     if (!currentTenantId) setCurrentTenantId('all');
                     setLoadingTenants(false);
                     return;
                 }
 
-                if (error) {
-                    console.error("Supabase Tenants Error:", error);
-                    // Se der erro, tenta usar dados em memória ou continua com array vazio
-                    setAvailableTenants([]);
-                    setLoadingTenants(false);
-                    return;
-                }
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Falha ao carregar empresas da API REST');
+                data = await response.json();
 
                 const fetchedTenants: Tenant[] = (data || []).map((row: any) => ({
                     id: row.id,
@@ -87,7 +76,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 }
                 setLoadingTenants(false);
             } catch (e: any) {
-                console.error("Supabase error fetching tenants:", e.message);
+                console.error("API Error fetching tenants:", e.message);
                 setAvailableTenants([]);
                 setLoadingTenants(false);
             }

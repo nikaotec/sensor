@@ -1,9 +1,7 @@
 // ============================================================
 // FirmwareRegistryService — SRP: Manage the firmware library.
-// Persists firmware versions in Supabase (primary) with localStorage fallback.
+// Persists firmware versions in Java REST API with localStorage fallback.
 // ============================================================
-
-import { supabase } from '../supabase/config';
 
 export interface FirmwareVersion {
     id: string;
@@ -16,6 +14,7 @@ export interface FirmwareVersion {
 }
 
 const STORAGE_KEY = 'nikaotec_firmware_registry';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
 
 export class FirmwareRegistryService {
     private versions: FirmwareVersion[] = [];
@@ -26,29 +25,27 @@ export class FirmwareRegistryService {
 
     private async load(): Promise<void> {
         try {
-            // Try Supabase first
-            const { data, error } = await supabase
-                .from('firmware_versions')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
+            // Try Java API first
+            const response = await fetch(`${API_BASE_URL}/firmwares`);
+            if (!response.ok) throw new Error('Falha ao buscar firmwares na API');
+            
+            const data = await response.json();
 
             if (data && data.length > 0) {
-                this.versions = data.map(row => ({
+                this.versions = data.map((row: any) => ({
                     id: row.id,
                     version: row.version,
                     filename: row.filename,
                     hash: row.hash || undefined,
                     description: row.description || undefined,
-                    isLatest: row.is_latest,
-                    createdAt: new Date(row.created_at).getTime()
+                    isLatest: row.isLatest || row.is_latest || false,
+                    createdAt: row.createdAt ? new Date(row.createdAt).getTime() : Date.now()
                 }));
                 this.syncLocalStorage();
                 return;
             }
         } catch (e) {
-            console.warn('[FirmwareRegistryService] Supabase unavailable, using localStorage:', e);
+            console.warn('[FirmwareRegistryService] Java API unavailable, using localStorage:', e);
         }
 
         // Fallback to localStorage
@@ -99,20 +96,22 @@ export class FirmwareRegistryService {
         };
 
         try {
-            // Try Supabase first
-            const { data, error } = await supabase
-                .from('firmware_versions')
-                .insert({
+            // Try Java API first
+            const response = await fetch(`${API_BASE_URL}/firmwares`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     version: newVersion.version,
                     filename: newVersion.filename,
                     hash: newVersion.hash || null,
                     description: newVersion.description || null,
-                    is_latest: false
+                    isLatest: false
                 })
-                .select()
-                .single();
+            });
 
-            if (error) throw error;
+            if (!response.ok) throw new Error('Falha ao registrar firmware na API');
+
+            const data = await response.json();
 
             this.versions.push({
                 id: data.id,
@@ -120,11 +119,11 @@ export class FirmwareRegistryService {
                 filename: data.filename,
                 hash: data.hash || undefined,
                 description: data.description || undefined,
-                isLatest: data.is_latest,
-                createdAt: new Date(data.created_at).getTime()
+                isLatest: data.isLatest || data.is_latest || false,
+                createdAt: data.createdAt ? new Date(data.createdAt).getTime() : Date.now()
             });
         } catch (e) {
-            console.warn('[FirmwareRegistryService] Supabase write failed, using localStorage:', e);
+            console.warn('[FirmwareRegistryService] Java API write failed, using localStorage:', e);
             // Fallback to localStorage
             this.versions.push(newVersion);
         }
@@ -134,15 +133,13 @@ export class FirmwareRegistryService {
 
     async removeVersion(id: string): Promise<void> {
         try {
-            // Try Supabase first
-            const { error } = await supabase
-                .from('firmware_versions')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
+            // Try Java API first
+            const response = await fetch(`${API_BASE_URL}/firmwares/${id}`, {
+                method: 'DELETE'
+            });
+            if (!response.ok) throw new Error('Falha ao excluir firmware na API');
         } catch (e) {
-            console.warn('[FirmwareRegistryService] Supabase delete failed:', e);
+            console.warn('[FirmwareRegistryService] Java API delete failed:', e);
         }
 
         // Always update local state
@@ -152,22 +149,13 @@ export class FirmwareRegistryService {
 
     async setLatest(id: string): Promise<void> {
         try {
-            // Try Supabase first
-            // Set all to false
-            await supabase
-                .from('firmware_versions')
-                .update({ is_latest: false })
-                .neq('id', id);
-
-            // Set target to true
-            const { error } = await supabase
-                .from('firmware_versions')
-                .update({ is_latest: true })
-                .eq('id', id);
-
-            if (error) throw error;
+            // Try Java API first
+            const response = await fetch(`${API_BASE_URL}/firmwares/${id}/latest`, {
+                method: 'PUT'
+            });
+            if (!response.ok) throw new Error('Falha ao definir firmware latest na API');
         } catch (e) {
-            console.warn('[FirmwareRegistryService] Supabase update failed:', e);
+            console.warn('[FirmwareRegistryService] Java API update failed:', e);
         }
 
         // Always update local state

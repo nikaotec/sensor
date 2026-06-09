@@ -7,7 +7,6 @@ import { useMqttData } from '../hooks/useMqttData';
 import { Search, AlertTriangle, BatteryCharging, Zap, Wifi, ServerCrash, Thermometer, Droplets, CheckCircle2, Bell, BellOff } from 'lucide-react';
 import { firmwareRegistryService } from '../services/FirmwareRegistryService';
 import { VersionService } from '../services/VersionService';
-import { supabase } from '../supabase/config';
 
 interface DeviceListProps {
     onNavigate: (screen: 'dashboard' | 'device-list' | 'alerts' | 'reports' | 'settings' | 'device-details' | 'manager-panel' | 'admin-users' | 'ota-panel') => void;
@@ -27,12 +26,17 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
         e.stopPropagation();
         setTogglingId(deviceId);
         try {
-            const { error } = await supabase
-                .from('devices_status')
-                .update({ alerts_paused: !currentStatus })
-                .eq('device_id', deviceId);
+            const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikaotech.com/api';
+            const response = await fetch(`${API_BASE_URL}/devices/${deviceId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ alertsPaused: !currentStatus })
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(errText || response.statusText);
+            }
         } catch (error) {
             console.error('Erro ao silenciar dispositivo:', error);
         } finally {
@@ -42,7 +46,7 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
 
     // Dados base do Firebase + sobreposição ao vivo do MQTT
     // Escuta todos os dados para que a lógica lide mesmo quando a aba não estiver em "Todos".
-    const { devices: supabaseDevices } = useSupabaseData(currentTenant.id);
+    const { devices: supabaseDevices } = useSupabaseData(currentTenant.id, undefined, currentUser?.role, currentUser?.allowedDevices);
     const { devices: tenantDevices, isConnected: mqttConnected } = useMqttData('all', currentUser?.role, supabaseDevices);
 
     // Filtro para garantir que só seja exibido dispositivos vinculados
@@ -60,9 +64,20 @@ const DeviceList: React.FC<DeviceListProps> = ({ onNavigate, onDeviceClick }) =>
             return assignedDevices.filter(d => d.tenantId === currentTenant.id || d.tenantId === currentTenant.name);
         }
 
-        if (currentUser?.role === 'manager') return assignedDevices;
+        if (currentUser?.role === 'manager' || currentUser?.role === 'gestor') return assignedDevices;
 
-        return assignedDevices.filter(d => allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId));
+        const filteredByTenant = assignedDevices.filter(d => allowedTenantIds.includes(d.tenantId) || allowedTenantNames.includes(d.tenantId));
+
+        if (currentUser?.role === 'admin') {
+            return filteredByTenant;
+        }
+
+        // Common user
+        const allowedDevices = currentUser?.allowedDevices || (currentUser as any)?.allowed_devices || [];
+        if (!allowedDevices || allowedDevices.length === 0) {
+            return [];
+        }
+        return filteredByTenant.filter(d => allowedDevices.includes(d.id));
     }, [tenantDevices, currentUser?.role, availableTenants, currentTenant]);
 
     // Filter by search, status AND require mqttUpdated to be true
