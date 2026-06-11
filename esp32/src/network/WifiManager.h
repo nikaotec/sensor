@@ -41,6 +41,9 @@ private:
   bool _portalActive;
   bool _connectCbFired;
   String _connectedSSID;
+  unsigned long _portalConnectStart;
+  unsigned long _connectedTime;
+  bool _portalConnectFailed;
 
   DNSServer _dnsServer;
   WebServer _webServer;

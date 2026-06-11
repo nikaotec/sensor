@@ -311,23 +311,25 @@ void firmware_loop() {
   }
 
   // Controle instantâneo do Relé 2 (índice 1) pelo sensor de porta
-  if (!modoManual && storage.data.relays[1].func != RELAY_FUNC_MANUAL) {
+  if (!modoManual) {
     bool anteriorRele1 = releEstado[1];
     releEstado[1] = isDoorOpen;
     digitalWrite(RELAY_PINS[1], releEstado[1] ? HIGH : LOW);
     if (releEstado[1] != anteriorRele1) {
       Serial.print(F("[RELE] R1 (Porta)"));
       Serial.println(releEstado[1] ? F(" LIGADO") : F(" DESLIGADO"));
+      enviarDadosWeb();
     }
   } else {
     // Mantém a sincronização física do pino no modo manual
     digitalWrite(RELAY_PINS[1], releEstado[1] ? HIGH : LOW);
   }
 
+
   // --- CONTROLE DO RELÉ 3 (PROTEÇÃO DE BATERIA / PROTEÇÃO DE TENSÃO) ---
   // Liga imediatamente quando tensão sai da faixa (alta, baixa ou falta total).
   // Desliga somente após 5 segundos de tensão estável dentro da faixa.
-  if (!modoManual && storage.data.relays[2].func != RELAY_FUNC_MANUAL) {
+  if (!modoManual) {
     bool voltForaDaFaixa = (tVoltagem < VOLT_OUTAGE_THR) ||
                            (storage.data.chkVolt &&
                             (tVoltagem > storage.data.voltMax ||
@@ -367,9 +369,12 @@ void firmware_loop() {
           notificarUsuario(msg, 6000);
           enviarDadosMqtt("ALERTA_BATERIA_ATIVADA_SUBTENSAO", false);
         }
+        enviarDadosWeb();
       } else {
         // Relé 3 desligou: tensão normalizada — apenas loga na serial, sem notificar display ou MQTT
         Serial.println(F("[RELE] R2 (Bateria) DESLIGADO - Tensao normalizada"));
+        enviarDadosMqtt("BATERIA_DESATIVADA", false);
+        enviarDadosWeb();
       }
     }
   } else {
@@ -1044,9 +1049,9 @@ void handleCommand(String intent, JsonObject params) {
       storage.data.relays[idx].func = RELAY_FUNC_MANUAL;
       storage.save();
       
-      // Aciona fisicamente o pino e atualiza o estado local imediatamente
+      // Atualiza estado local e pino físico imediatamente
       releEstado[idx] = true;
-      digitalWrite(RELAY_PINS[idx], HIGH);
+      digitalWrite(RELAY_PINS[idx], releEstado[idx] ? HIGH : LOW);
 
       String msg = "Rele " + String(idx + 1) + " LIGADO";
       notificarUsuario(msg, 5000);
@@ -1061,9 +1066,9 @@ void handleCommand(String intent, JsonObject params) {
       storage.data.relays[idx].func = RELAY_FUNC_MANUAL;
       storage.save();
 
-      // Aciona fisicamente o pino e atualiza o estado local imediatamente
+      // Atualiza estado local e pino físico imediatamente
       releEstado[idx] = false;
-      digitalWrite(RELAY_PINS[idx], LOW);
+      digitalWrite(RELAY_PINS[idx], releEstado[idx] ? HIGH : LOW);
 
       String msg = "Rele " + String(idx + 1) + " DESLIGADO";
       notificarUsuario(msg, 5000);

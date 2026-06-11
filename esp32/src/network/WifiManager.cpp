@@ -7,7 +7,10 @@ WifiManager::WifiManager()
     : _state(WIFI_STATE_IDLE),
       _stateStart(0),
       _portalActive(false),
-      _connectCbFired(false) {}
+      _connectCbFired(false),
+      _portalConnectStart(0),
+      _connectedTime(0),
+      _portalConnectFailed(false) {}
 
 void WifiManager::begin() {
   WiFi.mode(WIFI_STA);
@@ -27,25 +30,54 @@ void WifiManager::update() {
     _dnsServer.processNextRequest();
     _webServer.handleClient();
 
-    if (_hasSavedCredentials()) {
-      if (WiFi.status() == WL_CONNECTED) {
-        Serial.println("[WIFI] Conexao restabelecida em segundo plano. Parando portal.");
-        _stopPortal();
-        _state = WIFI_STATE_CONNECTED;
-        _connectCbFired = true;
-        if (_onConnectCb) _onConnectCb();
-        wasPortalActive = false;
-      } else {
-        unsigned long now = millis();
-        if (!wasPortalActive) {
-          lastRetryTime = now;
-          wasPortalActive = true;
+    if (_state == WIFI_STATE_CONNECTING) {
+      wl_status_t status = WiFi.status();
+      unsigned long now = millis();
+
+      if (status == WL_CONNECTED) {
+        if (_connectedTime == 0) {
+          _connectedTime = now;
+          Serial.println("[WIFI] Conectado com sucesso via portal! Aguardando 5s para encerrar o portal...");
         }
 
-        if (now - lastRetryTime > 30000) {
-          lastRetryTime = now;
-          Serial.println("[WIFI] Portal ativo: Tentando reconectar ao WiFi salvo...");
-          WiFi.begin();
+        if (now - _connectedTime > 5000) {
+          Serial.println("[WIFI] Encerrando o portal.");
+          _stopPortal();
+          _state = WIFI_STATE_CONNECTED;
+          _connectCbFired = true;
+          if (_onConnectCb) _onConnectCb();
+          _connectedTime = 0;
+          _portalConnectFailed = false;
+          wasPortalActive = false;
+        }
+      } else if (status == WL_CONNECT_FAILED || status == WL_NO_SSID_AVAIL || (now - _portalConnectStart > 20000)) {
+        Serial.printf("[WIFI] Falha na tentativa de conexao via portal. Status: %d. Tempo decorrido: %lus\n", 
+                      status, (now - _portalConnectStart) / 1000);
+        _portalConnectFailed = true;
+        _state = WIFI_STATE_PORTAL;
+        WiFi.disconnect(false, true); // Erase NVS para nao prender tentativa falha
+      }
+    } else {
+      if (_hasSavedCredentials()) {
+        if (WiFi.status() == WL_CONNECTED) {
+          Serial.println("[WIFI] Conexao restabelecida em segundo plano. Parando portal.");
+          _stopPortal();
+          _state = WIFI_STATE_CONNECTED;
+          _connectCbFired = true;
+          if (_onConnectCb) _onConnectCb();
+          wasPortalActive = false;
+        } else {
+          unsigned long now = millis();
+          if (!wasPortalActive) {
+            lastRetryTime = now;
+            wasPortalActive = true;
+          }
+
+          if (now - lastRetryTime > 30000) {
+            lastRetryTime = now;
+            Serial.println("[WIFI] Portal ativo: Tentando reconectar ao WiFi salvo...");
+            WiFi.begin();
+          }
         }
       }
     }
@@ -163,15 +195,15 @@ void WifiManager::_checkConnection() {
     return;
   }
 
-  // Tentativa periódica ativa de reconexão a cada 15 segundos
+  // Tentativa periódica ativa foi removida.
+  // Deixamos o WiFi.setAutoReconnect agir sem atrapalhar a associacao do ESP-IDF.
   static unsigned long lastCheckRetry = 0;
   if (elapsed < 1000) {
     lastCheckRetry = now;
   }
   if (now - lastCheckRetry > 15000) {
     lastCheckRetry = now;
-    Serial.println("[WIFI] Tentando forçar conexão de forma explícita...");
-    WiFi.begin();
+    // Omitindo a reinjeção forcada WiFi.begin(); para garantir integridade do handshake
   }
 
   if (elapsed > 2000 && (elapsed / 5000) != ((elapsed - 2000) / 5000)) {
@@ -192,7 +224,7 @@ void WifiManager::_startPortal() {
 
   _stopPortal();
 
-  String apName = "Sensor-" + String((uint16_t)(ESP.getEfuseMac() >> 32), HEX);
+  String apName = "Sensor-" + String((uint32_t)(ESP.getEfuseMac() & 0xFFFFFF), HEX);
   apName.toUpperCase();
   if (apName.length() > 32) apName = apName.substring(0, 32);
 
@@ -237,6 +269,7 @@ void WifiManager::_stopPortal() {
     _webServer.stop();
     _dnsServer.stop();
     WiFi.softAPdisconnect(true);
+    WiFi.mode(WIFI_STA); // Restaura o radio
     _portalActive = false;
     Serial.println("[WIFI] Portal parado.");
   }
@@ -248,8 +281,24 @@ void WifiManager::_handleRoot() {
 }
 
 void WifiManager::_handleScan() {
-  String html = _buildScanPage();
-  _webServer.send(200, "text/html", html);
+  int n = WiFi.scanComplete();
+
+  if (n == WIFI_SCAN_FAILED) {
+    WiFi.scanNetworks(true); // Inicia assincrono
+    String html = "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='2'>"
+                  "<title>Escaneando</title><style>body{background:#0f0f23;color:#4ecca3;text-align:center;font-family:sans-serif;padding:50px;}</style></head>"
+                  "<body><h2>Buscando redes WiFi...</h2><p>Aguarde, por favor.</p></body></html>";
+    _webServer.send(200, "text/html", html);
+  } else if (n == WIFI_SCAN_RUNNING) {
+    String html = "<!DOCTYPE html><html><head><meta http-equiv='refresh' content='2'>"
+                  "<title>Escaneando</title><style>body{background:#0f0f23;color:#4ecca3;text-align:center;font-family:sans-serif;padding:50px;}</style></head>"
+                  "<body><h2>Ainda buscando redes...</h2><p>O processo continua em background...</p></body></html>";
+    _webServer.send(200, "text/html", html);
+  } else {
+    // Pronto
+    String html = _buildScanPage();
+    _webServer.send(200, "text/html", html);
+  }
 }
 
 void WifiManager::_handleConnect() {
@@ -257,55 +306,90 @@ void WifiManager::_handleConnect() {
   String password = _webServer.arg("password");
 
   if (ssid.length() == 0) {
-    _webServer.send(400, "text/plain", "SSID required");
+    _webServer.send(400, "text/plain", "SSID requerido");
     return;
   }
 
-  Serial.println("[WIFI] Salvando credenciais: '" + ssid + "'...");
+  Serial.println("[WIFI] Iniciando conexao via portal para SSID: '" + ssid + "'...");
 
-  _webServer.stop();
-  _dnsServer.stop();
-  WiFi.softAPdisconnect(true);
-  _portalActive = false;
   _connectCbFired = false;
+  _portalConnectFailed = false;
+  _connectedTime = 0;
 
   WiFi.persistent(true);
-  WiFi.mode(WIFI_STA);
-  delay(100);
   WiFi.begin(ssid.c_str(), password.c_str());
 
   _state = WIFI_STATE_CONNECTING;
   _stateStart = millis();
+  _portalConnectStart = millis();
 
-  String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'>"
-                "<meta http-equiv='refresh' content='2'>"
-                "<style>body{font-family:sans-serif;text-align:center;"
-                "padding:40px;background:#1a1a2e;color:#eee;}"
-                ".ok{color:#4ecca3;font-size:24px;}</style></head><body>"
-                "<h2>Conectando a: " + _htmlEscape(ssid) + "</h2>"
-                "<p id='status'>Aguarde...</p>"
+  String html = "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'>"
+                "<meta name='viewport' content='width=device-width, initial-scale=1.0'>"
+                "<title>Conectando...</title>"
+                "<style>"
+                "body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"
+                "text-align:center;padding:40px;background:#0f0f23;color:#e0e0e0;margin:0;}"
+                ".card{max-width:400px;margin:50px auto;background:#1a1a2e;border-radius:12px;"
+                "padding:30px;border:1px solid #333;box-shadow:0 8px 24px rgba(0,0,0,0.5);}"
+                "h2{color:#4ecca3;font-size:22px;margin-bottom:20px;}"
+                "#status{font-size:16px;margin:20px 0;line-height:1.6;}"
+                ".spinner{display:inline-block;width:30px;height:30px;border:3px solid rgba(78,204,163,0.3);"
+                "border-radius:50%;border-top-color:#4ecca3;animation:spin 1s ease-in-out infinite;"
+                "margin-bottom:15px;}"
+                "@keyframes spin{to{transform:rotate(360deg);}}"
+                ".ok{color:#4ecca3;font-weight:bold;font-size:18px;}"
+                ".err{color:#ff6b6b;font-weight:bold;font-size:18px;}"
+                "</style></head><body>"
+                "<div class='card'>"
+                "<div class='spinner' id='loader'></div>"
+                "<h2>Conectando a:</h2>"
+                "<div style='font-size:18px;font-weight:bold;color:#fff;margin-bottom:20px;'>" + _htmlEscape(ssid) + "</div>"
+                "<p id='status'>Iniciando tentativa de conexão... Por favor, aguarde.</p>"
+                "</div>"
                 "<script>"
+                "var attempts = 0;"
                 "function check(){"
-                "fetch('/status').then(r=>r.json()).then(d=>{"
-                "document.getElementById('status').innerHTML="
-                "d.connected?'<span class=ok>Conectado! IP: '+d.ip+'</span>':"
-                "'Conectando... ('+d.state+')';"
-                "if(d.connected)setTimeout(()=>location.href='/',3000);"
-                "});"
+                "  fetch('/status').then(r=>r.json()).then(d=>{"
+                "    attempts += 2;"
+                "    if(d.connected){"
+                "      document.getElementById('loader').style.display='none';"
+                "      document.getElementById('status').innerHTML="
+                "        '<span class=\"ok\">Conectado com sucesso!</span><br><br>' +"
+                "        'IP obtido: <span style=\"color:#fff\">'+d.ip+'</span><br><br>' +"
+                "        'O sensor já está operando nesta rede.';"
+                "    } else if(d.failed){"
+                "      document.getElementById('loader').style.display='none';"
+                "      document.getElementById('status').innerHTML="
+                "        '<span class=\"err\">Falha na conexão!</span><br><br>' +"
+                "        'Verifique a senha e tente novamente.<br>Redirecionando...';"
+                "      setTimeout(()=>location.href='/', 4000);"
+                "    } else {"
+                "      document.getElementById('status').innerHTML='Tentando conectar... ('+attempts+'s)';"
+                "    }"
+                "  }).catch(e=>{"
+                "    if(attempts > 4){"
+                "      document.getElementById('loader').style.display='none';"
+                "      document.getElementById('status').innerHTML="
+                "        '<span class=\"ok\">Conectado!</span><br><br>' +"
+                "        'A rede do portal foi encerrada.<br>O sensor está online.';"
+                "    }"
+                "  });"
                 "}"
                 "setInterval(check,2000);check();"
                 "</script></body></html>";
-  _webServer.begin();
+
   _webServer.send(200, "text/html", html);
 }
 
 void WifiManager::_handleStatus() {
   JsonDocument doc;
+  bool connected = (WiFi.status() == WL_CONNECTED);
   doc["state"] = getStateName();
-  doc["connected"] = isConnected();
-  doc["ssid"] = getConnectedSSID();
-  doc["ip"] = getLocalIP();
-  doc["rssi"] = getRSSI();
+  doc["connected"] = connected;
+  doc["ssid"] = connected ? WiFi.SSID() : "";
+  doc["ip"] = connected ? WiFi.localIP().toString() : "";
+  doc["rssi"] = connected ? WiFi.RSSI() : 0;
+  doc["failed"] = _portalConnectFailed;
 
   String output;
   serializeJson(doc, output);
@@ -338,42 +422,44 @@ String WifiManager::_buildPortalPage() {
   String ssid = getConnectedSSID();
   String ip = getLocalIP();
 
-  String html = "<!DOCTYPE html><html lang='pt-BR'><head>"
-                "<meta charset='UTF-8'>"
-                "<meta name='viewport' content='width=device-width, "
-                "initial-scale=1.0'>"
-                "<title>Config WiFi - Sensor</title>"
-                "<style>"
-                "body{font-family:-apple-system,BlinkMacSystemFont,"
-                "'Segoe UI',Roboto,sans-serif;margin:0;padding:20px;"
-                "background:#0f0f23;color:#e0e0e0;}"
-                ".container{max-width:400px;margin:0 auto;}"
-                "h1{color:#4ecca3;text-align:center;font-size:22px;}"
-                ".card{background:#1a1a2e;border-radius:12px;padding:20px;"
-                "margin:16px 0;border:1px solid #333;}"
-                ".status{padding:10px;border-radius:8px;margin-bottom:16px;"
-                "text-align:center;font-size:14px;}"
-                ".connected{background:#1b4332;color:#4ecca3;}"
-                ".disconnected{background:#3d1f1f;color:#ff6b6b;}"
-                "label{display:block;margin:12px 0 4px;color:#aaa;"
-                "font-size:13px;}"
-                "input[type='text'],input[type='password']{width:100%;"
-                "padding:12px;border:1px solid #333;border-radius:8px;"
-                "background:#0f0f23;color:#fff;font-size:16px;"
-                "box-sizing:border-box;}"
-                "input:focus{outline:none;border-color:#4ecca3;}"
-                "button{width:100%;padding:14px;background:#4ecca3;"
-                "color:#0f0f23;border:none;border-radius:8px;font-size:"
-                "16px;font-weight:bold;cursor:pointer;margin-top:16px;}"
-                "button:hover{background:#3ba88a;}"
-                ".scan-btn{background:transparent;color:#4ecca3;"
-                "border:1px solid #4ecca3;margin-top:8px;}"
-                ".scan-btn:hover{background:#1b4332;}"
-                ".info{font-size:12px;color:#666;text-align:center;"
-                "margin-top:20px;}"
-                "</style></head><body>"
-                "<div class='container'>"
-                "<h1>Sensor IoT</h1>";
+  String html;
+  html.reserve(2048);
+  html += "<!DOCTYPE html><html lang='pt-BR'><head>"
+          "<meta charset='UTF-8'>"
+          "<meta name='viewport' content='width=device-width, "
+          "initial-scale=1.0'>"
+          "<title>Config WiFi - Sensor</title>"
+          "<style>"
+          "body{font-family:-apple-system,BlinkMacSystemFont,"
+          "'Segoe UI',Roboto,sans-serif;margin:0;padding:20px;"
+          "background:#0f0f23;color:#e0e0e0;}"
+          ".container{max-width:400px;margin:0 auto;}"
+          "h1{color:#4ecca3;text-align:center;font-size:22px;}"
+          ".card{background:#1a1a2e;border-radius:12px;padding:20px;"
+          "margin:16px 0;border:1px solid #333;}"
+          ".status{padding:10px;border-radius:8px;margin-bottom:16px;"
+          "text-align:center;font-size:14px;}"
+          ".connected{background:#1b4332;color:#4ecca3;}"
+          ".disconnected{background:#3d1f1f;color:#ff6b6b;}"
+          "label{display:block;margin:12px 0 4px;color:#aaa;"
+          "font-size:13px;}"
+          "input[type='text'],input[type='password']{width:100%;"
+          "padding:12px;border:1px solid #333;border-radius:8px;"
+          "background:#0f0f23;color:#fff;font-size:16px;"
+          "box-sizing:border-box;}"
+          "input:focus{outline:none;border-color:#4ecca3;}"
+          "button{width:100%;padding:14px;background:#4ecca3;"
+          "color:#0f0f23;border:none;border-radius:8px;font-size:"
+          "16px;font-weight:bold;cursor:pointer;margin-top:16px;}"
+          "button:hover{background:#3ba88a;}"
+          ".scan-btn{background:transparent;color:#4ecca3;"
+          "border:1px solid #4ecca3;margin-top:8px;}"
+          ".scan-btn:hover{background:#1b4332;}"
+          ".info{font-size:12px;color:#666;text-align:center;"
+          "margin-top:20px;}"
+          "</style></head><body>"
+          "<div class='container'>"
+          "<h1>Sensor IoT</h1>";
 
   if (isConnected()) {
     html += "<div class='status connected'>Conectado: " + _htmlEscape(ssid) +
@@ -401,33 +487,35 @@ String WifiManager::_buildPortalPage() {
 }
 
 String WifiManager::_buildScanPage() {
-  String html = "<!DOCTYPE html><html lang='pt-BR'><head>"
-                "<meta charset='UTF-8'>"
-                "<meta name='viewport' content='width=device-width, "
-                "initial-scale=1.0'>"
-                "<title>Redes WiFi</title>"
-                "<style>"
-                "body{font-family:-apple-system,BlinkMacSystemFont,"
-                "'Segoe UI',Roboto,sans-serif;margin:0;padding:20px;"
-                "background:#0f0f23;color:#e0e0e0;}"
-                ".container{max-width:400px;margin:0 auto;}"
-                "h1{color:#4ecca3;text-align:center;font-size:22px;}"
-                ".net{background:#1a1a2e;border:1px solid #333;"
-                "border-radius:8px;padding:14px;margin:8px 0;"
-                "cursor:pointer;transition:border-color 0.2s;}"
-                ".net:hover{border-color:#4ecca3;}"
-                ".net .name{font-weight:bold;font-size:15px;}"
-                ".net .sig{color:#888;font-size:12px;}"
-                ".back{display:block;text-align:center;margin-top:16px;"
-                "color:#4ecca3;text-decoration:none;}"
-                ".loading{text-align:center;padding:40px;color:#888;}"
-                "</style></head><body>"
-                "<div class='container'>"
-                "<h1>Redes Disponiveis</h1>";
+  String html;
+  html.reserve(2048);
+  html += "<!DOCTYPE html><html lang='pt-BR'><head>"
+          "<meta charset='UTF-8'>"
+          "<meta name='viewport' content='width=device-width, "
+          "initial-scale=1.0'>"
+          "<title>Redes WiFi</title>"
+          "<style>"
+          "body{font-family:-apple-system,BlinkMacSystemFont,"
+          "'Segoe UI',Roboto,sans-serif;margin:0;padding:20px;"
+          "background:#0f0f23;color:#e0e0e0;}"
+          ".container{max-width:400px;margin:0 auto;}"
+          "h1{color:#4ecca3;text-align:center;font-size:22px;}"
+          ".net{background:#1a1a2e;border:1px solid #333;"
+          "border-radius:8px;padding:14px;margin:8px 0;"
+          "cursor:pointer;transition:border-color 0.2s;}"
+          ".net:hover{border-color:#4ecca3;}"
+          ".net .name{font-weight:bold;font-size:15px;}"
+          ".net .sig{color:#888;font-size:12px;}"
+          ".back{display:block;text-align:center;margin-top:16px;"
+          "color:#4ecca3;text-decoration:none;}"
+          ".loading{text-align:center;padding:40px;color:#888;}"
+          "</style></head><body>"
+          "<div class='container'>"
+          "<h1>Redes Disponiveis</h1>";
 
-  int n = WiFi.scanNetworks();
+  int n = WiFi.scanComplete();
 
-  if (n == 0) {
+  if (n <= 0) {
     html += "<p class='loading'>Nenhuma rede encontrada.</p>";
   } else {
     for (int i = 0; i < n; i++) {
